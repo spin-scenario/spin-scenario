@@ -1,0 +1,17 @@
+/3rd-party/*
+/share/spin-scenario/config/yacas
+!/3rd-party/sol.hpp
+*.idx
+*.aux
+*.ego
+*.out
+*.log
+*.glo
+*.ent
+*.gz
+*.toc
+cmake-build-release
+cmake-build-debug
+build
+.directory
+.idea
