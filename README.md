@@ -91,6 +91,8 @@ Spin-Scenario is mainly written and maintained by Yan CHANG (`changy@sibet.ac.cn
         @article{CHANG2019,
         title = "Spin-Scenario: A flexible scripting environment for realistic MR simulations",
         journal = "Journal of Magnetic Resonance",
+        volume = "301",
+        pages = "1 - 9",
         year = "2019",
         issn = "1090-7807",
         doi = "https://doi.org/10.1016/j.jmr.2019.01.016",
