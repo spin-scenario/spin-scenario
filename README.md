@@ -100,6 +100,8 @@ Spin-Scenario is mainly written and maintained by Yan CHANG (`changy@sibet.ac.cn
         author = "Yan Chang and Daxiu Wei and Huihui Jia and Cecilia Curreli and Zhenzhou Wu and Mao Sheng and Steffen J. Glaser and Xiaodong Yang"
         }
         
+![Image text](https://github.com/spin-scenario/spin-scenario-doc/blob/master/source/cover.png)
+
  Acknowledgments
 ---------------------------------------
 This work was supported by National Natural Science Foundation of China 11505281, 11675254.
