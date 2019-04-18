@@ -115,15 +115,16 @@ void grape::assign_state(const sol::table &t) {
       targ_list_ = vector<sp_cx_vec>(superop_.L0s.size(), targ_state_);
   }
 
-/*  if (obj.get_type() == sol::type::table) {
+ if (obj.get_type() == sol::type::table) {
+   targ_list_.clear();
     sol::table targ_table = obj.as<sol::table>();
     for (size_t i = 0; i < targ_table.size(); i++) {
       sol::object val = targ_table[i + 1];
       sp_cx_vec targ = val.as<sp_cx_vec>();
-      targ = levante_ernst(targ);
+      targ=norm_state(targ);
       targ_list_.push_back(targ);
     }
-  }*/
+  }
 }
 
 void grape::assign_nlopt(const sol::table &t) {

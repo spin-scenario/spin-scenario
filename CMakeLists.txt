@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8)
 project(spin-scenario)
 set(ssl_major 1)
 set(ssl_minor 0)
@@ -95,7 +96,7 @@ set(CPACK_PACKAGE_VERSION_MINOR "${ssl_minor}")
 set(CPACK_PACKAGE_VERSION_PATCH "${ssl_patch}")
 set(CPACK_PACKAGE_RELEASE 1)
 
-# DEB package
+install (TARGETS spin-scenario LIBRARY DESTINATION lib ARCHIVE DESTINATION lib RUNTIME DESTINATION bin COMPONENT app)
 set(CPACK_DEBIAN_PACKAGE_NAME, "Spin-Scenario")
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION " Spin-Scenario library, a flexible scripting environment for realistic MR simulations")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Yan Chang")

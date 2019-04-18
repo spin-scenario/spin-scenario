@@ -1402,15 +1402,21 @@ void interaction::set_zeeman_scalar_broadband(size_t id, vec3 val, string unit) 
   }
 
   broadband_cs bb;
-  bb.nominal_offset = vec::LinSpaced(num, val[0] - val[1] / 2, val[0] + val[1] / 2);
+  //bb.nominal_offset = vec::LinSpaced(num, val[0] - val[1] / 2, val[0] + val[1] / 2);
+  if (unit == "khz") {
+    val[0] *= 1e3;
+    val[1] *= 1e3;
+  }
+
+  bb.nominal_offset = vec::LinSpaced(num, val[0], val[1]);
 
   if (unit == "ppm") {
   } else if (unit == "hz") {
     val[0] /= comp_.get_freq(id - 1); // Hz into ppm.
     val[1] /= comp_.get_freq(id - 1); // Hz into ppm.
   } else if (unit == "khz") {
-    val[0] *= 1e3;
-    val[1] *= 1e3;
+    //val[0] *= 1e3;
+    //val[1] *= 1e3;
     val[0] /= comp_.get_freq(id - 1); // kHz into ppm.
     val[1] /= comp_.get_freq(id - 1); // kHz into ppm.
   } else {
@@ -1418,8 +1424,11 @@ void interaction::set_zeeman_scalar_broadband(size_t id, vec3 val, string unit) 
     throw std::runtime_error(s.c_str());
   }
 
+
   bb.spin_id = id - 1;
-  bb.offset = vec::LinSpaced(num, -val[1] / 2, val[1] / 2);
+  //bb.offset = vec::LinSpaced(num, -val[1] / 2, val[1] / 2);
+  bb.offset = vec::LinSpaced(num, -(val[1]-val[0]) / 2, (val[1]-val[0]) / 2);
+
   zeeman_.bb_scalars.push_back(bb);
 }
 
