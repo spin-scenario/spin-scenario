@@ -1306,7 +1306,8 @@ void interaction::set_zeeman(string list) {
         par[0] = boost::lexical_cast<double>(val_vec[0]);
         par[1] = boost::lexical_cast<double>(val_vec[1]);
         par[2] = boost::lexical_cast<double>(val_vec[2]);
-        set_zeeman_scalar(id, par[0], unit); // this is the default cs value.
+        //set_zeeman_scalar(id, par[0], unit); // this is the default cs value.
+        set_zeeman_scalar(id, (par[0]+par[1])/2, unit); // this is the default cs value.
         set_zeeman_scalar_broadband(id, par, unit);
       }
       iter += 4;
@@ -1349,7 +1350,8 @@ void interaction::set_Jcoupling(string list) {
         par[0] = boost::lexical_cast<double>(val_vec[0]);
         par[1] = boost::lexical_cast<double>(val_vec[1]);
         par[2] = boost::lexical_cast<double>(val_vec[2]);
-        set_Jcoupling_scalar(id1, id2, par[0], unit); // center j-coup.
+        //set_Jcoupling_scalar(id1, id2, par[0], unit); // center j-coup.
+        set_Jcoupling_scalar(id1, id2, (par[0]+par[1])/2, unit); // center j-coup.
         set_Jcoupling_scalar_broadband(id1, id2, par, unit);
       }
       iter += 5;
@@ -1517,10 +1519,11 @@ void interaction::set_Jcoupling_scalar_broadband(size_t id1, size_t id2, vec3 va
     }
 
     broadband_jcoup bb;
-    bb.nominal_offset = vec::LinSpaced(num, val[0] - val[1] / 2, val[0] + val[1] / 2);
+    //bb.nominal_offset = vec::LinSpaced(num, val[0] - val[1] / 2, val[0] + val[1] / 2);
+    bb.nominal_offset = vec::LinSpaced(num, val[0], val[1]);
     bb.spin_id1 = id1 - 1;
     bb.spin_id2 = id2 - 1;
-    bb.offset = vec::LinSpaced(num, -val[1] / 2, val[1] / 2);
+    bb.offset = vec::LinSpaced(num, -(val[1]-val[0]) / 2, (val[1]-val[0]) / 2);
     coupling_.bb_scalars.push_back(bb);
   } else {
     string s = "unidentified Jcoupling scalar unit: " + unit;

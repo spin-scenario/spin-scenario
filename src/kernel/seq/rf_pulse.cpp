@@ -397,7 +397,7 @@ cd xy2amp(cd val) {
 }
 
 void rf_pulse::plot() const {
-  ofstream ofstr("gnu_rf");
+  ofstream ofstr("shape.RF");
   ofstr.precision(3);
   write(ofstr); // already into Hz.
   ofstr.close();
@@ -424,15 +424,15 @@ void rf_pulse::plot() const {
     //gp << "set xrange [0:" << width_in_ms() << "]\n";
     if (mode_ == _amp_phase) {
       gp << "set ylabel 'amplitude / Hz'\n";
-      gp << "plot 'gnu_rf' u (($0+0.5)*" << dt << "):" << col1 << " title 'amp' with boxes ls 1\n";
+      gp << "plot 'shape.RF' u (($0+0.5)*" << dt << "):" << col1 << " title 'amp' with boxes ls 1\n";
       gp << "set ylabel 'phase / deg'\n";
       gp << "set yrange [0:360]\n";
-      gp << "plot 'gnu_rf' u (($0+0.5)*" << dt << "):" << col2 << " title 'phase' with boxes ls 2\n";
+      gp << "plot 'shape.RF' u (($0+0.5)*" << dt << "):" << col2 << " title 'phase' with boxes ls 2\n";
     }
     if (mode_ == _ux_uy) {
       gp << "set ylabel 'amplitude / Hz'\n";
-      gp << "plot 'gnu_rf' u (($0+0.5)*" << dt << "):" << col1 << " title 'ux' with boxes ls 1\n";
-      gp << "plot 'gnu_rf' u (($0+0.5)*" << dt << "):" << col2 << " title 'uy' with boxes ls 2\n";
+      gp << "plot 'shape.RF' u (($0+0.5)*" << dt << "):" << col1 << " title 'ux' with boxes ls 1\n";
+      gp << "plot 'shape.RF' u (($0+0.5)*" << dt << "):" << col2 << " title 'uy' with boxes ls 2\n";
     }
     gp << "unset multiplot\n";
 #ifdef GP_SCRIPT_OUTPUT

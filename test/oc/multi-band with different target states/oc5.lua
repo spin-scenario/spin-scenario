@@ -10,7 +10,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================-]]
 
--- example: pulse optimization for multi-band with different target states.
+-- example: pulse optimization for multi-band with different target states.  ---````--- (e.g. side band, center band, side band)
 B0{"500 MHz"}
 local config = {
     spin = '1H',
@@ -28,7 +28,7 @@ local targ_list = {}
 for i = 1, np - 1 do targ_list[i] = Ix end 
 for i = 1, np do targ_list[i + np - 1] = Iz end  -- central band
 for i = 1, np - 1 do targ_list[i + 2 * np - 1] = Ix end
--- total 288 points match with spin sys define.
+-- total 288 points match with spin sys define. 3np-2=288
 
 
 local oc = rf_optimizer(sys)
