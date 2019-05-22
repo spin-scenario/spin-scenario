@@ -18,11 +18,15 @@ The Spin-Scenario is an intuitive, flexible and unique scripting environment for
 * **Efficient pulse optimization**   
     The build-in optimal control module provides an easy way for optimization of shaped pulses as well as cooperative pulses.
 
-Installation on Linux
+Installation
 --------------------------------------
 * **Binary installers**     
 
     Download the Spin-Scenario installers from the [releases](https://github.com/spin-scenario/spin-scenario/releases).  
+	* For Windows 10:     
+    
+        * run `spin-scenario-1.0.0-win64.exe` with the default installation option.  
+
     * For Ubuntu 16.04, 18.04:     
     
         * `sudo dpkg -i spin-scenario-1.0.0-ubuntu16.04.deb`     
