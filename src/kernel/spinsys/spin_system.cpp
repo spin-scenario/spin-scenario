@@ -46,7 +46,7 @@ void spin_system::set_sys(const sol::table &t) {
 //    set_proton_freq(val_B0);
 
   if (g_B0_ < 0) {
-    throw std::runtime_error("static magnetic field not set yet！");
+    throw std::runtime_error("static magnetic field not set yet!");
   }
 
   comp_.B0_ = g_B0_;

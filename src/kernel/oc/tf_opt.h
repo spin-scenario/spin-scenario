@@ -20,6 +20,7 @@ using namespace ssl::seq;
 namespace ssl {
 namespace oc {
 
+#ifdef TENSORFLOW_ENABLED
 class tf_opt {
 
  protected:
@@ -83,8 +84,8 @@ class tf_opt {
   std::vector<std::pair<std::string, Tensor> > variables_list;
   std::vector<std::pair<std::string, Tensor> > placeholder_list;
   std::vector<string> gradient_names;
-
 };
+#endif  // TENSORFLOW_ENABLED
 
 }
 }

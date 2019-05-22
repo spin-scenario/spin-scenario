@@ -9,14 +9,19 @@ message(STATUS "configuring spin-scenario ${ssl_version}")
 message(STATUS "GCC version: ${CMAKE_CXX_COMPILER_VERSION}") 
 
 set(CMAKE_BUILD_TYPE "Release") # Debug Release
-set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -std=c++14 -O3 -Wall -fopenmp -Wno-sign-compare")
-SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -std=c++17 -O3 -Wall -fopenmp")
+if (WIN32)
+add_definitions(-DH5_BUILT_AS_DYNAMIC_LIB)
+endif()
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 #-------------path of 3rd party libraries-------------
 # special libs.
 find_package(Boost COMPONENTS system filesystem iostreams regex REQUIRED)
+if (UNIX)
 find_package(FFTW REQUIRED)
 find_package(NLopt REQUIRED)
+endif()
 find_package(HDF5 COMPONENTS CXX REQUIRED)
 find_package(PythonLibs REQUIRED)
 #find_package(CUDA)
@@ -24,15 +29,28 @@ find_package(PythonLibs REQUIRED)
 set(EXTERN_LIB_ROOT ${PROJECT_SOURCE_DIR}/3rd-party)
 
 # lib dirs.
+#BUILD_SHARED_LIBS
+if (WIN32)
+set(FFTW_INCLUDES "C:/dep/fftw-3.3.5-dll64")
+set(FFTW_LIBRARIES "C:/dep/fftw-3.3.5-dll64/libfftw3-3.lib")
+set(NLOPT_INCLUDE_DIRS "${EXTERN_LIB_ROOT}/nlopt/build/src/api")
+set(NLOPT_LIBRARIES "${EXTERN_LIB_ROOT}/nlopt/build/Release/nlopt.lib")
+set(LUA_LIBRARIES "${EXTERN_LIB_ROOT}/lua/build/Release/lua53.lib") #5.3.4
+set(LINENOISE_LIBRARIES "${EXTERN_LIB_ROOT}/linenoise-ng/build/Release/linenoise.lib")
+set(YACAS_LIBRARIES "${EXTERN_LIB_ROOT}/yacas/cyacas/libyacas/build/Release/yacas.lib")
+elseif (UNIX)
 set(LUA_LIBRARIES "${EXTERN_LIB_ROOT}/lua/build/liblua53.so") #5.3.4
 set(LINENOISE_LIBRARIES "${EXTERN_LIB_ROOT}/linenoise-ng/build/liblinenoise.so")
 set(YACAS_LIBRARIES "${EXTERN_LIB_ROOT}/yacas/cyacas/libyacas/build/libyacas.so")
+ENDIF (WIN32)
 
 # tensorflow
+if (UNIX)
 set(TENSORFLOW_ROOT ${EXTERN_LIB_ROOT}/tensorflow)
 set(TF_INCLUDE_DIRS "${TENSORFLOW_ROOT}" "${TENSORFLOW_ROOT}/bazel-genfiles" "${TENSORFLOW_ROOT}/bazel-tensorflow/external/protobuf_archive/src")
 set(NEW_OP_ROOT ${PROJECT_SOURCE_DIR}/share/spin-scenario/tf_files)
 set(TF_LIBRARIES ${TENSORFLOW_ROOT}/bazel-bin/tensorflow/libtensorflow_cc.so ${TENSORFLOW_ROOT}/bazel-bin/tensorflow/libtensorflow_framework.so)
+endif()
 
 #-------------ssl headers-------------
 include_directories(${PROJECT_SOURCE_DIR}/src
@@ -66,8 +84,11 @@ if(CUDA_FOUND)
 else()
     set(SSL_LIBRARIES ${TF_LIBRARIES} ${LUA_LIBRARIES} ${Boost_LIBRARIES} ${NLOPT_LIBRARIES} ${FFTW_LIBRARIES} ${LINENOISE_LIBRARIES} ${YACAS_LIBRARIES} ${HDF5_CXX_LIBRARIES} ${PYTHON_LIBRARIES})
 endif()
-
+if (WIN32)
+target_link_libraries(ssl ${SSL_LIBRARIES})
+elseif (UNIX)
 target_link_libraries(ssl ${SSL_LIBRARIES} dl)
+ENDIF (WIN32)
 #set_target_properties(ssl PROPERTIES VERSION ${ssl_version} SOVERSION ${ssl_major})
 
 add_executable(spin-scenario main.cpp)
@@ -85,6 +106,17 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/tf_files/matrix_e
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/tf_files/matrix_exp_op/matrix_exp_op.so" DESTINATION share/spin-scenario/tf_files/matrix_exp_op)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/tf_files/graph_generator.py" DESTINATION share/spin-scenario/tf_files)
 
+if (WIN32)
+# for windows dll install
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/dll/libfftw3-3.dll" DESTINATION bin)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/dll/linenoise.dll" DESTINATION bin)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/dll/lua53.dll" DESTINATION bin)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/dll/nlopt.dll" DESTINATION bin)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/dll/yacas.dll" DESTINATION bin)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/dll/hdf5.dll" DESTINATION bin)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/dll/hdf5_cpp.dll" DESTINATION bin)
+endif()
+
 include(InstallRequiredSystemLibraries)
 # Create Ubuntu package
 set(CPACK_PACKAGE_VENDOR "The Spin-Scenario Team")
@@ -97,6 +129,7 @@ set(CPACK_PACKAGE_VERSION_PATCH "${ssl_patch}")
 set(CPACK_PACKAGE_RELEASE 1)
 
 install (TARGETS spin-scenario LIBRARY DESTINATION lib ARCHIVE DESTINATION lib RUNTIME DESTINATION bin COMPONENT app)
+if (UNIX)
 set(CPACK_DEBIAN_PACKAGE_NAME, "Spin-Scenario")
 set(CPACK_DEBIAN_PACKAGE_DESCRIPTION " Spin-Scenario library, a flexible scripting environment for realistic MR simulations")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Yan Chang")
@@ -116,6 +149,6 @@ set(CPACK_GENERATOR "DEB")
 #set(CPACK_RPM_PACKAGE_DESCRIPTION " Spin-Scenario library, a flexible scripting environment for realistic MR simulations")
 #set(CPACK_RPM_PACKAGE_REQUIRES "boost-devel, fftw-devel, hdf5-devel, NLopt-devel, gnuplot") #python3
 #set(CPACK_GENERATOR "RPM")
-
+endif()
 include (CPack)
 #cpack -C Release

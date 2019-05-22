@@ -28,9 +28,13 @@ void completionHook(char const *prefix, linenoiseCompletions *lc) {
   }
 }
 int main(int argc, char *argv[]) {
-
-  char *s = get_current_dir_name();
-  g_spin_scenario = string(s);
+  char s[256];
+#ifdef WIN32
+  GetCurrentDirectoryA(256, s);
+#else
+  s = get_current_dir_name();
+#endif
+  set_ssl_usr_dir(s);
 
   int flag = 0;
   sol::state lua;;
@@ -38,10 +42,9 @@ int main(int argc, char *argv[]) {
   ssl::bindings(lua);
   load_yacas();
   yacas_global_vars();
-  g_expmv_theta = load_expmv_theta();
+  load_expmv_theta();
   ssl_version_output();
-
-  lua.script_file(g_project_path + "/share/spin-scenario/config/ssl_global.lua");
+  init_global_lua(lua);
 
   linenoiseInstallWindowChangeHandler();
   while (argc > 1) {

@@ -16,3 +16,6 @@
 [submodule "share/spin-scenario/config/gnuplot/colorbrewer"]
 	path = share/spin-scenario/config/gnuplot/colorbrewer
 	url = git@github.com:aschn/gnuplot-colorbrewer.git
+[submodule "3rd-party/nlopt"]
+	path = 3rd-party/nlopt
+	url = git@github.com:stevengj/nlopt.git

@@ -15,7 +15,8 @@ limitations under the License.
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
-#include <kernel/utilities/ssl_config.h>
+#include <kernel/utilities/ssl_path.h>
+using namespace ssl::utility;
 using namespace boost;
 
 namespace ssl {
@@ -44,7 +45,7 @@ void isotope::bind_isotope(const string symbol) {
 }
 void isotope::load_nuclear_isotope_database() {
   ifstream file;
-  string file_name = ssl::utility::g_project_path + "/share/spin-scenario/config/spin.dat";
+  string file_name = g_project_path + "/share/spin-scenario/config/spin.dat";
   file.open(file_name.c_str(), ios::in);
   if (!file) {
     string s = "can't open file " + file_name + " for writing!";

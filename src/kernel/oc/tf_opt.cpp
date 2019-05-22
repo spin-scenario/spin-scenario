@@ -11,7 +11,7 @@ limitations under the License.
 ==============================================================================*/
 
 // Created by  Cecilia Curreli, Technical University Munich on 18-7-4.
-
+#ifdef TENSORFLOW_ENABLED
 #include <Python.h>
 #include "tensorflow/core/public/session.h"
 #include "tensorflow/cc/ops/standard_ops.h" //maybe we don't need this
@@ -981,4 +981,4 @@ sp_cx_mat tf_opt::update_rf_ham(const double *x,
 }
 
 }
-
+#endif  // TENSORFLOW_ENABLED

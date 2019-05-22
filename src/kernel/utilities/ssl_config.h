@@ -23,13 +23,14 @@ limitations under the License.
 #include <windows.h>
 #endif
 
-#define TENSORFLOW_ENABLED 1
-
+//#define TENSORFLOW_ENABLED 1
+#include "ssl_path.h"
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <omp.h>
 using namespace std;
+#include <sol.hpp>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <unsupported/Eigen/CXX11/Tensor>
@@ -44,7 +45,6 @@ using namespace std;
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <sol.hpp>
 #include<yacas/yacas.h>
 
 #include "H5Cpp.h"
@@ -74,8 +74,6 @@ void ssl_color_text(const string &option, const string &s, ostream &ostr = cout)
 
 #define SSL_OUTPUT_ENABLE 1
 
-extern std::string g_project_path;
-extern string g_spin_scenario;
 // math definition.
 #define _pi M_PI
 typedef std::complex<double> cd;
@@ -166,7 +164,9 @@ extern phantom_space g_phantom_space;
 void reduce_phantom(const sol::table &t);
 
 extern vec g_expmv_theta;
-vec load_expmv_theta();
+void load_expmv_theta();
+
+void init_global_lua(sol::state &lua);
 
 extern seq_param *g_seq_param;
 

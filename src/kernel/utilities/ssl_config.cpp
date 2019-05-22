@@ -22,27 +22,23 @@ int omp_core_num = omp_get_num_procs();
 vector<string> g_h5_string;
 
 vec g_expmv_theta;
-
 int g_openmp_core;
-
-#ifdef WIN32
-std::string g_project_path = "../../spin-scenario";
-#else
-string g_spin_scenario = "";
-//std::string g_project_path = ".."; //"../spin-scenario DEBUG";
-std::string g_project_path = "/usr/bin/.."; //"../spin-scenario"; UBUNTU DEB.
-#endif
 
 void set_openmp_core(int n) {
   g_openmp_core = n;
 }
 double g_inf = std::numeric_limits<double>::infinity();
 
-vec load_expmv_theta() {
+void init_global_lua(sol::state &lua) {
+  lua.script_file(g_project_path +
+                  "/share/spin-scenario/config/ssl_global.lua");
+}
+
+  void load_expmv_theta() {
   string path = utility::g_project_path + "/share/spin-scenario/config/expmv_theta.txt";
   mat m = eigen_read(path);
-  return m.col(0);
-}
+  g_expmv_theta=m.col(0);
+  }
 
 double g_pw90 = 5; // us.
 void set_pw90(double val) {
@@ -123,7 +119,7 @@ void set_B0(string mag) {
     g_B0_ = tesla;
     return;
   }
-  throw std::runtime_error("par error! static magnetic field not set yet！");
+  throw std::runtime_error("par error! static magnetic field not set yet!");
   //set_proton_freq(val_B0);
 }
 
@@ -281,12 +277,12 @@ void h5write(H5File &file, Group *group, string dataset_name, const string s) {
   }
     // catch failure caused by the DataSet operations
   catch (DataSetIException error) {
-    error.printError();
+    error.printErrorStack();
   }
 
     // catch failure caused by the DataSpace operations
   catch (DataSpaceIException error) {
-    error.printError();
+    error.printErrorStack();
   }
 }
 
@@ -314,12 +310,12 @@ void h5write(H5File &file, Group *group, string dataset_name, const mat &m) {
   }
     // catch failure caused by the DataSet operations
   catch (DataSetIException error) {
-    error.printError();
+    error.printErrorStack();
   }
 
     // catch failure caused by the DataSpace operations
   catch (DataSpaceIException error) {
-    error.printError();
+    error.printErrorStack();
   }
 }
 
@@ -346,12 +342,12 @@ void h5write(H5File &file, Group *group, string dataset_name, const vec &v) {
   }
     // catch failure caused by the DataSet operations
   catch (DataSetIException error) {
-    error.printError();
+    error.printErrorStack();
   }
 
     // catch failure caused by the DataSpace operations
   catch (DataSpaceIException error) {
-    error.printError();
+    error.printErrorStack();
   }
 }
 
@@ -378,12 +374,12 @@ void h5write(H5File &file, Group *group, string dataset_name, const ivec &iv) {
   }
     // catch failure caused by the DataSet operations
   catch (DataSetIException error) {
-    error.printError();
+    error.printErrorStack();
   }
 
     // catch failure caused by the DataSpace operations
   catch (DataSpaceIException error) {
-    error.printError();
+    error.printErrorStack();
   }
 }
 
@@ -414,12 +410,12 @@ void h5write(H5File &file, Group *group, string dataset_name, const icube &cube)
   }
     // catch failure caused by the DataSet operations
   catch (DataSetIException error) {
-    error.printError();
+    error.printErrorStack();
   }
 
     // catch failure caused by the DataSpace operations
   catch (DataSpaceIException error) {
-    error.printError();
+    error.printErrorStack();
   }
 }
 
