@@ -26,6 +26,8 @@ Installation
 	* For Windows 10:     
     
         * run `spin-scenario-1.0.0-win64.exe` with the default installation option.  
+	
+    Add `C:\Program Files\spin-scenario-1.0.0\bin` to the system PATH to run `spin-scenario` from any folder.
 
     * For Ubuntu 16.04, 18.04:     
     
