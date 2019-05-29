@@ -9,7 +9,7 @@ message(STATUS "configuring spin-scenario ${ssl_version}")
 message(STATUS "GCC version: ${CMAKE_CXX_COMPILER_VERSION}") 
 
 set(CMAKE_BUILD_TYPE "Release") # Debug Release
-set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -std=c++17 -O3 -Wall -fopenmp")
+set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -std=c++17 -O3 -Wall -openmp")
 if (WIN32)
 add_definitions(-DH5_BUILT_AS_DYNAMIC_LIB)
 endif()
@@ -24,6 +24,7 @@ find_package(NLopt REQUIRED)
 endif()
 find_package(HDF5 COMPONENTS CXX REQUIRED)
 find_package(PythonLibs REQUIRED)
+find_package(ArrayFire REQUIRED)
 #find_package(CUDA)
 
 set(EXTERN_LIB_ROOT ${PROJECT_SOURCE_DIR}/3rd-party)
@@ -62,6 +63,7 @@ include_directories(${PROJECT_SOURCE_DIR}/src
         ${EXTERN_LIB_ROOT}/lua/src
         ${NLOPT_INCLUDE_DIRS}
         ${FFTW_INCLUDES}
+        ${ArrayFire_INCLUDE_DIRS}
         ${TF_INCLUDE_DIRS}
         ${Boost_INCLUDE_DIRS}
         ${HDF5_INCLUDE_DIRS}
@@ -74,13 +76,24 @@ option(BUILD_SHARED_LIBS "build shared library" ON)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
 #-------------ssl kernel lib-------------
-file(GLOB_RECURSE _src_list
-        LIST_DIRECTORIES false
-        RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/src/*.h" "${PROJECT_SOURCE_DIR}/src/*.cpp")
+set(_src_root "${PROJECT_SOURCE_DIR}/src")
+file(
+    GLOB_RECURSE _src_list 
+    LIST_DIRECTORIES false
+    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${_src_root}/*.c*"
+    "${_src_root}/*.h*")
 
 add_library(ssl SHARED ${_src_list})
+
+foreach(_source IN ITEMS ${_src_list})
+    get_filename_component(_source_path "${_source}" PATH)
+    string(REPLACE "/" "\\" _source_path_msvc "${_source_path}")
+    source_group("${_source_path_msvc}" FILES "${_source}")
+endforeach()
+
 if(CUDA_FOUND)
-    set(SSL_LIBRARIES ${TF_LIBRARIES} ${LUA_LIBRARIES} ${Boost_LIBRARIES} ${NLOPT_LIBRARIES} ${FFTW_LIBRARIES} ${LINENOISE_LIBRARIES} ${YACAS_LIBRARIES} ${HDF5_CXX_LIBRARIES} ${PYTHON_LIBRARIES}  ${CUDA_LIBRARIES})
+    set(SSL_LIBRARIES ${TF_LIBRARIES} ${LUA_LIBRARIES} ${Boost_LIBRARIES} ${NLOPT_LIBRARIES} ${FFTW_LIBRARIES} ${LINENOISE_LIBRARIES} ${YACAS_LIBRARIES} ${HDF5_CXX_LIBRARIES} ${PYTHON_LIBRARIES}  ${ArrayFire_LIBRARIES})
 else()
     set(SSL_LIBRARIES ${TF_LIBRARIES} ${LUA_LIBRARIES} ${Boost_LIBRARIES} ${NLOPT_LIBRARIES} ${FFTW_LIBRARIES} ${LINENOISE_LIBRARIES} ${YACAS_LIBRARIES} ${HDF5_CXX_LIBRARIES} ${PYTHON_LIBRARIES})
 endif()
@@ -99,6 +112,7 @@ RUNTIME DESTINATION bin
 LIBRARY DESTINATION lib
 CONFIGURATIONS Release)
 
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/test" DESTINATION .)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/config" DESTINATION share/spin-scenario)
 install(FILES ${TF_LIBRARIES} ${LUA_LIBRARIES} ${LINENOISE_LIBRARIES} ${YACAS_LIBRARIES} DESTINATION lib)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE" "${CMAKE_CURRENT_SOURCE_DIR}/README.md" DESTINATION share/spin-scenario/doc)

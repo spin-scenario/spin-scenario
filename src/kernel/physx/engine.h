@@ -18,6 +18,12 @@ using namespace ssl::spinsys;
 using namespace ssl::sample;
 
 //#define DENSE_MATRIX_COMPUTE 1
+#define ARRAYFIRE_USE 1
+
+#ifdef ARRAYFIRE_USE
+#include <af/util.h>
+#include <arrayfire.h>
+#endif
 
 using namespace ssl::utility;
 
@@ -26,7 +32,8 @@ namespace physx {
 
 enum physx_model {
   _quantum_cpu,
-  _quantum_gpu
+  _quantum_gpu,
+  _bloch_gpu
 };
 
 struct unified_spinsys {
@@ -54,28 +61,6 @@ struct unified_spinsys {
 
     L0 = sys.free_hamiltonian();
     R = ci * sys.relaxation();
-
-//    if (sys.nspins() == 1) {
-//      rho0 = sys.smart_state("I1z"); // temporarily used.
-//      Lz0 = sys.smart_op("I1z");
-//    }
-//
-//    if (sys.nspins() == 2) {
-//      rho0 = sys.smart_state("I1z + I2z"); // temporarily used.
-//      Lz0 = sys.smart_op("I1z + I2z");
-//    }
-//
-//    if (sys.nspins() == 3) {
-//      rho0 = sys.smart_state("I1z + I2z+ I3z"); // temporarily used.
-//      Lz0 = sys.smart_op("I1z + I2z+ I3z");
-//    }
-//
-//    if (sys.nspins() == 6) {
-//      rho0 = sys.smart_state("I1z+I2z+I3z+I4z+I5z+I6z"); // temporarily used.
-//      Lz0 = sys.smart_op("I1z+I2z+I3z+I4z+I5z+I6z");
-//    }
-    //rho0 = sys.smart_state("1H Iz"); // temporarily used.
-    //Lz0 = sys.total_hamiltonian();//sys.smart_op("1H Iz"); // temporarily used.
 
     string acq_ch = g_seq_param->acq_channel;
     rho0 = sys.state(acq_ch + " Iz");
@@ -120,26 +105,9 @@ struct each_spinsys {
   cx_vec sig;
 };
 
-#ifdef ARRAYFIRE_COMPUTE
-struct af_ensemble {
-    int n;
-    af::array rho;
-    af::array L0;
-    af::array Lz0;
-    af::array L;
-    af::array R;
-    af::array pos;
-    af::array dB0;
-    af::array det;
-    af::array sig;
-    af::array Lx;
-    af::array Ly;
-};
-#endif // ARRAYFIRE_COMPUTE
-
 struct rf_const {
   vec2 u = vec2::Zero(); // x/y components.
-  double df = 0;
+  double df = 0; // Hz
   string channel = "";
 };
 
@@ -182,6 +150,8 @@ class engine {
   void TFInitEnsemble(const phantom *p_phantom);
   void evolution_for_each(double dt, const seq_const &ctrl, each_spinsys &each);
   cx_vec accu_signal();
+  cx_vec accu_signal_bloch_gpu();
+  void gpu_signal_transfer(double *fidx, double *fidy);
  private:
   physx_model physx_model_;
   phantom *p_phantom_;
@@ -191,10 +161,48 @@ class engine {
   vector<seq_step> seq_step_list_;
 
   vector<cx_vec> raw_signal_;
+  vector<cx_vec> raw_signal_tmp_;
 
-#ifdef ARRAYFIRE_COMPUTE
-  af_ensemble af_ensemble_;
-#endif // ARRAYFIRE_COMPUTE
+  int nRxs_;
+  int nTxs_;
+
+  #ifdef ARRAYFIRE_USE
+  af::array gPos_;
+  af::array gdB0s_;
+
+  af::array tx_sens_amp_;
+  af::array tx_sens_phi_;
+  af::array rx_sens_amp_;
+  af::array rx_sens_phi_;
+
+  af::array rx_sens_cx_;
+  af::array rx_sens_cy_;
+
+  af::array r1_;
+  af::array r2_;
+  af::array pd_;
+  af::array ux_;
+  af::array uy_;
+
+  vector<double> raw_r1_;
+  vector<double> raw_r2_;
+  vector<double> raw_rho_;
+  vector<double> raw_loc_;
+  vector<double> raw_dB0_;
+  vector<double> raw_tx_B1_amp_;
+  vector<double> raw_tx_B1_phase_;
+  vector<double> raw_rx_B1_amp_;
+  vector<double> raw_rx_B1_phase_;
+
+
+
+  af::array mx_;
+  af::array my_;
+  af::array mz_;
+
+  //cx_mat signal_;
+  //vector<cx_mat> signals_;
+#endif
 };
 
 extern engine *g_engine;

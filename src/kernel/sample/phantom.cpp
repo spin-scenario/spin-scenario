@@ -203,6 +203,7 @@ void phantom::view(const string &axis, int slice) const {
   g_lua->script("plot('title<" + title + "> xlabel<" + row + "> ylabel<" + col + ">', _map)");
 }
 void phantom::load(const char *filename) {
+  model_ = unidentified_phantom;
   H5File file;
   file.openFile(filename, H5F_ACC_RDWR);
 
@@ -308,6 +309,10 @@ void phantom::load(const char *filename) {
       break;
     default:break;
   }
+
+  if (model_ == unidentified_phantom)
+    throw std::runtime_error("unidentified phantom!");
+
   //	boost::mt19937 rng;
   //	boost::uniform_01<boost::mt19937> zeroone(rng);
   //	cube::extent_gen extents;

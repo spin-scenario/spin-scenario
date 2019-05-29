@@ -19,16 +19,17 @@ namespace physx {
 
 engine *g_engine = nullptr;
 engine::engine(const sol::table &t) {
-
-  string acc_str = "cpu";
+  string acc_str = "cpu";  // default option.
   if (is_retrievable("acc", t)) {
     acc_str = retrieve_table_str("acc", t);
   }
   boost::to_lower(acc_str);
   if (acc_str == "gpu")
-    physx_model_ = _quantum_gpu;
+    physx_model_ = _bloch_gpu;  // currently we support GPU version only for
+                                // Bloch model (via Arrayfire lib).
   else if (acc_str == "cpu") {
-    physx_model_ = _quantum_cpu;
+    physx_model_ =
+        _quantum_cpu;  // for the cpu option, we default use quantum model.
   }
 
   if (is_retrievable("spinsys", t)) {
@@ -37,7 +38,7 @@ engine::engine(const sol::table &t) {
     const spin_system &par_sys = par.as<const spin_system &>();
     unified_spinsys_.init(par_sys);
   } else {
-    //g_lua->script("_sys = spin_system{B0 = '3 T', spins = '1H'}");
+    // g_lua->script("_sys = spin_system{B0 = '3 T', spins = '1H'}");
     g_lua->script("_sys = spin_system{spin = '1H'}");
     unified_spinsys_.init((*g_lua)["_sys"]);
   }
@@ -47,32 +48,35 @@ engine::engine(const sol::table &t) {
     string par = retrieve_table_str("phantom", t);
     p_phantom_ = new phantom(par.c_str());
   }
-
   init_ensemble(p_phantom_);
+  delete[] p_phantom_;
 }
 
-engine::~engine() {
-}
+engine::~engine() {}
 
 void engine::init_ensemble(const phantom *p_phantom) {
-  double ppm = 0;// 0.05;
+  double ppm = 0;  // 0.05;
   if (physx_model_ == _quantum_cpu) {
     if (!p_phantom) {
-      ssl_color_text("warn", "no phantom specified, ONLY one spin system used.\n");
+      ssl_color_text("warn",
+                     "no phantom specified, ONLY one spin system used.\n");
       each_spinsys each;
       ensemble_ = vector<each_spinsys>(1, each);
 #ifdef DENSE_MATRIX_COMPUTE
       ensemble_[0].pos = vec3::Zero();
       ensemble_[0].rho = unified_spinsys_.rho0.toDense();
       ensemble_[0].L0 =
-          unified_spinsys_.L0.toDense(); //////////////////////////////////////////////////////////////////////////
+          unified_spinsys_.L0
+              .toDense();  //////////////////////////////////////////////////////////////////////////
       ensemble_[0].Lz0 = unified_spinsys_.Lz0.toDense();
       ensemble_[0].R = unified_spinsys_.R.toDense();
       ensemble_[0].pd = 1;
 #else
       ensemble_[0].pos = vec3::Zero();
       ensemble_[0].rho = unified_spinsys_.rho0;
-      ensemble_[0].L0 = unified_spinsys_.L0; //////////////////////////////////////////////////////////////////////////
+      ensemble_[0].L0 =
+          unified_spinsys_
+              .L0;  //////////////////////////////////////////////////////////////////////////
       ensemble_[0].Lz0 = unified_spinsys_.Lz0;
       ensemble_[0].R = unified_spinsys_.R;
       ensemble_[0].pd = 1;
@@ -83,9 +87,10 @@ void engine::init_ensemble(const phantom *p_phantom) {
     int num = p_phantom->isochromats_.size();
     each_spinsys each;
     ensemble_ = vector<each_spinsys>(num, each);
-//#pragma omp parallel for
+    omp_set_num_threads(omp_core_num);
+    #pragma omp parallel for
     for (int i = 0; i < num; i++) {
-      //int id = omp_get_thread_num();
+      // int id = omp_get_thread_num();
 #ifdef DENSE_MATRIX_COMPUTE
       ensemble_[i].pos = p_phantom->isochromats_[i].position();
       ensemble_[i].rho = unified_spinsys_.rho0.toDense();
@@ -97,10 +102,11 @@ void engine::init_ensemble(const phantom *p_phantom) {
       ensemble_[i].R(1, 1) = -ci * p_phantom->isochromats_[i].data[r2];
       ensemble_[i].R(2, 2) = -ci * p_phantom->isochromats_[i].data[r1];
       ensemble_[i].R(3, 3) = -ci * p_phantom->isochromats_[i].data[r2];
-//      cout<<ensemble_[i].R<<"\n";
-//      int a;
-//      cin>>a;
-      ensemble_[i].dB = p_phantom->isochromats_[i].data[dB0] * ppm * unified_spinsys_.B0 / 1e3; // into mT
+      //      cout<<ensemble_[i].R<<"\n";
+      //      int a;
+      //      cin>>a;
+      ensemble_[i].dB = p_phantom->isochromats_[i].data[dB0] * ppm *
+                        unified_spinsys_.B0 / 1e3;  // into mT
       ensemble_[i].pd = p_phantom->isochromats_[i].data[pd];
 #else
       ensemble_[i].pos = p_phantom->isochromats_[i].position();
@@ -113,112 +119,77 @@ void engine::init_ensemble(const phantom *p_phantom) {
       ensemble_[i].R.coeffRef(1, 1) = -ci * p_phantom->isochromats_[i].data[r2];
       ensemble_[i].R.coeffRef(2, 2) = -ci * p_phantom->isochromats_[i].data[r1];
       ensemble_[i].R.coeffRef(3, 3) = -ci * p_phantom->isochromats_[i].data[r2];
-      ensemble_[i].dB = p_phantom->isochromats_[i].data[dB0] * ppm * unified_spinsys_.B0 / 1e3; // into mT.
+      ensemble_[i].dB = p_phantom->isochromats_[i].data[dB0] * ppm *
+                        unified_spinsys_.B0 / 1e3;  // into mT.
       ensemble_[i].pd = p_phantom->isochromats_[i].data[pd];
 #endif
     }
   }
-  if (physx_model_ == _quantum_gpu) {
-#ifdef ARRAYFIRE_COMPUTE
+  if (physx_model_ == _bloch_gpu) {
+#ifdef ARRAYFIRE_USE
     af::setDevice(0);
     af::info();
+    int num = p_phantom->isochromats_.size();
+    for (int i = 0; i < num; i++) {
+      const isochromat &iso = p_phantom->isochromats_[i];
+      raw_r1_.push_back(iso.data[r1]);
+      raw_r2_.push_back(iso.data[r2]);
+      raw_rho_.push_back(iso.data[pd]);
 
-    int n =  p_phantom->isochromats_.size();
-    int dim = unified_spinsys_.rho0.size();
+      vector<double> pos(3, 0);
+      pos[0] = iso.data[cx];
+      pos[1] = iso.data[cy];
+      pos[2] = iso.data[cz];
+      std::copy(pos.begin(), pos.end(), std::back_inserter(raw_loc_));
 
-    vector<cd> raw_rhos;
-    cx_vec rho0 = unified_spinsys_.rho0.toDense();
-    vector<cd> raw_rho0 = vector<cd>(&rho0.data()[0], &rho0.data()[dim]);
+      raw_dB0_.push_back(iso.data[dB0]);
 
-    vector<double> raw_pos;
+      nTxs_ = 1;  // only for single tx coil.
+      nRxs_ = 1;  // only for single rx coil.
 
-    vector<cd> raw_Lz0s;
-    cx_mat Lz0 = unified_spinsys_.Lz0.toDense();
-    vector<cd> raw_Lz0 = vector<cd>(&Lz0.data()[0], &Lz0.data()[dim*dim]);
+      for (size_t k = 0; k < nTxs_; k++) {
+        // cd val = iso->sens_tx[k];
+        raw_tx_B1_amp_.push_back(1);
+        raw_tx_B1_phase_.push_back(0);
+      }
 
-    vector<cd> raw_L0s;
-    cx_mat L0 = unified_spinsys_.L0.toDense();
-    vector<cd> raw_L0 = vector<cd>(&L0.data()[0], &L0.data()[dim*dim]);
-
-    vector<cd> raw_Rs;
-
-    vector<double> raw_dB0s;
-
-    for (int i = 0; i < n; i++) {
-        // initial state.
-        std::copy(raw_rho0.begin(), raw_rho0.end(), std::back_inserter(raw_rhos));
-
-        // position.
-        vec3 p = p_phantom->isochromats_[i].position();
-        vector<double> pv(&p.data()[0], &p.data()[3]);
-        std::copy(pv.begin(), pv.end(), std::back_inserter(raw_pos));
-
-        //std::copy(raw_Lz0.begin(), raw_Lz0.end(), std::back_inserter(raw_Lz0s));
-
-        std::copy(raw_L0.begin(), raw_L0.end(), std::back_inserter(raw_L0s));
-
-        cx_mat R(dim, dim);
-        R.setZero();
-        R(2, 0) = ci*p_phantom->isochromats_[i].data[r1];
-        R(1, 1) = -ci*p_phantom->isochromats_[i].data[r2];
-        R(2, 2) = -ci*p_phantom->isochromats_[i].data[r1];
-        R(3, 3) = -ci*p_phantom->isochromats_[i].data[r2];
-        vector<cd> raw_R = vector<cd>(&R.data()[0], &R.data()[dim*dim]);
-        std::copy(raw_R.begin(), raw_R.end(), std::back_inserter(raw_Rs));
-
-        double dB = p_phantom->isochromats_[i].data[dB0] * ppm * unified_spinsys_.B0 / 1e3; // into mT.
-        raw_dB0s.push_back(dB);
+      for (size_t k = 0; k < nRxs_; k++) {
+        // cd val = iso->sens_rx[k];
+        raw_rx_B1_amp_.push_back(1);
+        raw_rx_B1_phase_.push_back(0);
+      }
     }
+    // spin pos data initialized on device. [cx, cy, cz] for each.   [pd, r1,
+    // r2, r2s, dB0]
+    gPos_ = af::array(3, num, raw_loc_.data());
+    raw_loc_.clear();
 
-    af_ensemble_.n = n;
-    af_ensemble_.rho = af::array(dim, n, (af::cdouble*)raw_rhos.data());
-    af_ensemble_.pos = af::array(3, n, (double*)raw_pos.data());
-    af_ensemble_.L0 = af::array(dim, dim, n, (af::cdouble*)raw_L0s.data()); // to be only 1.
-    af_ensemble_.Lz0 = af::array(dim, dim, (af::cdouble*)raw_Lz0.data()); // to be only 1.
-    af_ensemble_.L = af::constant(0, af::dim4(dim, dim, n), c64);
-    af_ensemble_.R = af::array(dim, dim, n, (af::cdouble*)raw_Rs.data());
+    // dB0
+    gdB0s_ = af::array(1, num, raw_dB0_.data());
+    gdB0s_ *= 267.5216941e3;  // into rad/s.
+    raw_dB0_.clear();
 
-    af_ensemble_.dB0 = af::array(1, n, (double*)raw_dB0s.data());
+    tx_sens_amp_ = af::array(nTxs_, num, raw_tx_B1_amp_.data());
+    tx_sens_phi_ = af::array(nTxs_, num, raw_tx_B1_phase_.data());
 
-#ifdef DENSE_MATRIX_COMPUTE
-    cx_vec det = unified_spinsys_.det;
-#else
-    cx_vec det = unified_spinsys_.det.toDense();
-#endif
-    vector<cd> raw_det = vector<cd>(&det.data()[0], &det.data()[dim]);
-    af_ensemble_.det = af::array(dim, 1, (af::cdouble*)raw_det.data());
+    rx_sens_amp_ = af::array(nRxs_, num, raw_rx_B1_amp_.data());
+    rx_sens_phi_ = af::array(nRxs_, num, raw_rx_B1_phase_.data());
 
+    mx_ = af::constant(0, 1, num, f64);
+    my_ = af::constant(0, 1, num, f64);
+    mz_ = af::array(1, num, raw_rho_.data());
 
-    int channels = unified_spinsys_.rf_ctrl.channels;
-    vector<cd> raw_Lxs, raw_Lys;
-    for (int i = 0; i < channels; i++) {
-        cx_mat& Lx = unified_spinsys_.rf_ctrl.Lx_dense[i];
-        vector<cd> raw_Lx = vector<cd>(&Lx.data()[0], &Lx.data()[dim*dim]);
-        cx_mat& Ly = unified_spinsys_.rf_ctrl.Ly_dense[i];
-        vector<cd> raw_Ly = vector<cd>(&Ly.data()[0], &Ly.data()[dim*dim]);
-        std::copy(raw_Lx.begin(), raw_Lx.end(), std::back_inserter(raw_Lxs));
-        std::copy(raw_Ly.begin(), raw_Ly.end(), std::back_inserter(raw_Lys));
-    }
+    r1_ = af::array(1, num, raw_r1_.data());
+    r2_ = af::array(1, num, raw_r2_.data());
+    pd_ = af::array(1, num, raw_rho_.data());
 
-    af_ensemble_.Lx = af::array(dim, dim, channels, (af::cdouble*)raw_Lxs.data());
-    af_ensemble_.Ly = af::array(dim, dim, channels, (af::cdouble*)raw_Lys.data());
-
-    //af_ensemble_.dB0 *= 1e5;
-    /*af_print(af_ensemble_.det);
-    af_print(af_ensemble_.dB0);
-    af_print(af_ensemble_.rho);
-    af_print(af_ensemble_.pos);
-    af_print(af_ensemble_.Lz0);
-    af_print(af_ensemble_.R);
-    af_print(af_ensemble_.L);
-    af_print(af_ensemble_.Lx);
-    af_print(af_ensemble_.Ly);
-    exit(0);*/
+    rx_sens_cx_ = rx_sens_amp_ * af::cos(rx_sens_phi_);
+    rx_sens_cy_ = rx_sens_amp_ * af::sin(rx_sens_phi_);
 #endif
   }
 }
 
-//void engine::set_observer(const sp_cx_vec &rho) {
+// void engine::set_observer(const sp_cx_vec &rho) {
 //  cout << "~~~~\n";
 //#ifdef DENSE_MATRIX_COMPUTE
 //  unified_spinsys_.det = rho.toDense(); // temporarily used.
@@ -229,7 +200,7 @@ void engine::init_ensemble(const phantom *p_phantom) {
 //  cout << unified_spinsys_.det << "\n";
 //}
 //
-//void engine::set_observer(const string expr) {
+// void engine::set_observer(const string expr) {
 //  if (unified_spinsys_.p_sys != nullptr)
 //    cout << "###\n";
 //  else
@@ -247,92 +218,183 @@ void engine::evolution(timeline dt, const seq_const &ctrl) {
 
   // OpenMP CPU case.
   if (physx_model_ == _quantum_cpu) {
-    omp_set_num_threads(omp_core_num);
 #pragma omp parallel for
-    for (int i = 0; i < (int) ensemble_.size(); i++)
+    for (int i = 0; i < (int)ensemble_.size(); i++)
       evolution_for_each(t, ctrl, ensemble_[i]);
 
     if (ctrl.acq.adc && ctrl.acq.last == true)
       raw_signal_.push_back(accu_signal());
 
-    //if (ctrl.acq.adc)
-    //raw_signal_.push_back(accu_signal());
-  }
+    // if (ctrl.acq.adc)
+    // raw_signal_.push_back(accu_signal());
+  } else if (physx_model_ == _bloch_gpu) {
+#ifdef ARRAYFIRE_USE
+    af::array E1 = af::exp(-t * r1_);
+    af::array E2 = af::exp(-t * r2_);
 
-  // ArrayFire GPU case.
-  if (physx_model_ == _quantum_gpu) {
-#ifdef ARRAYFIRE_COMPUTE
-    af_ensemble_.L = af_ensemble_.R;
-    // delay evolution.
-    if (ctrl.delay_if) {
-        af_ensemble_.L += af_ensemble_.L0;
-        af_step(af_ensemble_.n, af_ensemble_.L, af_ensemble_.rho, t);
-        //each.rho = ssl::spinsys::step(each.rho, each.L, dt);
-        return;
-    }
-
-    // gradient part.
-    af::array dw = af_ensemble_.dB0; // mT.
-    if (ctrl.grad.v.norm()) {
-        af::array grad(3, 1, (double*)ctrl.grad.v.data()); // allocate grad ctrl vector [x/y/z] on device.
-        dw += af::matmulTN(grad, af_ensemble_.pos); // 1*nspins_
-    }
-
-    dw *= 267.5216941e3; // into rad/s.
-
-    gfor(af::seq k, af_ensemble_.n) {
-        af_ensemble_.L(af::span, af::span, k) += dw(af::span, k)*af_ensemble_.Lz0;
-    }
-
-    // acquisition evolution (1st point).
+    // size_t id = (size_t)(ctrl.acq.index);
+    int nRxs_ = 1;  // single coil.
     if (ctrl.acq.adc && ctrl.acq.index == 1) {
-        af_ensemble_.sig = af::constant(0, af::dim4(ctrl.acq.nps, af_ensemble_.n), c64);
-        af_ensemble_.sig(0, af::span) = af::matmulTN(af_ensemble_.det, af_ensemble_.rho);
+      af::array mx = af::tile(mx_, nRxs_, 1);
+      af::array my = af::tile(my_, nRxs_, 1);
+
+      af::array rx_fid_x = rx_sens_cx_ * mx - rx_sens_cy_ * my;
+      af::array rx_fid_y = rx_sens_cy_ * mx + rx_sens_cx_ * my;
+
+      af::array tmp_fid_x = af::sum(rx_fid_x, 1);
+      af::array tmp_fid_y = af::sum(rx_fid_y, 1);
+
+      // signal for each rx coil at this acq point.
+      double *host_x = tmp_fid_x.host<double>();
+      double *host_y = tmp_fid_y.host<double>();
+
+      gpu_signal_transfer(host_x, host_y);
+
+      delete[] host_x;
+      delete[] host_y;
+    }
+    //if (ctrl.acq.adc) {
+      //cout << ctrl.acq.index << "\n"; 
+    //}
+
+    af::array deltaB = gdB0s_;
+    // if (norm(ctrl) == 0) {
+    // allocate grad ctrl vector [x/y/z] on device.
+    af::array grad(3, 1, ctrl.grad.v.data());
+    // calculate total magnetic field variation due to gradient field, unit in
+    // mT.
+    af::array deltaGB = matmulTN(grad, gPos_);  // 1*nspins_
+    deltaGB *= 267.5216941e3;                   // into rad/s.
+    deltaB += deltaGB;
+    //}
+
+    af::array bufferMx, bufferMy, bufferMz;
+    if (ctrl.rf_if) {
+      af::array sens_amp = tx_sens_amp_;
+      af::array sens_phi = tx_sens_phi_;
+
+      // all coil have the same pulse pars.
+
+      // only for 1H case (single spin).
+      cd u(ctrl.rf[0].u[cx], ctrl.rf[0].u[cy]);
+      sens_amp *= abs(u);
+      sens_phi += phase_in_rad(u);
+      deltaB += ctrl.rf[0].df * 2 * _pi;
+
+      ux_ = sens_amp * af::cos(sens_phi);
+      uy_ = sens_amp * af::sin(sens_phi);
+
+      af::array sux = af::sum(ux_, 0);
+      af::array suy = af::sum(uy_, 0);
+
+      af::array rf_amp = af::sqrt(af::pow(sux, 2) + af::pow(suy, 2));
+      af::array rf_phi = af::atan2(sux, suy);
+      rf_phi *= -1;
+
+      af::array Alpha = af::sqrt(af::pow(deltaB, 2) + af::pow(rf_amp, 2)) * t;
+      af::array Beta = af::atan2(deltaB, rf_amp);
+
+      af::array cosPhi = af::cos(rf_phi);
+      af::array sinPhi = af::sin(rf_phi);
+      af::array sinAlpha = af::sin(Alpha);
+      af::array cosAlpha = af::cos(Alpha);
+      af::array sinBeta = af::sin(Beta);
+      af::array cosBeta = af::cos(Beta);
+      af::array sinBeta2 = af::pow(sinBeta, 2);
+      af::array cosBeta2 = af::pow(cosBeta, 2);
+
+      af::array T1 = sinAlpha * sinPhi;
+      af::array T2 = sinAlpha * cosPhi;
+      af::array T3 = cosAlpha * sinPhi;
+      af::array T4 = cosAlpha * cosPhi;
+      af::array T5 = sinPhi * sinBeta;
+      af::array T6 = cosPhi * sinBeta;
+      af::array T7 = cosBeta * sinBeta;
+      af::array T8 = cosAlpha * T7;
+      af::array T9 = T4 + T1 * sinBeta;
+      af::array T10 = cosBeta2 * cosPhi + sinBeta * (T1 + T4 * sinBeta);
+      af::array T11 = cosBeta2 * sinPhi - sinBeta * (T2 - cosAlpha * T5);
+
+      bufferMx = mx_ * (cosPhi * T9 + sinPhi * T11) -
+                 my_ * (cosPhi * T11 - sinPhi * T9) +
+                 mz_ * (cosBeta * (T2 - cosAlpha * T5) + cosBeta * T5);
+
+      bufferMy = my_ * (cosPhi * T10 + sinPhi * (T3 - T2 * sinBeta)) -
+                 mx_ * (sinPhi * T10 - cosPhi * (T3 - T2 * sinBeta)) +
+                 mz_ * (cosBeta * (T1 + cosAlpha * T6) - cosBeta * T6);
+
+      bufferMz = mx_ * (sinPhi * (T7 - T8) - cosBeta * T2) -
+                 my_ * (cosPhi * (T7 - T8) + cosBeta * T1) +
+                 mz_ * (sinBeta2 + cosAlpha * cosBeta2);
+
+      mx_ = bufferMx * E2;
+      my_ = bufferMy * E2;
+      mz_ = bufferMz * E1 - (E1 - 1) * pd_;
+    } else {
+      af::array Alpha = deltaB * t;
+      af::array sinAlpha = sin(Alpha);
+      af::array cosAlpha = cos(Alpha);
+      bufferMx = mx_ * cosAlpha - my_ * sinAlpha;
+      bufferMy = my_ * cosAlpha + mx_ * sinAlpha;
+      bufferMz = mz_;
+
+      mx_ = bufferMx * E2;
+      my_ = bufferMy * E2;
+      mz_ = bufferMz * E1 - (E1 - 1) * pd_;
     }
 
-    // rf hamiltonians if any.
-    if (ctrl.rf_if)
-        for (int i = 0; i < ctrl.rf.size(); i++) {
-            int ch = unified_spinsys_.rf_ctrl.channel_index(ctrl.rf[i].channel);
-            gfor(af::seq k, af_ensemble_.n) {
-                af_ensemble_.L(af::span, af::span, k) += ctrl.rf[i].u[cx] * af_ensemble_.Lx(af::span, af::span, ch) + ctrl.rf[i].u[cy] * af_ensemble_.Ly(af::span, af::span, ch);
-            }
-        }
+	    if (ctrl.acq.adc) {
+      af::array mx = af::tile(mx_, nRxs_, 1);
+      af::array my = af::tile(my_, nRxs_, 1);
 
-    af_step(af_ensemble_.n, af_ensemble_.L, af_ensemble_.rho, t);
+      af::array rx_fid_x = rx_sens_cx_ * mx - rx_sens_cy_ * my;
+      af::array rx_fid_y = rx_sens_cy_ * mx + rx_sens_cx_ * my;
 
-    if (ctrl.acq.adc)
-        af_ensemble_.sig(ctrl.acq.index, af::span) = af::matmulTN(af_ensemble_.det, af_ensemble_.rho);
+      af::array tmp_fid_x = af::sum(rx_fid_x, 1);
+      af::array tmp_fid_y = af::sum(rx_fid_y, 1);
 
-    if (ctrl.acq.adc && ctrl.acq.last == true) {
-        af::array fid = af::sum(af_ensemble_.sig, 1); // sum along rows.
-        af::cdouble* host_fid = fid.host<af::cdouble>();
-        cx_vec v(ctrl.acq.nps);
-        for (int i = 0; i < ctrl.acq.nps; i++)
-            v[i] = cd(host_fid[i].real, host_fid[i].imag);
-        raw_signal_.push_back(v);
+      // signal for each rx coil at this acq point.
+      double *host_x = tmp_fid_x.host<double>();
+      double *host_y = tmp_fid_y.host<double>();
+
+      gpu_signal_transfer(host_x, host_y);
+
+      delete[] host_x;
+      delete[] host_y;
     }
+
+    if (ctrl.acq.adc && ctrl.acq.last == true)
+      raw_signal_.push_back(accu_signal_bloch_gpu());
 #endif
   }
 }
-
-void engine::evolution_for_each(double dt, const seq_const &ctrl, each_spinsys &each) {
+void engine::gpu_signal_transfer(double *fidx, double *fidy) {
+  Eigen::Map<vec> sx(fidx, nRxs_);
+  Eigen::Map<vec> sy(fidy, nRxs_);
+  cx_vec s(nRxs_);
+  s.real() = sx;
+  s.imag() = sy;
+  raw_signal_tmp_.push_back(s);
+}
+void engine::evolution_for_each(double dt, const seq_const &ctrl,
+                                each_spinsys &each) {
   each.L = each.L0 + each.R;
 
   // delay evolution.
   if (ctrl.delay_if) {
-    //each.L += each.L0;
+    // each.L += each.L0;
     each.rho = ssl::spinsys::step(each.rho, each.L, dt);
-    //each.rho = ssl::spinsys::expmv(each.rho, -ci * each.L, dt, mat(1, 1), 1, false);
+    // each.rho = ssl::spinsys::expmv(each.rho, -ci * each.L, dt, mat(1, 1), 1,
+    // false);
     return;
   }
 
   // gradient part.
-  double dw = each.dB; // mT.
-  dw += (each.pos.cwiseProduct(ctrl.grad.v)).sum(); // mT.
+  double dw = each.dB;                               // mT.
+  dw += (each.pos.cwiseProduct(ctrl.grad.v)).sum();  // mT.
 
   if (fabs(dw) > 1e-8) {
-    dw *= 267.5216941e3; // into rad/s.
+    dw *= 267.5216941e3;  // into rad/s.
     each.L += dw * each.Lz0;
   }
 
@@ -340,11 +402,11 @@ void engine::evolution_for_each(double dt, const seq_const &ctrl, each_spinsys &
   if (ctrl.acq.adc && ctrl.acq.index == 1) {
     each.sig = cx_vec(ctrl.acq.nps);
     each.sig[0] = projection(each.rho, unified_spinsys_.det);
-//    if (ctrl.acq.nps == 1) {
-//      if (ctrl.acq.last)
-//        each.rho = unified_spinsys_.rho0.toDense();
-//      return;
-//    }
+    //    if (ctrl.acq.nps == 1) {
+    //      if (ctrl.acq.last)
+    //        each.rho = unified_spinsys_.rho0.toDense();
+    //      return;
+    //    }
   }
 
   // rf hamiltonians if any.
@@ -352,30 +414,43 @@ void engine::evolution_for_each(double dt, const seq_const &ctrl, each_spinsys &
     for (size_t i = 0; i < ctrl.rf.size(); i++) {
       int ch = unified_spinsys_.rf_ctrl.channel_index(ctrl.rf[i].channel);
 #ifdef DENSE_MATRIX_COMPUTE
-      each.L += ctrl.rf[i].u[cx] * unified_spinsys_.rf_ctrl.Lx_dense[ch]
-          + ctrl.rf[i].u[cy] * unified_spinsys_.rf_ctrl.Ly_dense[ch];
+      each.L += ctrl.rf[i].u[cx] * unified_spinsys_.rf_ctrl.Lx_dense[ch] +
+                ctrl.rf[i].u[cy] * unified_spinsys_.rf_ctrl.Ly_dense[ch];
 #else
-      each.L += ctrl.rf[i].u[cx] * unified_spinsys_.rf_ctrl.Lx[ch] + ctrl.rf[i].u[cy] * unified_spinsys_.rf_ctrl.Ly[ch];
+      each.L += ctrl.rf[i].u[cx] * unified_spinsys_.rf_ctrl.Lx[ch] +
+                ctrl.rf[i].u[cy] * unified_spinsys_.rf_ctrl.Ly[ch];
 #endif
       double df = ctrl.rf[i].df;
-      //cout << df << "####\n";
-      if (df != 0)
-        each.L += df * 2 * _pi * each.Lz0;
+      // cout << df << "####\n";
+      if (df != 0) each.L += df * 2 * _pi * each.Lz0;
     }
 
   each.rho = ssl::spinsys::step(each.rho, each.L, dt);
-  //each.rho = ssl::spinsys::expmv(each.rho, -ci * each.L, dt, mat(1, 1), 1, false);
+  // each.rho = ssl::spinsys::expmv(each.rho, -ci * each.L, dt, mat(1, 1), 1,
+  // false);
 
   // acquisition evolution (other points, acquire after the step evolution).
   if (ctrl.acq.adc) {
     each.sig[ctrl.acq.index] = projection(each.rho, unified_spinsys_.det);
-    //cout << ctrl.acq.index << "###\n";
+    // cout << ctrl.acq.index << "###\n";
   }
 
   if (ctrl.acq.adc && ctrl.acq.last) {
-    //each.rho = unified_spinsys_.rho0.toDense();
-    //cout<< each.rho<<"\n\n";
+    // each.rho = unified_spinsys_.rho0.toDense();
+    // cout<< each.rho<<"\n\n";
   }
+}
+
+cx_vec engine::accu_signal_bloch_gpu() {
+  int np = raw_signal_tmp_.size();
+  int nrow = raw_signal_tmp_[0].size();
+  cx_mat m(nrow, np);
+
+#pragma omp parallel for
+  for (int i = 0; i < np; i++) m.col(i) = raw_signal_tmp_[i];
+
+  raw_signal_tmp_.clear();
+  return m.row(0).transpose(); // currently only return 1st rx channel data.
 }
 
 cx_vec engine::accu_signal() {
@@ -385,14 +460,13 @@ cx_vec engine::accu_signal() {
 
   vector<cx_vec> omp_sig(omp_core_num, sig);
 #pragma omp parallel for
-  for (int i = 0; i < (int) ensemble_.size(); i++) {
+  for (int i = 0; i < (int)ensemble_.size(); i++) {
     int id = omp_get_thread_num();
     ensemble_[i].sig -= ones;
     omp_sig[id] += ensemble_[i].sig * ensemble_[i].pd;
   }
 
-  for (int id = 0; id < omp_core_num; id++)
-    sig += omp_sig[id];
+  for (int id = 0; id < omp_core_num; id++) sig += omp_sig[id];
 
   if (g_seq_param->acq_phase != 0) {
     // deal with the phase_acq
@@ -402,7 +476,7 @@ cx_vec engine::accu_signal() {
     }
   }
   // optional
-  //apodization(sig, 5);
+  // apodization(sig, 5);
 
   return sig;
   /*sol::table lines = g_lua->create_table();
@@ -426,11 +500,13 @@ cx_vec engine::accu_signal() {
   g_lua->script("plot('title[spec]', _spec_x, _spec_y)");*/
 }
 sol::object engine::process_signal() {
+  ensemble_.clear(); // release memory for lots of spins.
   ssl_color_text("info", "proccesing acquisition data ...\n");
 
   int cols = raw_signal_[0].size();
   int rows = raw_signal_.size();
-  ssl_color_text("info", "raw data size: " + to_string(rows) + "*" + to_string(cols) + "\n");
+  ssl_color_text("info", "raw data size: " + to_string(rows) + "*" +
+                             to_string(cols) + "\n");
 
   // lua table for raw data (fid, spec).
   sol::table t_raw = g_lua->create_table();
@@ -469,16 +545,15 @@ sol::object engine::process_signal() {
     t_spec_im.add(spec_im);
     t_spec_abs.add(spec_abs);
 
-//    double phi0=deg2rad(117);
-//    double phi_i = 0.5*phi0*(double)(i*i+i+2);
-//
-//    for(size_t j=0;j<fid.size();j++)
-//    {
-//      cd tmp=xy2amp(fid[j]);
-//      tmp=cd(tmp.real(), tmp.imag()-phi_i);
-//      fid[i]=amp2xy(tmp);
-//    }
-
+    //    double phi0=deg2rad(117);
+    //    double phi_i = 0.5*phi0*(double)(i*i+i+2);
+    //
+    //    for(size_t j=0;j<fid.size();j++)
+    //    {
+    //      cd tmp=xy2amp(fid[j]);
+    //      tmp=cd(tmp.real(), tmp.imag()-phi_i);
+    //      fid[i]=amp2xy(tmp);
+    //    }
 
     FID.row(i) = fid.transpose();
     SPEC1D.row(i) = spec.transpose();
@@ -493,8 +568,6 @@ sol::object engine::process_signal() {
   t_raw.set("spec:re", t_spec_re);
   t_raw.set("spec:im", t_spec_im);
   t_raw.set("spec:abs", t_spec_abs);
-
-
 
   // for iamge.
   string time_s = sys_time();
@@ -516,15 +589,13 @@ sol::object engine::process_signal() {
   h5write(file, &group1, "fid_im", raw_im);
   h5write(file, &group1, "fid_abs", raw_abs);
 
-//  (*g_lua)["_raw_fid_re"] = &raw_re;
-//  (*g_lua)["_raw_fid_im"] = &raw_im;
-//  (*g_lua)["_raw_fid_abs"] = &raw_abs;
-//
-//  g_lua->script("write('raw_fid_re.txt', _raw_fid_re)");
-//  g_lua->script("write('raw_fid_im.txt', _raw_fid_im)");
-//  g_lua->script("write('raw_fid_abs.txt', _raw_fid_abs)");
-
-
+  //  (*g_lua)["_raw_fid_re"] = &raw_re;
+  //  (*g_lua)["_raw_fid_im"] = &raw_im;
+  //  (*g_lua)["_raw_fid_abs"] = &raw_abs;
+  //
+  //  g_lua->script("write('raw_fid_re.txt', _raw_fid_re)");
+  //  g_lua->script("write('raw_fid_im.txt', _raw_fid_im)");
+  //  g_lua->script("write('raw_fid_abs.txt', _raw_fid_abs)");
 
   cx_mat img = fft_2d(FID);
   Group group2(file.createGroup("IMG"));
@@ -538,7 +609,7 @@ sol::object engine::process_signal() {
   t_raw.set("IMG:im", img_im);
   t_raw.set("IMG:abs", img_abs);
 
-  //h5write(file, &group2, "IMG", img);
+  // h5write(file, &group2, "IMG", img);
   h5write(file, &group2, "IMG:re", img_re);
   h5write(file, &group2, "IMG:im", img_im);
   h5write(file, &group2, "IMG:abs", img_abs);
@@ -562,37 +633,38 @@ sol::object engine::process_signal() {
 
   return t_raw;
   // 1d nmr.
-//  cx_vec fid_apo = fid.row(0).transpose();
-//  apodization(fid_apo, 5);
-//
-//  cx_vec fid_zero(8192);
-//  fid_zero.setZero();
-//  fid_zero.head(fid_apo.size()) = fid_apo;
-//
-//  cx_vec spec = fft_1d(fid_zero);
-//
-//  vec hz = vec::LinSpaced(spec.size(), -1e3 * g_seq_param->sw / 2, 1e3 * g_seq_param->sw / 2);
-//  utility::line amp(hz, spec.cwiseAbs());
-//  (*g_lua)["_amp"] = amp;
-//  g_lua->script("plot('title#spec amp# gnuplot#set xrange [] reverse#', _amp)");
+  //  cx_vec fid_apo = fid.row(0).transpose();
+  //  apodization(fid_apo, 5);
+  //
+  //  cx_vec fid_zero(8192);
+  //  fid_zero.setZero();
+  //  fid_zero.head(fid_apo.size()) = fid_apo;
+  //
+  //  cx_vec spec = fft_1d(fid_zero);
+  //
+  //  vec hz = vec::LinSpaced(spec.size(), -1e3 * g_seq_param->sw / 2, 1e3 *
+  //  g_seq_param->sw / 2); utility::line amp(hz, spec.cwiseAbs());
+  //  (*g_lua)["_amp"] = amp;
+  //  g_lua->script("plot('title#spec amp# gnuplot#set xrange [] reverse#',
+  //  _amp)");
 
+  //  double max_noise = fid.cwiseAbs().maxCoeff()/100;
+  //  cx_mat noise(rows, cols);
+  //  noise.setRandom();
+  //  //fid+=noise;
+  //
 
-//  double max_noise = fid.cwiseAbs().maxCoeff()/100;
-//  cx_mat noise(rows, cols);
-//  noise.setRandom();
-//  //fid+=noise;
-//
-
-//  utility::map map(img_abs.matrix());
-//  (*g_lua)["_map"] = map;
-//  g_lua->script("plot('title#image# gnuplot#set size ratio -1\\n set palette gray#', _map)");
-//  (*g_lua)["_raw_img_re"] = &img_re;
-//  (*g_lua)["_raw_img_im"] = &img_im;
-//  (*g_lua)["_raw_img_abs"] = &img_abs;
-//
-//  g_lua->script("ssl.write('raw_img_re.txt', _raw_img_re)");
-//  g_lua->script("ssl.write('raw_img_im.txt', _raw_img_im)");
-//  g_lua->script("ssl.write('raw_img_abs.txt', _raw_img_abs)");
+  //  utility::map map(img_abs.matrix());
+  //  (*g_lua)["_map"] = map;
+  //  g_lua->script("plot('title#image# gnuplot#set size ratio -1\\n set palette
+  //  gray#', _map)");
+  //  (*g_lua)["_raw_img_re"] = &img_re;
+  //  (*g_lua)["_raw_img_im"] = &img_im;
+  //  (*g_lua)["_raw_img_abs"] = &img_abs;
+  //
+  //  g_lua->script("ssl.write('raw_img_re.txt', _raw_img_re)");
+  //  g_lua->script("ssl.write('raw_img_im.txt', _raw_img_im)");
+  //  g_lua->script("ssl.write('raw_img_abs.txt', _raw_img_abs)");
 
   // 1D-FFT array.
   /*cx_mat spec = fid;
@@ -626,7 +698,6 @@ sol::object engine::process_signal() {
   (*g_lua)["_amp"] = amp;
   g_lua->script("plot('title<spec amp>', _amp)");*/
 
-
   /*vec m3 = fid.cwiseAbs().row(0).transpose();
   vec m1 = fid.real().row(0).transpose();
   vec m2 = fid.imag().row(0).transpose();
@@ -637,56 +708,53 @@ sol::object engine::process_signal() {
   lines.add(m3);
   plot("title<xy profile>", line_series(lines));*/
 
-
-
-  //cx_vec sig = raw_signal_[0];
-  //cout << sig[0] << "\n";
+  // cx_vec sig = raw_signal_[0];
+  // cout << sig[0] << "\n";
   //// plot.
-  //sol::table lines = g_lua->create_table();
-  //vec re = sig.real();
-  //vec im = sig.imag();
-  //vec abs = sig.cwiseAbs();
+  // sol::table lines = g_lua->create_table();
+  // vec re = sig.real();
+  // vec im = sig.imag();
+  // vec abs = sig.cwiseAbs();
 
-  //lines.add(re);
-  //lines.add(im);
-  //lines.add(abs);
+  // lines.add(re);
+  // lines.add(im);
+  // lines.add(abs);
 
-  //string fig_spec;
-  //fig_spec = "title<fid>";
-  //plot(fig_spec, line_series(lines));
+  // string fig_spec;
+  // fig_spec = "title<fid>";
+  // plot(fig_spec, line_series(lines));
 
-  //sol::table lines1 = g_lua->create_table();
-  //cx_vec spec = fft_1d(sig);
+  // sol::table lines1 = g_lua->create_table();
+  // cx_vec spec = fft_1d(sig);
   // re = spec.real();
   // im = spec.imag();
   // abs = spec.cwiseAbs();
 
-  //lines1.add(re);
-  //lines1.add(im);
-  //lines1.add(abs);
+  // lines1.add(re);
+  // lines1.add(im);
+  // lines1.add(abs);
 
-  //string fig_spec1;
-  //fig_spec1 = "title<spec>";
-  //plot(fig_spec1, line_series(lines1));
+  // string fig_spec1;
+  // fig_spec1 = "title<spec>";
+  // plot(fig_spec1, line_series(lines1));
 
+  //   double max_amp = fid.cwiseAbs().maxCoeff();
+  //   fid /= max_amp;
 
-//   double max_amp = fid.cwiseAbs().maxCoeff();
-//   fid /= max_amp;
-
-  //cx_mat img = fft_2d(fid);
+  // cx_mat img = fft_2d(fid);
 
   ////-----------------------PLOT-------------------------------
-//   mat fid_re = fid.real();
-//   mat fid_im = fid.imag();
-  //mat fid_abs = fid.cwiseAbs();
+  //   mat fid_re = fid.real();
+  //   mat fid_im = fid.imag();
+  // mat fid_abs = fid.cwiseAbs();
 
-  //mat img_re = img.real();
-  //mat img_im = img.imag();
-  //mat img_abs = img.cwiseAbs();
+  // mat img_re = img.real();
+  // mat img_im = img.imag();
+  // mat img_abs = img.cwiseAbs();
 
-//   (*g_lua)["_raw_sig"] = &fid;
-//   (*g_lua)["_raw_sig_re"] = &fid_re;
-//   (*g_lua)["_raw_sig_im"] = &fid_im;
+  //   (*g_lua)["_raw_sig"] = &fid;
+  //   (*g_lua)["_raw_sig_re"] = &fid_re;
+  //   (*g_lua)["_raw_sig_im"] = &fid_im;
   //(*g_lua)["_raw_sig_abs"] = &fid_abs;
 
   //(*g_lua)["_raw_img"] = &img;
@@ -694,24 +762,24 @@ sol::object engine::process_signal() {
   //(*g_lua)["_raw_img_im"] = &img_im;
   //(*g_lua)["_raw_img_abs"] = &img_abs;
 
-  //g_lua->script("os.execute('mkdir signal')");
+  // g_lua->script("os.execute('mkdir signal')");
 
-//   g_lua->script("write('signal/raw_sig', _raw_sig)");
-//   g_lua->script("write('signal/raw_sig_re', _raw_sig_re)");
-//   g_lua->script("write('signal/raw_sig_im', _raw_sig_im)");
-  //g_lua->script("write('signal/raw_sig_abs', _raw_sig_abs)");
+  //   g_lua->script("write('signal/raw_sig', _raw_sig)");
+  //   g_lua->script("write('signal/raw_sig_re', _raw_sig_re)");
+  //   g_lua->script("write('signal/raw_sig_im', _raw_sig_im)");
+  // g_lua->script("write('signal/raw_sig_abs', _raw_sig_abs)");
 
-  //g_lua->script("write('signal/raw_img', _raw_img)");
-  //g_lua->script("write('signal/raw_img_re', _raw_img_re)");
-  //g_lua->script("write('signal/raw_img_im', _raw_img_im)");
-  //g_lua->script("write('signal/raw_img_abs', _raw_img_abs)");
+  // g_lua->script("write('signal/raw_img', _raw_img)");
+  // g_lua->script("write('signal/raw_img_re', _raw_img_re)");
+  // g_lua->script("write('signal/raw_img_im', _raw_img_im)");
+  // g_lua->script("write('signal/raw_img_abs', _raw_img_abs)");
 
-//   string gnu_cmd = "gnuplot<set yrange [" + to_string(fid.rows()) + ":1]>";
-//   (*g_lua)["_map_img"] = utility::map(img.cwiseAbs());
-//   g_lua->script("plot('title<img> " + gnu_cmd + "', _map_img)");
-//   (*g_lua)["_map_fid"] = utility::map(fid.cwiseAbs());
-//   g_lua->script("plot('title<fid> " + gnu_cmd + "', _map_fid)");
+  //   string gnu_cmd = "gnuplot<set yrange [" + to_string(fid.rows()) + ":1]>";
+  //   (*g_lua)["_map_img"] = utility::map(img.cwiseAbs());
+  //   g_lua->script("plot('title<img> " + gnu_cmd + "', _map_img)");
+  //   (*g_lua)["_map_fid"] = utility::map(fid.cwiseAbs());
+  //   g_lua->script("plot('title<fid> " + gnu_cmd + "', _map_fid)");
 }
 
-}
-}
+}  // namespace physx
+}  // namespace ssl

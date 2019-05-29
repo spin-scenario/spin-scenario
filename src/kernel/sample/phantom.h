@@ -18,10 +18,7 @@ using namespace ssl::utility;
 namespace ssl {
 namespace sample {
 
-enum phantom_model {
-  mida_brain = 0,
-  mni_brain = 1
-};
+enum phantom_model { mida_brain = 0, mni_brain = 1, unidentified_phantom = 2 };
 enum isochromat_prop {
   //cx = 0,
   //cy = 1,
