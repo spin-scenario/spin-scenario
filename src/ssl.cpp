@@ -171,6 +171,9 @@ void bindings(sol::state &lua) {
           sol::resolve<void(const line_series &)>(ssl::utility::plot),
           sol::resolve<void(string, const line_series &)>(ssl::utility::plot)));
 
+    lua.set_function("output_terminal", set_output_terminal);
+
+
   // pulse sequence bindings.
   ssl.new_usertype<seq_block_factory>(
       "seq_block_factory", sol::constructors<sol::types<>>(), "create",

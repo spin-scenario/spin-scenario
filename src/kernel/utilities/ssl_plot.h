@@ -19,6 +19,9 @@ limitations under the License.
 
 namespace ssl {
 namespace utility {
+extern string g_output_terminal;
+void set_output_terminal(const sol::table &t);
+string terminal_cmd(string key);
 
 vec linspace(double start, double stop, int num);
 

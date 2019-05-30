@@ -15,7 +15,29 @@ limitations under the License.
 namespace ssl {
 namespace utility {
 
-vec linspace(double start, double stop, int num) {
+string g_output_terminal = "qt";
+void set_output_terminal(const sol::table &t) {
+  for (auto &kv : t) {
+    string s = kv.second.as<string>();
+    g_output_terminal = s;
+    break;
+  }
+}
+string terminal_cmd(string key) {
+	string s;
+	if (key == "qt")
+    s ="set terminal qt enhanced font 'Arial,12'\n";
+	if (key == "png")
+    s= "set terminal pngcairo enhanced font 'Arial,12'\n";
+	if (key == "eps")
+    s = "set terminal postscript eps enhanced color font 'Arial,12'\n";
+    if (key == "svg")
+		s = "set terminal svg fname 'Verdana' fsize 10\n";
+	if (key == "tex")
+    s = "set terminal epslatex standalone color colortext header '\\newcommand{ \\ft }[0]{ \\footnotesize}'\n";
+  return s;
+}
+  vec linspace(double start, double stop, int num) {
   return vec::LinSpaced(num, start, stop);
   //return vec::LinSpaced(num, start, stop).cwiseInverse();
 }
@@ -67,13 +89,11 @@ void plot(string fig_info, sol::variadic_args va, const line &) {
 
   gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/colorbrewer/" << find_color(fig.color) << "'\n";
 
-  if (fig.latex_output) {
-    gp
-        << "set terminal epslatex standalone color colortext header '\\newcommand{ \\ft }[0]{ \\footnotesize}'\n";
     string time_s = sys_time();
-    gp << "set output " << "'output_" << time_s << ".tex'\n";
-  } else
-    gp << "set terminal qt enhanced font 'Arial,12'\n";
+  gp << terminal_cmd(g_output_terminal);
+  if (g_output_terminal != "qt")
+    gp << "set output "
+       << "'output_" << time_s << "." << g_output_terminal << "'\n";
 
   size_t nleg = fig.legend.size();
   if (fig.xrange.norm())
@@ -169,13 +189,10 @@ void plot(string fig_info, const line_series &v) {
   int ncolor = fig.ncolor;
   gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/colorbrewer/" << find_color(fig.color) << "'\n";
 
-  if (fig.latex_output) {
-    gp
-        << "set terminal epslatex standalone color colortext header '\\newcommand{ \\ft }[0]{ \\footnotesize}'\n";
-    string time_s = sys_time();
-    gp << "set output " << "'output_" << time_s << ".tex'\n";
-  } else
-    gp << "set terminal qt enhanced font 'Arial,12'\n";
+  string time_s = sys_time();
+  gp << terminal_cmd(g_output_terminal);
+  if (g_output_terminal != "qt")
+    gp << "set output "<< "'output_" << time_s << "." << g_output_terminal << "'\n";
 
   size_t nleg = fig.legend.size();
   if (fig.xrange.norm())
@@ -258,13 +275,12 @@ void plot(string fig_info, sol::variadic_args va, const map &) {
   gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/colorbrewer/" << find_color(fig.color) << "'\n";
   gp << "set palette negative\n";
 
-  if (fig.latex_output) {
-    gp
-        << "set terminal epslatex standalone color colortext header '\\newcommand{ \\ft }[0]{ \\footnotesize}'\n";
     string time_s = sys_time();
-    gp << "set output " << "'output_" << time_s << ".tex'\n";
-  } else
-    gp << "set terminal qt enhanced font 'Arial,12'\n";
+  gp << terminal_cmd(g_output_terminal);
+  if (g_output_terminal != "qt")
+    gp << "set output "
+       << "'output_" << time_s << "." << g_output_terminal << "'\n";
+
   size_t i = 0;
   for (auto v : va) {
     const map &val = v;

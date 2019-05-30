@@ -302,8 +302,8 @@ void trapezoid_gradient::plot() const {
       ofstr.close();
     }
     string gp =
-        "plot(\"xlabel#time / ms# ylabel#amplitude / mT/s# gnuplot#unset key# title#" + grad_func_str[func_] + "#"
-            + "xrange#0:" + std::to_string(width_in_ms()) + "#\", lines('grad/phase-1:"
+        "plot(\"xlabel<time / ms> ylabel<amplitude / mT/s> gnuplot<unset key> title<" + grad_func_str[func_] + ">"
+            + "xrange<0:" + std::to_string(width_in_ms()) + ">\", lines('grad/phase-1:"
             + std::to_string(areas.size()) + "'))";
     // gnuplot[set key outside]
     g_lua->script(gp);

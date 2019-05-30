@@ -11,7 +11,7 @@ limitations under the License.
 ==============================================================================-]]
 
 -- example: FID sequence. 
-
+--output_terminal{"png"} -- png tex eps
 -- scenario A: spin system generation.
 B0{"500 MHz"}
 local proton =spin_system{

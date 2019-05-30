@@ -411,7 +411,10 @@ void rf_pulse::plot() const {
     Gnuplot gp;
 #endif
     gp << "reset\n";
-    gp << "set terminal qt enhanced font 'Arial,12'\n";
+    string time_s = sys_time();
+    gp << terminal_cmd(g_output_terminal);
+    if (g_output_terminal != "qt")
+      gp << "set output "<< "'output_" << time_s << "." << g_output_terminal << "'\n";
     gp << "set multiplot layout 2,1 title '" << name() << " - " << raw_data_[i].channel << "'\n";
 
     gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/xyborder.cfg'\n";

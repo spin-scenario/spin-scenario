@@ -68,8 +68,8 @@ void gradient::plot() const {
   ofstr.precision(4);
   write(ofstr);
   ofstr.close();
-  string gp = "plot(\"xlabel#time / ms# ylabel#amplitude / mT/m# gnuplot#unset key# title#" + name() + "#" + "xrange#0:"
-      + std::to_string(width_in_ms()) + "#\", line('gnu_grad', 'box'))";
+  string gp = "plot(\"xlabel<time / ms> ylabel<amplitude / mT/m> gnuplot<unset key> title<" + name() + ">" + "xrange<0:"
+      + std::to_string(width_in_ms()) + ">\", line('gnu_grad', 'box'))";
   g_lua->script(gp);
 }
 }
