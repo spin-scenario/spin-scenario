@@ -1,4 +1,4 @@
-<a><img src="https://github.com/spin-scenario/spin-scenario/tree/master/docs/source/media/logo.png" width="400"></a>
+<a><img src="docs/source/media/logo.png" width="400"></a>
 
 Features
 -------------------------------
@@ -26,10 +26,10 @@ Quick Start
   * To quit the program, use `q`.
   
 <p align="center">
-<img src="https://github.com/spin-scenario/spin-scenario/tree/master/docs/source/media/cmd_screen.png"  width="640">
+<img src="docs/source/media/cmd_screen.png"  width="640">
 </p>
 
-As a start, we show a simple [FID](https://github.com/spin-scenario/spin-scenario/tree/master/test/seq/fid.lua) sequence as follow:  
+As a start, we show a simple [FID](examples/seq/fid.lua) sequence as follow:  
 ```lua
         -- scenario A: spin system generation.
         B0{"500 MHz"}
@@ -46,9 +46,9 @@ As a start, we show a simple [FID](https://github.com/spin-scenario/spin-scenari
         -- scenario C: experimental study.
         result =run{exp =fid, spinsys =proton}
 ```
-<a><img src="https://github.com/spin-scenario/spin-scenario/tree/master/docs/source/media/seq_fid_raw.png" width="430"></a> <a><img src="https://github.com/spin-scenario/spin-scenario/tree/master/docs/source/media/seq_fid_spec.png" width="430"></a> 
+<a><img src="docs/source/media/seq_fid_raw.png" width="430"></a> <a><img src="docs/source/media/seq_fid_spec.png" width="430"></a> 
 
-More scenario examples can be found in [examples](https://github.com/spin-scenario/spin-scenario/tree/master/examples). 
+More scenario examples can be found in [examples](examples). 
 
 Documentation
 --------------------------------------
