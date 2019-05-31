@@ -48,7 +48,7 @@ As a start, we show a simple [FID](https://github.com/spin-scenario/spin-scenari
 ```
 <a><img src="https://github.com/spin-scenario/spin-scenario/tree/master/docs/source/media/seq_fid_raw.png" width="430"></a> <a><img src="https://github.com/spin-scenario/spin-scenario/tree/master/docs/source/media/seq_fid_spec.png" width="430"></a> 
 
-More scenario examples can be found in [test](https://github.com/spin-scenario/spin-scenario/tree/master/examples). 
+More scenario examples can be found in [examples](https://github.com/spin-scenario/spin-scenario/tree/master/examples). 
 
 Documentation
 --------------------------------------
