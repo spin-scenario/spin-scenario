@@ -1,4 +1,4 @@
-<a><img src="https://github.com/spin-scenario/spin-scenario-doc/blob/master/source/logo.png" width="400"></a>
+<a><img src="https://github.com/spin-scenario/spin-scenario/tree/master/docs/source/media/logo.png" width="400"></a>
 
 Features
 -------------------------------
@@ -16,17 +16,17 @@ The Spin-Scenario is an intuitive, flexible and unique scripting environment for
 * **Efficient pulse optimization**   
     The build-in optimal control module provides an easy way for optimization of shaped pulses as well as cooperative pulses.
 
-Basic usage
+Quick Start
 --------------------------------------
 
   * Open the terminal and start the environment with `spin-scenario`.
   * To run a scenario script, simply use the command like `load('fid.lua')`. 
   * You may also run script snippet on the terminal, e.g. to process the results manually after the scenario playing. 
-  * To switch to old script, just the up and down key.  
+  * To switch to old script, use the up and down key.  
   * To quit the program, use `q`.
   
 <p align="center">
-<img src="https://github.com/spin-scenario/spin-scenario-doc/blob/master/source/cmd_screen.png"  width="640">
+<img src="https://github.com/spin-scenario/spin-scenario/tree/master/docs/source/media/cmd_screen.png"  width="640">
 </p>
 
 As a start, we show a simple [FID](https://github.com/spin-scenario/spin-scenario/tree/master/test/seq/fid.lua) sequence as follow:  
@@ -46,50 +46,14 @@ As a start, we show a simple [FID](https://github.com/spin-scenario/spin-scenari
         -- scenario C: experimental study.
         result =run{exp =fid, spinsys =proton}
 ```
-<a><img src="https://github.com/spin-scenario/spin-scenario-doc/blob/master/source/seq_fid_raw.png" width="430"></a> <a><img src="https://github.com/spin-scenario/spin-scenario-doc/blob/master/source/seq_fid_spec.png" width="430"></a> 
+<a><img src="https://github.com/spin-scenario/spin-scenario/tree/master/docs/source/media/seq_fid_raw.png" width="430"></a> <a><img src="https://github.com/spin-scenario/spin-scenario/tree/master/docs/source/media/seq_fid_spec.png" width="430"></a> 
 
-More scenario examples can be found in [test](https://github.com/spin-scenario/spin-scenario/tree/master/test). 
+More scenario examples can be found in [test](https://github.com/spin-scenario/spin-scenario/tree/master/examples). 
 
-Installation
+Documentation
 --------------------------------------
-* **Binary installers**     
+Spin-Scenario Documentation [http://spin-scenario.rtfd.io/](http://spin-scenario.rtfd.io/).
 
-    Download the Spin-Scenario installers from the [releases](https://github.com/spin-scenario/spin-scenario/releases).  
-	* For Windows 10:     
-    
-        * run `spin-scenario-1.0.0-win64.exe` with the default installation option.  
-	
-    Add `C:\Program Files\spin-scenario-1.0.0\bin` to the system PATH to run `spin-scenario` from any folder.
-
-    * For Ubuntu 16.04, 18.04:     
-    
-        * `sudo dpkg -i spin-scenario-1.0.0-ubuntu16.04.deb`     
-        * `sudo dpkg -i spin-scenario-1.0.0-ubuntu18.04.deb`                         
-    
-    Use `sudo apt-get install -f` to solve dependencies if the `.deb` package installation failed.
-    
-    * For CentOS 7:  
-    
-         * `yum install boost-devel fftw-devel hdf5-devel NLopt-devel gnuplot`		
-         * `rpm -ivh spin-scenario-1.0.0-centos7.rpm --nodeps --force`	
-         * `ldconfig`       	       
-
-  
-  
-* **Build from source**
-
-    The Spin-Scenario was developed based on a list of opensource libraries, which need to be complied in advanced. 
-    To do this, first install some packages by `sudo apt-get install libboost-all-dev libfftw3-dev libhdf5-dev libnlopt-dev libpython3-dev` (Ubuntu). 
-    Then run `sh ./dep.sh` in the root of the repository to complie other packages, and this should work automatically.
-    
-    Using the following commands to complie and install spin-scenario.
-      
-    `mkdir build`   
-    `cd build`  
-    `cmake ..`   
-    `make`  
-    `make install`
-  
 Contributing to Spin-Scenario
 ---------------------------------------
 Spin-Scenario is provided as an open-source project under the `Apache License 2.0`, and will be continuously developed for highly usability as well as high-performance.
@@ -109,10 +73,6 @@ Spin-Scenario is mainly written and maintained by Yan CHANG (`changy@sibet.ac.cn
         url = "http://www.sciencedirect.com/science/article/pii/S1090780719300229",
         author = "Yan Chang and Daxiu Wei and Huihui Jia and Cecilia Curreli and Zhenzhou Wu and Mao Sheng and Steffen J. Glaser and Xiaodong Yang"
         }
-	
-<p align="center">
-<img src="https://github.com/spin-scenario/spin-scenario-doc/blob/master/source/cover.png"  width="640">
-</p>
 
  Acknowledgments
 ---------------------------------------

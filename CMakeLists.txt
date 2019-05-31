@@ -12,6 +12,8 @@ set(CMAKE_BUILD_TYPE "Release") # Debug Release
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -std=c++17 -O3 -Wall -openmp")
 if (WIN32)
 add_definitions(-DH5_BUILT_AS_DYNAMIC_LIB)
+set(BOOST_ROOT "C:/dep/boost_1_70_0")
+set(ArrayFire_DIR "C:/Program Files/ArrayFire/v3/cmake")
 endif()
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
@@ -32,8 +34,8 @@ set(EXTERN_LIB_ROOT ${PROJECT_SOURCE_DIR}/3rd-party)
 # lib dirs.
 #BUILD_SHARED_LIBS
 if (WIN32)
-set(FFTW_INCLUDES "C:/dep/fftw-3.3.5-dll64")
-set(FFTW_LIBRARIES "C:/dep/fftw-3.3.5-dll64/libfftw3-3.lib")
+set(FFTW_INCLUDES ${EXTERN_LIB_ROOT}/fftw)
+set(FFTW_LIBRARIES "${EXTERN_LIB_ROOT}/fftw/libfftw3-3.lib")
 set(NLOPT_INCLUDE_DIRS "${EXTERN_LIB_ROOT}/nlopt/build/src/api")
 set(NLOPT_LIBRARIES "${EXTERN_LIB_ROOT}/nlopt/build/Release/nlopt.lib")
 set(LUA_LIBRARIES "${EXTERN_LIB_ROOT}/lua/build/Release/lua53.lib") #5.3.4
@@ -112,7 +114,7 @@ RUNTIME DESTINATION bin
 LIBRARY DESTINATION lib
 CONFIGURATIONS Release)
 
-install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/test" DESTINATION .)
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/examples" DESTINATION .)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/config" DESTINATION share/spin-scenario)
 install(FILES ${TF_LIBRARIES} ${LUA_LIBRARIES} ${LINENOISE_LIBRARIES} ${YACAS_LIBRARIES} DESTINATION lib)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE" "${CMAKE_CURRENT_SOURCE_DIR}/README.md" DESTINATION share/spin-scenario/doc)
