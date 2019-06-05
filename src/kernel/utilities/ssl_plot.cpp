@@ -112,7 +112,7 @@ void plot(string fig_info, sol::variadic_args va, const line &) {
     if (val.is_file)
       file = val.file;
     else {
-      file = "dat" + boost::lexical_cast<string>(i);
+      file = "dat" + boost::lexical_cast<string>(i) + "_" + time_s;
       if (val.is_x_only)
         write_line(val.x, file);
       else
@@ -208,7 +208,7 @@ void plot(string fig_info, const line_series &v) {
     files = v.files;
   else {
     for (i = 0; i < v.y.size(); i++) {
-      string file_i = "dat" + boost::lexical_cast<string>(i + 1);
+      string file_i = "dat" + boost::lexical_cast<string>(i + 1) + "_" + time_s;
       if (v.is_y_only)
         write_line(v.y[i], file_i);
       else
@@ -288,7 +288,7 @@ void plot(string fig_info, sol::variadic_args va, const map &) {
     if (val.is_file)
       file = val.file;
     else {
-      file = "gnu_map_2d_" + boost::lexical_cast<string>(i);
+      file = "gnu_map_2d_" + boost::lexical_cast<string>(i) + "_" + time_s;
       write_map(val.m, file);
     }
 
