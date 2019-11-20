@@ -73,6 +73,7 @@ void phantom::init_ensemble() {
   omp_set_num_threads(omp_core_num);
   vector<isochromat> *omp_isochromats = new vector<isochromat>[omp_core_num];
   switch (model_) {
+    case usr_phantom:
     case mni_brain: {
 #pragma omp parallel for
       for (int nz = z0; nz <= z1; nz += g_phantom_space.dz) {
@@ -150,8 +151,12 @@ void phantom::init_ensemble() {
               std::back_inserter(isochromats_));
     omp_isochromats[id].clear();
   }
-#ifdef SSL_OUTPUT_ENABLE
-  string model = (model_ == mida_brain) ? "MIDA" : "MNI";
+  #ifdef SSL_OUTPUT_ENABLE
+  string model;
+
+  if (model_ == mida_brain) model = "MIDA";
+  if (model_ == mni_brain) model = "MNI";
+  if (model_ == usr_phantom) model = "USR PHANTOM";
   string s = str(boost::format("%s %s (%s).\n") % "total isochromats:" % isochromats_.size() % model);
   ssl_color_text("info", s);
 #endif
@@ -195,7 +200,7 @@ void phantom::view(const string &axis, int slice) const {
     throw std::runtime_error(s.c_str());
   }
 
-  Eigen::Tensor<double, 2> sub = T1_.chip(slice - 1, dim);
+  Eigen::Tensor<double, 2> sub = T2_.chip(slice - 1, dim);
   Eigen::Map<mat> m(sub.data(), sub.dimension(0), sub.dimension(1));
   utility::map transfer_map(m.matrix().cast<double>());
   (*g_lua)["_map"] = transfer_map;
@@ -307,7 +312,18 @@ void phantom::load(const char *filename) {
 #endif
     }
       break;
-    default:break;
+    default: {
+      model_ = usr_phantom;
+      T1_ = h5read_cube(file, "/phantom/T1");
+      T2_ = h5read_cube(file, "/phantom/T2");
+#ifdef SSL_OUTPUT_ENABLE
+      string s = str(boost::format("%s%s %s %s).\n") %
+                     "usr phantom loaded, cube dimension x/y/z(" % dim_[cx] %
+                     dim_[cy] % dim_[cz]);
+      ssl_color_text("info", s);
+#endif
+    }
+		break;
   }
 
   if (model_ == unidentified_phantom)
