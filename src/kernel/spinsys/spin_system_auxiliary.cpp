@@ -833,7 +833,7 @@ sp_mat composition::op(const string list, op_side type) const {
   string list_copy = list;
   boost::trim(list_copy);
   vector<string> par_vec;
-  boost::split(par_vec, list_copy, boost::is_any_of(", "), boost::token_compress_on);
+  boost::split(par_vec, list_copy, boost::is_any_of("\t, "), boost::token_compress_on);
   string op_type = par_vec.back();
   if (op_type == "comm") {
     type = kComm;
@@ -1285,7 +1285,7 @@ void interaction::set_zeeman(string list) {
   boost::to_lower(list);
 
   vector<string> par_vec;
-  boost::split(par_vec, list, boost::is_any_of(", "), boost::token_compress_on);
+  boost::split(par_vec, list, boost::is_any_of("\t, "), boost::token_compress_on);
 
   vector<string>::iterator iter;
   iter = par_vec.begin();
@@ -1328,7 +1328,7 @@ void interaction::set_Jcoupling(string list) {
   boost::to_lower(list);
 
   vector<string> par_vec;
-  boost::split(par_vec, list, boost::is_any_of(", "), boost::token_compress_on);
+  boost::split(par_vec, list, boost::is_any_of("\t, "), boost::token_compress_on);
 
   vector<string>::iterator iter;
   iter = par_vec.begin();
@@ -1466,7 +1466,7 @@ void interaction::set_relaxation(string list) {
   boost::to_lower(list);
 
   vector<string> par_vec;
-  boost::split(par_vec, list, boost::is_any_of(", "), boost::token_compress_on);
+  boost::split(par_vec, list, boost::is_any_of("\t, "), boost::token_compress_on);
 
   vector<string>::iterator t1_pos = find(par_vec.begin(),
                                          par_vec.end(),

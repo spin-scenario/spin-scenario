@@ -77,7 +77,7 @@ void spin_system::set_sys(const sol::table &t) {
 
 void spin_system::set_isotopes(const string list) {
   vector<string> symbol_vec;
-  boost::split(symbol_vec, list, boost::is_any_of(", "), boost::token_compress_on);
+  boost::split(symbol_vec, list, boost::is_any_of("\t, "), boost::token_compress_on);
   for (size_t i = 0; i < symbol_vec.size(); i++)
     comp_.add_spin(isotope(symbol_vec[i]));
 #ifdef SSL_OUTPUT_ENABLE

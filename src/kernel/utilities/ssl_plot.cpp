@@ -422,7 +422,7 @@ line_spec parsing_line_spec(string par) {
   line_spec line;
   boost::to_lower(par);
   vector<string> par_vec;
-  boost::split(par_vec, par, boost::is_any_of(" "), boost::token_compress_on);
+  boost::split(par_vec, par, boost::is_any_of("\t "), boost::token_compress_on);
   std::map<string, string>::const_iterator iter;
   string line_color = "'#0060ad'"; // default line_color.
   string line_style = "lines"; // default line_style.

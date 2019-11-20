@@ -52,7 +52,7 @@ void ideal_rf::assign() {
   }
 
   vector<string> ch_par_vec;
-  boost::split(ch_par_vec, channels, boost::is_any_of(", |"), boost::token_compress_on);
+  boost::split(ch_par_vec, channels, boost::is_any_of("\t, |"), boost::token_compress_on);
   channels_ = ch_par_vec.size();
 
   // phase.
@@ -94,7 +94,7 @@ void ideal_rf::assign() {
       string new_s(&list[0], list.size());
       vector<string> par_vec;
       boost::trim(new_s);
-      boost::split(par_vec, new_s, boost::is_any_of(" "), boost::token_compress_on);
+      boost::split(par_vec, new_s, boost::is_any_of("\t "), boost::token_compress_on);
       // ugly code to be rewritten.
 
       std::map<string, double>::const_iterator iter;
