@@ -125,12 +125,11 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/tf_files/graph_ge
 
 if (WIN32)
 # for windows dll install
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/dll/libfftw3-3.dll" DESTINATION bin)
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/dll/linenoise.dll" DESTINATION bin)
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/dll/lua53.dll" DESTINATION bin)
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/dll/nlopt.dll" DESTINATION bin)
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/share/spin-scenario/dll/yacas.dll" DESTINATION bin)
-
+install(FILES "${EXTERN_LIB_ROOT}/fftw/libfftw3-3.dll" DESTINATION bin)
+install(FILES "${EXTERN_LIB_ROOT}/linenoise-ng/build/Release/linenoise.dll" DESTINATION bin)
+install(FILES "${EXTERN_LIB_ROOT}/lua/build/Release/lua53.dll" DESTINATION bin)
+install(FILES "${EXTERN_LIB_ROOT}/nlopt/build/Release/nlopt.dll" DESTINATION bin)
+install(FILES "${EXTERN_LIB_ROOT}/yacas/cyacas/libyacas/build/Release/yacas.dll" DESTINATION bin)
 install(FILES "${HDF5_INCLUDE_DIRS}/../bin/hdf5.dll" DESTINATION bin)
 install(FILES "${HDF5_INCLUDE_DIRS}/../bin/hdf5_cpp.dll" DESTINATION bin)
 endif()
