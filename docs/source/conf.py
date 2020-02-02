@@ -47,7 +47,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Spin-Scenario'
-copyright = '2019, Spin-Scenario'
+copyright = '2019-2020, Spin-Scenario'
 author = 'Yan Chang'
 
 # The version info for the project you're documenting, acts as replacement for

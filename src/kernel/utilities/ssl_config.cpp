@@ -621,9 +621,9 @@ char *sys_time() {
 void ssl_version_output() {
   cout << endl;
   cout << boost::format("%10tS P I N  S C E N A R I O") << endl;
-  cout << boost::format("%10t%s") % "version 1.0   last modified 2019-2-20" << endl;
+  cout << boost::format("%10t%s") % "version 1.0   last modified 2020-02-02" << endl;
   cout << endl;
-  cout << boost::format("%10t%s") % "Copyright(C) 2019" << endl;
+  cout << boost::format("%10t%s") % "Copyright(C) 2019-2020" << endl;
   cout << boost::format("%10t%s") % "Yan Chang (changy@sibet.ac.cn)" << endl;
   cout << endl;
   cout << boost::format("%10t%s") % "https://github.com/spin-scenario" << endl;
