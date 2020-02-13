@@ -209,6 +209,7 @@ void trapezoid_gradient::load_shape() {
     flat_time = timeline2ms(ms2timeline((duration - 2 * rise_time)));
     //cout << rise_time<<" " << flat_time << "\n";
     // adjust amplitude (after rounding) to achieve given area.
+    if(!if_amp)
     amp = area / (flat_time + rise_time);
   } else {
     string s = "must set duration for this gradient: " + name();
