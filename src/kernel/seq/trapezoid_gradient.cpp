@@ -177,6 +177,10 @@ void trapezoid_gradient::load_shape() {
     flat_time = timeline2ms(ms2timeline(flat_time));
     if (!if_amp)
       amp = flat_area / flat_time;
+    if (fabs(amp) > g_seq_param->max_grad) {
+        string s = "the given amplitude is beyond limit for this gradient: " + name();
+        throw std::runtime_error(s.c_str());
+    }
 
     if (!if_rise_time)
       rise_time = fabs(amp) / g_seq_param->max_slew;
