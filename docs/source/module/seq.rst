@@ -14,7 +14,8 @@ Sequence block
 
 RF pulses
 ---------
-
+  * :doc:`hardRF<functions/hardRF>`, for most common used rectangle or hard pulses.
+  * :doc:`shapedRF<functions/shapedRF>`, for shaped pulses.
 
 Gradient pulses
 ---------------
