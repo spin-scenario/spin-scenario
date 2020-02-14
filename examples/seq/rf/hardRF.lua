@@ -10,25 +10,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================-]]
 
--- example: shaped pulse. 
+-- example: Hard RF pulse. 
 
--- a.
-local rf1 = shapedRF{width = 5.12, step = 256, pattern = "sinc", max_amp = 100}
-write('data.RF',rf1)
-plot(rf1)
+-- 60 degree -y-pulse for proton 1H excitation.
+local rf1 = hardRF{beta =60, phase="-y"}
+write('rf1.RF',rf1)
 
-
--- b.
--- by default, the RF data file contains two columns in amp(Hz)/phase(deg).
--- Note if the raw shape is in ux(Hz)/uy(Hz), please use additional option mode = 'ux/uy'.
-local rf2 = shapedRF{width = 5.12, pattern = "sinc.RF"} 
-plot(rf2) 
-
-rf2:switch('ux/uy') 
-plot(rf2)
-
--- c.
-local rf3 =shapedRF{width =10, step =100, pattern ="0.1*t + Cos(10*t)^2"} 
--- please turn to YACAS for more usage to write your expression.
-plot(rf3) 
-
+-- a refocusing pulse applied on a heteronuclear 1H-13C spin system
+local rf2 = hardRF{beta =180, channel ="1H|13C", phase="x|x"}
+write('rf2.RF',rf2)
