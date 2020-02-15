@@ -112,11 +112,14 @@ void plot(string fig_info, sol::variadic_args va, const line &) {
     if (val.is_file)
       file = val.file;
     else {
+      g_lua->script("os.execute('rm -rf gnuplot')");
+      g_lua->script("os.execute('mkdir gnuplot')");
+      gp << "cd 'gnuplot'\n";
       file = "dat" + boost::lexical_cast<string>(i) + "_" + time_s;
       if (val.is_x_only)
-        write_line(val.x, file);
+        write_line(val.x, "gnuplot/" + file);
       else
-        write_line(val.x, val.y, file);
+        write_line(val.x, val.y, "gnuplot/" + file);
     }
 
     files.push_back(file);
@@ -207,12 +210,15 @@ void plot(string fig_info, const line_series &v) {
   if (v.is_file)
     files = v.files;
   else {
+    g_lua->script("os.execute('rm -rf gnuplot')");
+    g_lua->script("os.execute('mkdir gnuplot')");
+    gp << "cd 'gnuplot'\n";
     for (i = 0; i < v.y.size(); i++) {
       string file_i = "dat" + boost::lexical_cast<string>(i + 1) + "_" + time_s;
       if (v.is_y_only)
-        write_line(v.y[i], file_i);
+        write_line(v.y[i], "gnuplot/" + file_i);
       else
-        write_line(v.x, v.y[i], file_i);
+        write_line(v.x, v.y[i], "gnuplot/" + file_i);
       files.push_back(file_i);
     }
   }
@@ -288,8 +294,11 @@ void plot(string fig_info, sol::variadic_args va, const map &) {
     if (val.is_file)
       file = val.file;
     else {
+      g_lua->script("os.execute('rm -rf gnuplot')");
+      g_lua->script("os.execute('mkdir gnuplot')");
+      gp << "cd 'gnuplot'\n";
       file = "gnu_map_2d_" + boost::lexical_cast<string>(i) + "_" + time_s;
-      write_map(val.m, file);
+      write_map(val.m, "gnuplot/" + file);
     }
 
     map_spec map = parsing_map_spec(val.map_spec);
