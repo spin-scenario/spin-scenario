@@ -20,6 +20,8 @@ limitations under the License.
 namespace ssl {
 namespace utility {
 extern string g_output_terminal;
+extern string g_output_font;
+
 void set_output_terminal(const sol::table &t);
 string terminal_cmd(string key);
 

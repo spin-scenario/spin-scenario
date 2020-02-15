@@ -11,7 +11,7 @@ limitations under the License.
 ==============================================================================-]]
 
 -- example: vlidation of the result from "coop_2spin.lua" (two-qubit pseudo-pure state preparation).
-
+output_terminal{type = "eps", font = "Arial,16"} -- available font includes png, eps and tex.
 B0{"500 MHz"}
 -- set up spin system.
 local config = {

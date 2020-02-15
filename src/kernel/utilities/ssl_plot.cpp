@@ -16,21 +16,20 @@ namespace ssl {
 namespace utility {
 
 string g_output_terminal = "qt";
+string g_output_font = "Arial,12";
 void set_output_terminal(const sol::table &t) {
-  for (auto &kv : t) {
-    string s = kv.second.as<string>();
-    g_output_terminal = s;
-    break;
-  }
+    g_output_terminal = retrieve_table_str("type", t, "gnuplot terminal");
+    if(is_retrievable("font", t))
+        g_output_font = retrieve_table_str("font", t, "gnuplot terminal");
 }
 string terminal_cmd(string key) {
 	string s;
 	if (key == "qt")
-    s ="set terminal qt enhanced font 'Arial,12'\n";
+    s ="set terminal qt enhanced font '"+ g_output_font + "'\n";
 	if (key == "png")
-    s= "set terminal pngcairo enhanced font 'Arial,12'\n";
+    s= "set terminal pngcairo enhanced font '" + g_output_font + "'\n";
 	if (key == "eps")
-    s = "set terminal postscript eps enhanced color font 'Arial,12'\n";
+    s = "set terminal postscript eps enhanced color font '" + g_output_font + "'\n";
     if (key == "svg")
 		s = "set terminal svg fname 'Verdana' fsize 10\n";
 	if (key == "tex")
