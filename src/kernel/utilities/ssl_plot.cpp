@@ -225,7 +225,7 @@ void plot(string fig_info, const line_series &v) {
   if (!files.size())
     return;
 
-  gp << "plot '" << files[0] << "' with l ls 1 lw 2";
+  gp << "plot '" << files[0] << "' with l ls 1 lw " << fig.lw;
   if (nleg)
     gp << " t '" << fig.legend[0] << "'";
   if (files.size() == 1) {
@@ -236,7 +236,7 @@ void plot(string fig_info, const line_series &v) {
 
   for (i = 1; i < files.size() - 1; i++) {
     gp << " '" << files[i] << "' with l ls " << ((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor)
-       << " lw 2";
+       << " lw "<< fig.lw;
     if (nleg) {
       string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
       gp << " t '" << leg << "',";
@@ -245,7 +245,7 @@ void plot(string fig_info, const line_series &v) {
   }
 
   gp << " '" << files.back() << "' with l ls " << ((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor)
-     << " lw 2";
+     << " lw " << fig.lw;
   if (nleg) {
     string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
     gp << " t '" << leg << "'\n";
@@ -373,6 +373,10 @@ fig_spec parsing_fig_spec(string par) {
   boost::regex reg_ylabel("ylabel<(.*?)>{1}");
   if (boost::regex_search(par.c_str(), what, reg_ylabel))
     fig.ylabel = string(what[1]);
+
+  boost::regex reg_lw("lw<(.*?)>{1}");
+  if (boost::regex_search(par.c_str(), what, reg_lw))
+      fig.lw = string(what[1]);
 
   boost::regex reg_legend("legend<(.*?)>{1}");
   if (boost::regex_search(par.c_str(), what, reg_legend)) {
@@ -593,6 +597,9 @@ std::map<string, string> map_color() {
   color_map.insert(pair<string, string>("YlGnBu", "sequential/YlGnBu.plt"));
   color_map.insert(pair<string, string>("YlOrBr", "sequential/YlOrBr.plt"));
   color_map.insert(pair<string, string>("YlOrRd", "sequential/YlOrRd.plt"));
+
+  // usr def.
+  color_map.insert(pair<string, string>("PairedLines", "../usr/PairedLines16.plt"));
 
   return color_map;
 }

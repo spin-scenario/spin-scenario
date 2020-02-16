@@ -274,6 +274,7 @@ struct fig_spec {
   string color = "Spectral";
   int ncolor = 8;
   string gnu_cmd;
+  string lw = "2"; // only for line_series (line width)
   bool latex_output = false;
   vector<string> legend;
   vec2 xrange = vec2::Zero();
