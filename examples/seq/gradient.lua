@@ -16,6 +16,7 @@ limitations under the License.
 peak_grad{40} -- T/m
 slew_rate{200} -- T/m/s
 local grad = exprGrad{axis ='Y', expr ='Sin(t*7)', width =2}
+write("grad.txt", grad)
 plot(grad)
 
 os.exit()
