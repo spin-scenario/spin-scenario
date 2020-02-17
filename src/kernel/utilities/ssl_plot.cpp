@@ -105,15 +105,16 @@ void plot(string fig_info, sol::variadic_args va, const line &) {
   vector<string> files;
   vector<line_spec> lines;
   size_t i = 0;
+  g_lua->script("os.execute('rm -rf gnuplot')");
+  g_lua->script("os.execute('mkdir gnuplot')");
   for (auto v : va) {
     const line &val = v;
     string file;
-    if (val.is_file)
+    if (val.is_file) {
       file = val.file;
+      g_lua->script("os.execute('cp " + file + " gnuplot')");
+    }
     else {
-      g_lua->script("os.execute('rm -rf gnuplot')");
-      g_lua->script("os.execute('mkdir gnuplot')");
-      gp << "cd 'gnuplot'\n";
       file = "dat" + boost::lexical_cast<string>(i) + "_" + time_s;
       if (val.is_x_only)
         write_line(val.x, "gnuplot/" + file);
@@ -137,6 +138,7 @@ void plot(string fig_info, sol::variadic_args va, const line &) {
   if (!files.size())
     return;
 
+  gp << "cd 'gnuplot'\n";
   gp << "plot '" << files[0] << "' with " << lines[0].style << " ls 1";
   if (nleg)
     gp << " t '" << fig.legend[0] << "'";
@@ -278,7 +280,7 @@ void plot(string fig_info, sol::variadic_args va, const map &) {
   gp << "set ylabel  '" << fig.ylabel << "'\n";
 
   gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/colorbrewer/" << find_color(fig.color) << "'\n";
-  gp << "set palette negative\n";
+  //gp << "set palette negative\n";
 
     string time_s = sys_time();
   gp << terminal_cmd(g_output_terminal);
@@ -287,25 +289,27 @@ void plot(string fig_info, sol::variadic_args va, const map &) {
        << "'output_" << time_s << "." << g_output_terminal << "'\n";
 
   size_t i = 0;
+  g_lua->script("os.execute('rm -rf gnuplot')");
+  g_lua->script("os.execute('mkdir gnuplot')");
   for (auto v : va) {
     const map &val = v;
     string file;
-    if (val.is_file)
+    if (val.is_file) {
       file = val.file;
+      g_lua->script("os.execute('cp " + file + " gnuplot')");
+    }
     else {
-      g_lua->script("os.execute('rm -rf gnuplot')");
-      g_lua->script("os.execute('mkdir gnuplot')");
-      gp << "cd 'gnuplot'\n";
       file = "gnu_map_2d_" + boost::lexical_cast<string>(i) + "_" + time_s;
       write_map(val.m, "gnuplot/" + file);
     }
 
+    gp << "cd 'gnuplot'\n";
     map_spec map = parsing_map_spec(val.map_spec);
-//        string color;
-//        std::map<string, string>::const_iterator iter;
-//        iter = g_map_color.find(map.color);
-//        if (iter != g_map_color.end())
-//            color = iter->second;
+        string color;
+        std::map<string, string>::const_iterator iter;
+        iter = g_map_color.find(map.color);
+        if (iter != g_map_color.end())
+            color = iter->second;
 
     if (map.style == "3d") {
       gp << R"(

@@ -46,7 +46,7 @@ sol::object multi_shaped_rf(const sol::table &t, sol::this_state s) {
     mat m = h5read_mat(h5file, "/" + g_h5_string[i] + "/shape");
     shaped_rf *p_rf = rf->Clone();
     p_rf->copy_config_table();
-    p_rf->set_name("coop" + g_h5_string[i]);
+    p_rf->set_name(g_h5_string[i]);
     p_rf->set_shape(rf->get_channels_str(), m);
     rfs.add((seq_block *) p_rf);
   }

@@ -9,7 +9,7 @@ function script_transform(file)
     script = string.gsub(script, "(%w)(#)", "%1*1") -- if priority number not set, use 1 as default.
     --script = string.gsub(script, "(>)(#)", "%1*1")
     script = string.gsub(script, "(%w)(~)", "%1/1")
-    script = string.gsub(script, "(print)", "Print")
+    --script = string.gsub(script, "(print)", "Print")
     --script = string.gsub(script, "(<)(-?%d*.?%d*)(>)", "%%%2")
     --script = string.gsub(script, "(<%s*)(')(.*)(')(%s*>)", "%%'%3'")
     local new_file = io.open('temp.lua', 'w')

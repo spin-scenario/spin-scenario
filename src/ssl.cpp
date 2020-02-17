@@ -61,6 +61,9 @@ void bindings(sol::state &lua) {
 
   lua.set("ci", ci);
 
+  lua.set_function("table2mat", table2mat);
+  lua.set_function("table2vec", table2vec);
+
   lua.set_function("pw90", set_pw90_api);
 
   lua.set_function("peak_grad", set_max_grad_api);
@@ -197,7 +200,7 @@ void bindings(sol::state &lua) {
   ssl.new_usertype<coop_grape>(
       "multi_rf_optimizer",
       sol::constructors<sol::types<const spin_system &>>(),
-      //"maxf", sol::property(&grape::maxf),
+      "maxf", sol::property(&grape::maxf),
       "projection", &coop_grape::projection, "optimize",
       sol::overload(
           sol::resolve<sol::object(const sol::table &, sol::this_state)>(

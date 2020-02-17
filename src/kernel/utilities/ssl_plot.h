@@ -176,6 +176,8 @@ struct map {
 
   map(string a) {
     file = a;
+    m = eigen_read(a);
+    init_range();
     is_file = true;
   }
 
@@ -263,7 +265,7 @@ struct line_spec {
 };
 
 struct map_spec {
-  //string color = "Spectral"; // default map_color.
+  string color = "Spectral"; // default map_color.
   string style = "image";
 };
 
@@ -271,10 +273,10 @@ struct fig_spec {
   string title;
   string xlabel;
   string ylabel;
-  string color = "Spectral";
+  string color = "Paired";
   int ncolor = 8;
   string gnu_cmd;
-  string lw = "2"; // only for line_series (line width)
+  string lw = ""; // only for line_series (line width)
   bool latex_output = false;
   vector<string> legend;
   vec2 xrange = vec2::Zero();
