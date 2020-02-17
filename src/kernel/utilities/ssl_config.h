@@ -331,6 +331,9 @@ sp_cx_mat div(const sp_mat &a, cd b);
 sp_cx_mat div(const sp_cx_mat &a, cd b);
 sp_cx_vec div(const sp_cx_vec &a, cd b);
 
+mat table2mat(const sol::table& t, int nrows, int ncols);
+vec table2vec(const sol::table &t);
+
 char *sys_time();
 
 template<typename T>

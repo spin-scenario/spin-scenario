@@ -979,16 +979,42 @@ sp_cx_vec div(const sp_cx_vec &a, cd b) {
   return a * (cd(1, 0) / b);
 }
 
+mat table2mat(const sol::table &t, int nrows, int ncols) {
+  mat m(nrows, ncols);
+  int np = t.size();
+  if (np != nrows * ncols)
+    throw std::runtime_error("table size does not fit the input matrix dim!");
+  for (int i = 0; i < nrows; i++)
+    for (int j = 0; j < ncols; j++) {
+      sol::object val = t[i * ncols + j + 1];
+      m(i, j) = val.as<double>();
+    }
+  return m;
+}
+
+vec table2vec(const sol::table &t) {
+  int np = t.size();
+  vec v(np);
+  for (int i = 0; i < np; i++) {
+    sol::object val = t[i + 1];
+    v(i) = val.as<double>();
+  }
+  return v;
+}
+
 void write(string file, sol::variadic_args va, const mat & /*m*/) {
   string sep = "\n#----------------------------------------\n";
   ofstream ofstr(file.c_str());
-  //ofstr << sys_time() << sep;
+  // ofstr << sys_time() << sep;
   ofstr.precision(3);
+  int i = 0;
   for (auto v : va) {
     mat val = v;
-    /*Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "", "", "[", "]");
-    ofstr << v.format(OctaveFmt) << sep;*/
-    ofstr << val;// << sep;
+    if (i != 0) ofstr << "\n";
+    /*Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "", "",
+    "[", "]"); ofstr << v.format(OctaveFmt) << sep;*/
+    ofstr << val;  // << sep;
+    i++;
   }
   ofstr.close();
 
@@ -1010,13 +1036,15 @@ void write(string file, sol::variadic_args va, const cx_mat & /*m*/) {
 void write(string file, sol::variadic_args va, const vec & /*v*/) {
   string sep = "\n#----------------------------------------\n";
   ofstream ofstr(file.c_str());
-  ofstr << sys_time() << sep;
+  // ofstr << sys_time() << sep;
   ofstr.precision(3);
+  int i = 0;
   for (auto v : va) {
     vec val = v;
-    /*Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "", "", "[", "]");
-    ofstr << v.format(OctaveFmt) << sep;*/
-    ofstr << val << sep;
+    if (i != 0) ofstr << "\n";
+    /*Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "", "",
+    "[", "]"); ofstr << v.format(OctaveFmt) << sep;*/
+    ofstr << val;  // << sep;
   }
   ofstr.close();
 }
