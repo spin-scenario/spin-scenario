@@ -83,7 +83,7 @@ void coop_grape::assign_pulse(const sol::table &t) {
   for (size_t i = 0; i < ncoop; i++) {
     shaped_rf *ptr = rf_->Clone();
     ptr->copy_config_table();
-    ptr->set_name("coop" + to_string(i + 1));
+    ptr->set_name("ms-coop " + to_string(i + 1)+ "-" + to_string(ncoop));
     ptr->set_shape(rf_->get_channels_str(), iter->second, 1);
     coop_rf_.push_back(ptr);
     //coop_rf_[i]->switch_rf_mode("amp/phase");
@@ -153,13 +153,13 @@ sol::object coop_grape::optimize(const sol::table &t, sol::this_state s) {
 void coop_grape::h5write(string file_name) const {
   if (file_name.empty()) {
     string time_s = sys_time();
-    file_name = "coop_" + time_s + ".h5";
+    file_name = "ms_coop_" + time_s + ".h5";
   }
   H5File file(file_name, H5F_ACC_TRUNC);
 
   for (size_t i = 0; i < coop_rf_.size(); i++) {
     coop_rf_[i]->switch_rf_mode("amp/phase");
-    coop_rf_[i]->h5write(file, to_string(i + 1));
+    coop_rf_[i]->h5write(file, coop_rf_[i]->name());
   }
 
   ssl::utility::h5write(file, nullptr, "obj", stl2vec(opt_.vf));
@@ -433,10 +433,13 @@ void coop_grape::projection(const sol::table &t) {
   if (expr.size() > 5)
     fig_spec += " gnuplot<set key outside>";
 
+  fig_spec += " color<PairedLines,16>";
+  fig_spec += " lw<4>";
+
   string lege;
   for (size_t i = 0; i < expr.size(); i++)
     lege += expr[i] + ";";
-  fig_spec += "legend<" + lege + ">";
+  fig_spec += " legend<" + lege + ">";
 
   plot(fig_spec, line_series(time, lines));
 
