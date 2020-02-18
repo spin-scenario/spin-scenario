@@ -84,6 +84,9 @@ void plot(string fig_info, sol::variadic_args va, const line &) {
   gp << "set xlabel  '" << fig.xlabel << "'\n";
   gp << "set ylabel  '" << fig.ylabel << "'\n";
 
+  gp << "set border back\n";
+  gp << "set key opaque\n";
+
   gp << "set key width 1\n";
 
   gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/colorbrewer/" << find_color(fig.color) << "'\n";
@@ -105,7 +108,7 @@ void plot(string fig_info, sol::variadic_args va, const line &) {
   vector<string> files;
   vector<line_spec> lines;
   size_t i = 0;
-  g_lua->script("os.execute('rm -rf gnuplot')");
+  //g_lua->script("os.execute('rm -rf gnuplot')");
   g_lua->script("os.execute('mkdir gnuplot')");
   for (auto v : va) {
     const line &val = v;
@@ -181,22 +184,27 @@ void plot(string fig_info, const line_series &v) {
   Gnuplot gp;
 #endif
   gp << "reset\n";
-  gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/xyborder.cfg'\n";
-  gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/grid.cfg'\n";
+  gp << "load '" << g_project_path
+     << "/share/spin-scenario/config/gnuplot/xyborder.cfg'\n";
+  gp << "load '" << g_project_path
+     << "/share/spin-scenario/config/gnuplot/grid.cfg'\n";
 
   fig_spec fig = parsing_fig_spec(fig_info);
   gp << "set title '" << fig.title << "'\n";
   gp << "set xlabel  '" << fig.xlabel << "'\n";
   gp << "set ylabel  '" << fig.ylabel << "'\n";
   gp << "set key width 1\n";
-
+  
   int ncolor = fig.ncolor;
-  gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/colorbrewer/" << find_color(fig.color) << "'\n";
+  gp << "load '" << g_project_path
+     << "/share/spin-scenario/config/gnuplot/colorbrewer/"
+     << find_color(fig.color) << "'\n";
 
   string time_s = sys_time();
   gp << terminal_cmd(g_output_terminal);
   if (g_output_terminal != "qt")
-    gp << "set output "<< "'output_" << time_s << "." << g_output_terminal << "'\n";
+    gp << "set output "
+       << "'output_" << time_s << "." << g_output_terminal << "'\n";
 
   size_t nleg = fig.legend.size();
   if (fig.xrange.norm())
@@ -204,32 +212,31 @@ void plot(string fig_info, const line_series &v) {
   if (fig.yrange.norm())
     gp << "set yrange [" << fig.yrange[0] << ":" << fig.yrange[1] << "]\n";
 
+  gp << "set border back\n";
+  gp << "set key opaque\n";
   gp << fig.gnu_cmd << "\n";
 
   vector<string> files;
   size_t i = 0;
+  g_lua->script("os.execute('mkdir gnuplot')");
   if (v.is_file)
     files = v.files;
   else {
-    g_lua->script("os.execute('rm -rf gnuplot')");
-    g_lua->script("os.execute('mkdir gnuplot')");
-    gp << "cd 'gnuplot'\n";
     for (i = 0; i < v.y.size(); i++) {
       string file_i = "dat" + boost::lexical_cast<string>(i + 1) + "_" + time_s;
       if (v.is_y_only)
         write_line(v.y[i], "gnuplot/" + file_i);
       else
-        write_line(v.x, v.y[i], "gnuplot/" + file_i);
+        write_line(v.x, v.y[i], "gnuplot/"  + file_i);
       files.push_back(file_i);
     }
   }
 
-  if (!files.size())
-    return;
+  if (!files.size()) return;
 
-  gp << "plot '" << files[0] << "' with l ls 1 lw " << fig.lw;
-  if (nleg)
-    gp << " t '" << fig.legend[0] << "'";
+  gp << "cd 'gnuplot'\n";
+  gp << "plot '" << files[0] << "' with l ls 1 lw 2";
+  if (nleg) gp << " t '" << fig.legend[0] << "'";
   if (files.size() == 1) {
     gp << "\n";
     return;
@@ -237,8 +244,8 @@ void plot(string fig_info, const line_series &v) {
     gp << ",";
 
   for (i = 1; i < files.size() - 1; i++) {
-    gp << " '" << files[i] << "' with l ls " << ((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor)
-       << " lw "<< fig.lw;
+    gp << " '" << files[i] << "' with l ls "
+       << ((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor) << " lw 2";
     if (nleg) {
       string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
       gp << " t '" << leg << "',";
@@ -246,8 +253,8 @@ void plot(string fig_info, const line_series &v) {
       gp << ",";
   }
 
-  gp << " '" << files.back() << "' with l ls " << ((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor)
-     << " lw " << fig.lw;
+  gp << " '" << files.back() << "' with l ls "
+     << ((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor) << " lw 2";
   if (nleg) {
     string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
     gp << " t '" << leg << "'\n";
@@ -289,7 +296,7 @@ void plot(string fig_info, sol::variadic_args va, const map &) {
        << "'output_" << time_s << "." << g_output_terminal << "'\n";
 
   size_t i = 0;
-  g_lua->script("os.execute('rm -rf gnuplot')");
+  //g_lua->script("os.execute('rm -rf gnuplot')");
   g_lua->script("os.execute('mkdir gnuplot')");
   for (auto v : va) {
     const map &val = v;

@@ -424,6 +424,9 @@ void rf_pulse::plot() const {
     double dt = width_in_ms() / (double) nsteps_;
     gp << "set xlabel 'Time / ms" << "'\n";
     gp << "set style fill solid 0.25\n";
+    gp << "set border back\n";
+    gp << "set key opaque\n";
+
     //gp << "set xrange [0:" << width_in_ms() << "]\n";
     if (mode_ == _amp_phase) {
       gp << "set ylabel 'amplitude / Hz'\n";
