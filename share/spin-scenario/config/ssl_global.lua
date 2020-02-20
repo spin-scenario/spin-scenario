@@ -5,8 +5,10 @@ function script_transform(file)
     -- http://www.lua.org/manual/5.3/manual.html#pdf-string.gsub
     --script = string.gsub(script, "(%w)(#)(%d)", "%1*%3")
     script = string.gsub(script, "(#)(%d)", "*%2")
+    script = string.gsub(script, "(])(#)(%d)", "%1*%3") -- in case of seq block comes from lua table.
     script = string.gsub(script, "(})(#)(%d)", "%1*%3")
     script = string.gsub(script, "(%w)(#)", "%1*1") -- if priority number not set, use 1 as default.
+    script = string.gsub(script, "(])(#)", "%1*1") -- if priority number not set, use 1 as default. -- in case of seq block comes from lua table.
     --script = string.gsub(script, "(>)(#)", "%1*1")
     script = string.gsub(script, "(%w)(~)", "%1/1")
     --script = string.gsub(script, "(print)", "Print")
