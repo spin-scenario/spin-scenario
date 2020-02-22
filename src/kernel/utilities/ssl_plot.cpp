@@ -129,7 +129,7 @@ void plot(string fig_info, sol::variadic_args va, const line &) {
     i++;
 
     line_spec line = parsing_line_spec(val.line_spec);
-    gp << "set style line " << i << " lw 2\n";
+    gp << "set style line " << i << " lw "<<fig.lw<<"\n";
     if (!line.dash.empty())
       gp << "set style line " << i << " dt " << line.dash << "\n";
     if (!line.marker.empty())
@@ -235,7 +235,7 @@ void plot(string fig_info, const line_series &v) {
   if (!files.size()) return;
 
   gp << "cd 'gnuplot'\n";
-  gp << "plot '" << files[0] << "' with l ls 1 lw 2";
+  gp << "plot '" << files[0] << "' with l ls 1 lw "<<fig.lw;
   if (nleg) gp << " t '" << fig.legend[0] << "'";
   if (files.size() == 1) {
     gp << "\n";
@@ -245,7 +245,7 @@ void plot(string fig_info, const line_series &v) {
 
   for (i = 1; i < files.size() - 1; i++) {
     gp << " '" << files[i] << "' with l ls "
-       << ((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor) << " lw 2";
+       << ((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor) << " lw "<<fig.lw;
     if (nleg) {
       string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
       gp << " t '" << leg << "',";
@@ -254,7 +254,7 @@ void plot(string fig_info, const line_series &v) {
   }
 
   gp << " '" << files.back() << "' with l ls "
-     << ((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor) << " lw 2";
+     << ((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor) << " lw " << fig.lw;
   if (nleg) {
     string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
     gp << " t '" << leg << "'\n";
