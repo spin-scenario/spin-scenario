@@ -290,7 +290,7 @@ class composition {
     vector<string> s;
     for (auto v : spins_)
       s.push_back(v.symbol());
-    sort(s.begin(), s.end());
+    //sort(s.begin(), s.end());
     s.erase(unique(s.begin(), s.end()), s.end());
     return s;
   }
