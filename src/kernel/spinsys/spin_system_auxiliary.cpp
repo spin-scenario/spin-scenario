@@ -1531,8 +1531,8 @@ void interaction::set_Jcoupling_scalar_broadband(size_t id1, size_t id2, vec3 va
   }
 }
 vector<vector<cs_par>> interaction::parsing_zeeman_broadband() {
-  // case 1: broadband spin system.
-  /*vector<vector<cs_par>> result0;
+  // case 1: broadband spin system. ONLY for the specific spin.
+  vector<vector<cs_par>> result0;
   if (zeeman_.bb_scalars.size() == 0)
       return result0;
   for (int i = 0; i < zeeman_.bb_scalars[0].offset.size(); i++) {
@@ -1547,26 +1547,26 @@ vector<vector<cs_par>> interaction::parsing_zeeman_broadband() {
   for (int i = 1; i < zeeman_.bb_scalars.size(); i++) {
       result = parsing_zeeman_broadband(result, zeeman_.bb_scalars[i]);
   }
-  return result;*/
+  return result;
 
 
   // case 2: broadband magnet field. NOTE: chemical shifts of all spins are shifted rigidly.
-  vector<vector<cs_par>> result;
-  if (zeeman_.bb_scalars.size() == 0)
-    return result;
+  //vector<vector<cs_par>> result;
+  //if (zeeman_.bb_scalars.size() == 0)
+  //  return result;
 
-  vec offset = zeeman_.bb_scalars[0].offset;
-  for (int i = 0; i < offset.size(); i++) {
-    vector<cs_par> b;
-    for (size_t j = 0; j < comp_.nspins(); j++) {
-      cs_par tmp;
-      tmp.id = j;
-      tmp.val = offset[i];
-      b.push_back(tmp);
-    }
-    result.push_back(b);
-  }
-  return result;
+  //vec offset = zeeman_.bb_scalars[0].offset;
+  //for (int i = 0; i < offset.size(); i++) {
+  //  vector<cs_par> b;
+  //  for (size_t j = 0; j < comp_.nspins(); j++) {
+  //    cs_par tmp;
+  //    tmp.id = j;
+  //    tmp.val = offset[i];
+  //    b.push_back(tmp);
+  //  }
+  //  result.push_back(b);
+  //}
+  //return result;
 }
 vector<vector<jcoup_par>> interaction::parsing_Jcoupling_broadband() {
   vector<vector<jcoup_par>> result;
