@@ -610,7 +610,7 @@ std::map<string, string> map_color() {
   color_map.insert(pair<string, string>("YlOrRd", "sequential/YlOrRd.plt"));
 
   // usr def.
-  color_map.insert(pair<string, string>("PairedLines", "../usr/PairedLines16.plt"));
+  color_map.insert(pair<string, string>("YiZhang16", "../usr/YiZhang16.plt"));
 
   return color_map;
 }
