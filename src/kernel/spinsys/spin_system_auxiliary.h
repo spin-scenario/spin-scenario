@@ -85,6 +85,7 @@ mat select_taylor_degree(const sp_cx_mat &A0, bool shift, bool bal, bool force_e
 cd projection(const sp_cx_vec &rho, const sp_cx_vec &coil);
 cd projection(const cx_vec &rho, const cx_vec &coil);
 double transfer_fidelity(const sp_cx_vec &rho, const sp_cx_vec &targ);
+double transfer_fidelity(const sp_cx_mat &rho, const sp_cx_mat &targ);
 double max_abs(const sp_cx_vec &m);
 sp_cx_mat commutator(const sp_cx_mat &op1, const sp_cx_mat &op2);
 sp_cx_mat propagator(const sp_cx_mat &L, double dt);

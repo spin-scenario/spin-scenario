@@ -658,7 +658,14 @@ double transfer_fidelity(const sp_cx_vec &rho, const sp_cx_vec &targ) {
   //cd val = traced(rho.adjoint() * targ)-cd(1,0);
   //return fabs(val);
 }
+double transfer_fidelity(const sp_cx_mat &rho, const sp_cx_mat &targ) {
+  return traced(rho.adjoint() * targ).real();
+  //cd val= traced(rho.adjoint() * targ);
+  //return 0.5*abs(val) * abs(val);
 
+  // cd val = traced(rho.adjoint() * targ)-cd(1,0);
+  // return fabs(val);
+}
 sp_cx_vec norm_state(const sp_cx_vec &rho) {
   sp_cx_vec rho_new = rho;
   double norm = rho.norm();
@@ -2525,7 +2532,7 @@ void interaction::cacl_equilibrium_state() {
   sp_cx_mat H = ham.isotropic;
 
   if (relax_.temperature == 0) { // If zero temperature is supplied, use the high temperature approximation
-    rho = -H * unit;
+    rho = H * unit;
     rho /= norm(rho);
   } else {
     //double beta = kHbar / (sys.relax_temp() * kbol);
