@@ -63,7 +63,8 @@ struct unified_spinsys {
     R = ci * sys.relaxation();
 
     string acq_ch = g_seq_param->acq_channel;
-    rho0 = sys.state(acq_ch + " Iz");
+    //rho0 = sys.state(acq_ch + " Iz");
+    rho0 = sys.equilibrium_state();
     Lz0 = sys.op(acq_ch + " Iz").cast<cd>();
 
 #ifdef DENSE_MATRIX_COMPUTE

@@ -79,7 +79,7 @@ void engine::init_ensemble(const phantom *p_phantom) {
               .L0;  //////////////////////////////////////////////////////////////////////////
       ensemble_[0].Lz0 = unified_spinsys_.Lz0;
       ensemble_[0].R = unified_spinsys_.R;
-      ensemble_[0].pd = 1;
+         ensemble_[0].pd = 1;
 #endif
       return;
     }
@@ -88,7 +88,7 @@ void engine::init_ensemble(const phantom *p_phantom) {
     each_spinsys each;
     ensemble_ = vector<each_spinsys>(num, each);
     omp_set_num_threads(omp_core_num);
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int i = 0; i < num; i++) {
       // int id = omp_get_thread_num();
 #ifdef DENSE_MATRIX_COMPUTE
@@ -254,7 +254,7 @@ void engine::evolution(timeline dt, const seq_const &ctrl) {
       delete[] host_y;
     }
     //if (ctrl.acq.adc) {
-      //cout << ctrl.acq.index << "\n"; 
+    //cout << ctrl.acq.index << "\n";
     //}
 
     af::array deltaB = gdB0s_;
@@ -343,7 +343,7 @@ void engine::evolution(timeline dt, const seq_const &ctrl) {
       mz_ = bufferMz * E1 - (E1 - 1) * pd_;
     }
 
-	    if (ctrl.acq.adc) {
+    if (ctrl.acq.adc) {
       af::array mx = af::tile(mx_, nRxs_, 1);
       af::array my = af::tile(my_, nRxs_, 1);
 
@@ -476,7 +476,7 @@ cx_vec engine::accu_signal() {
     }
   }
   // optional
-  // apodization(sig, 5);
+  apodization(sig, 10);
 
   return sig;
   /*sol::table lines = g_lua->create_table();
@@ -545,16 +545,6 @@ sol::object engine::process_signal() {
     t_spec_im.add(spec_im);
     t_spec_abs.add(spec_abs);
 
-    //    double phi0=deg2rad(117);
-    //    double phi_i = 0.5*phi0*(double)(i*i+i+2);
-    //
-    //    for(size_t j=0;j<fid.size();j++)
-    //    {
-    //      cd tmp=xy2amp(fid[j]);
-    //      tmp=cd(tmp.real(), tmp.imag()-phi_i);
-    //      fid[i]=amp2xy(tmp);
-    //    }
-
     FID.row(i) = fid.transpose();
     SPEC1D.row(i) = spec.transpose();
   }
@@ -569,7 +559,7 @@ sol::object engine::process_signal() {
   t_raw.set("spec:im", t_spec_im);
   t_raw.set("spec:abs", t_spec_abs);
 
-  // for iamge.
+  // for image.
   string time_s = sys_time();
   string folder = "raw_data_" + time_s;
   g_lua->script("os.execute('mkdir " + folder + "')");
@@ -585,9 +575,9 @@ sol::object engine::process_signal() {
   t_raw.set("FID:im", raw_im);
   t_raw.set("FID:abs", raw_abs);
 
-  h5write(file, &group1, "fid_re", raw_re);
-  h5write(file, &group1, "fid_im", raw_im);
-  h5write(file, &group1, "fid_abs", raw_abs);
+  h5write(file, &group1, "FID:re", raw_re);
+  h5write(file, &group1, "FID:im", raw_im);
+  h5write(file, &group1, "FID:abs", raw_abs);
 
   //  (*g_lua)["_raw_fid_re"] = &raw_re;
   //  (*g_lua)["_raw_fid_im"] = &raw_im;
@@ -632,153 +622,6 @@ sol::object engine::process_signal() {
   file.close();
 
   return t_raw;
-  // 1d nmr.
-  //  cx_vec fid_apo = fid.row(0).transpose();
-  //  apodization(fid_apo, 5);
-  //
-  //  cx_vec fid_zero(8192);
-  //  fid_zero.setZero();
-  //  fid_zero.head(fid_apo.size()) = fid_apo;
-  //
-  //  cx_vec spec = fft_1d(fid_zero);
-  //
-  //  vec hz = vec::LinSpaced(spec.size(), -1e3 * g_seq_param->sw / 2, 1e3 *
-  //  g_seq_param->sw / 2); utility::line amp(hz, spec.cwiseAbs());
-  //  (*g_lua)["_amp"] = amp;
-  //  g_lua->script("plot('title#spec amp# gnuplot#set xrange [] reverse#',
-  //  _amp)");
-
-  //  double max_noise = fid.cwiseAbs().maxCoeff()/100;
-  //  cx_mat noise(rows, cols);
-  //  noise.setRandom();
-  //  //fid+=noise;
-  //
-
-  //  utility::map map(img_abs.matrix());
-  //  (*g_lua)["_map"] = map;
-  //  g_lua->script("plot('title#image# gnuplot#set size ratio -1\\n set palette
-  //  gray#', _map)");
-  //  (*g_lua)["_raw_img_re"] = &img_re;
-  //  (*g_lua)["_raw_img_im"] = &img_im;
-  //  (*g_lua)["_raw_img_abs"] = &img_abs;
-  //
-  //  g_lua->script("ssl.write('raw_img_re.txt', _raw_img_re)");
-  //  g_lua->script("ssl.write('raw_img_im.txt', _raw_img_im)");
-  //  g_lua->script("ssl.write('raw_img_abs.txt', _raw_img_abs)");
-
-  // 1D-FFT array.
-  /*cx_mat spec = fid;
-  for (int i = 0; i < spec.rows(); i++)
-      spec.row(i) = fft_1d(fid.row(i).transpose()).transpose();
-
-  mat spec_abs = spec.cwiseAbs();
-
-  ssl::utility::array amp_mat;
-  amp_mat = 20 * (spec_abs.array() + 1e-6).log10();
-
-  mat spec_phase = spec_abs;
-  for (int i = 0; i < spec.rows(); i++)
-      for (int j = 0; j < spec.cols(); j++)
-          spec_phase(i, j) = phase_in_degree(spec(i, j));
-
-  utility::map map1(spec_abs.matrix());
-  (*g_lua)["_map1"] = map1;
-  g_lua->script("plot('title<spec abs map> ylabel<Freq>', _map1)");
-
-  utility::map map2(amp_mat.matrix());
-  (*g_lua)["_map2"] = map2;
-  g_lua->script("plot('title<spec 20log map> ylabel<Freq>', _map2)");
-
-  utility::map map3(spec_phase.matrix());
-  (*g_lua)["_map3"] = map3;
-  g_lua->script("plot('title<spec phase map> ylabel<Freq>', _map3)");
-
-  int id = spec.cols() / 2;
-  utility::line amp(spec.col(id).cwiseAbs());
-  (*g_lua)["_amp"] = amp;
-  g_lua->script("plot('title<spec amp>', _amp)");*/
-
-  /*vec m3 = fid.cwiseAbs().row(0).transpose();
-  vec m1 = fid.real().row(0).transpose();
-  vec m2 = fid.imag().row(0).transpose();
-
-  sol::table lines = g_lua->create_table();
-  lines.add(m1);
-  lines.add(m2);
-  lines.add(m3);
-  plot("title<xy profile>", line_series(lines));*/
-
-  // cx_vec sig = raw_signal_[0];
-  // cout << sig[0] << "\n";
-  //// plot.
-  // sol::table lines = g_lua->create_table();
-  // vec re = sig.real();
-  // vec im = sig.imag();
-  // vec abs = sig.cwiseAbs();
-
-  // lines.add(re);
-  // lines.add(im);
-  // lines.add(abs);
-
-  // string fig_spec;
-  // fig_spec = "title<fid>";
-  // plot(fig_spec, line_series(lines));
-
-  // sol::table lines1 = g_lua->create_table();
-  // cx_vec spec = fft_1d(sig);
-  // re = spec.real();
-  // im = spec.imag();
-  // abs = spec.cwiseAbs();
-
-  // lines1.add(re);
-  // lines1.add(im);
-  // lines1.add(abs);
-
-  // string fig_spec1;
-  // fig_spec1 = "title<spec>";
-  // plot(fig_spec1, line_series(lines1));
-
-  //   double max_amp = fid.cwiseAbs().maxCoeff();
-  //   fid /= max_amp;
-
-  // cx_mat img = fft_2d(fid);
-
-  ////-----------------------PLOT-------------------------------
-  //   mat fid_re = fid.real();
-  //   mat fid_im = fid.imag();
-  // mat fid_abs = fid.cwiseAbs();
-
-  // mat img_re = img.real();
-  // mat img_im = img.imag();
-  // mat img_abs = img.cwiseAbs();
-
-  //   (*g_lua)["_raw_sig"] = &fid;
-  //   (*g_lua)["_raw_sig_re"] = &fid_re;
-  //   (*g_lua)["_raw_sig_im"] = &fid_im;
-  //(*g_lua)["_raw_sig_abs"] = &fid_abs;
-
-  //(*g_lua)["_raw_img"] = &img;
-  //(*g_lua)["_raw_img_re"] = &img_re;
-  //(*g_lua)["_raw_img_im"] = &img_im;
-  //(*g_lua)["_raw_img_abs"] = &img_abs;
-
-  // g_lua->script("os.execute('mkdir signal')");
-
-  //   g_lua->script("write('signal/raw_sig', _raw_sig)");
-  //   g_lua->script("write('signal/raw_sig_re', _raw_sig_re)");
-  //   g_lua->script("write('signal/raw_sig_im', _raw_sig_im)");
-  // g_lua->script("write('signal/raw_sig_abs', _raw_sig_abs)");
-
-  // g_lua->script("write('signal/raw_img', _raw_img)");
-  // g_lua->script("write('signal/raw_img_re', _raw_img_re)");
-  // g_lua->script("write('signal/raw_img_im', _raw_img_im)");
-  // g_lua->script("write('signal/raw_img_abs', _raw_img_abs)");
-
-  //   string gnu_cmd = "gnuplot<set yrange [" + to_string(fid.rows()) + ":1]>";
-  //   (*g_lua)["_map_img"] = utility::map(img.cwiseAbs());
-  //   g_lua->script("plot('title<img> " + gnu_cmd + "', _map_img)");
-  //   (*g_lua)["_map_fid"] = utility::map(fid.cwiseAbs());
-  //   g_lua->script("plot('title<fid> " + gnu_cmd + "', _map_fid)");
 }
 
 }  // namespace physx
