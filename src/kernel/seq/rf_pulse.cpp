@@ -268,7 +268,8 @@ vector<double> rf_pulse::clone_raw_data() const {
   return vals;
 }
 
-double rf_pulse::average_power() const {
+// \int_0^tp {u^2(t)dt}
+double rf_pulse::rf_power() const {
   double p = 0;
   if (mode_ == _amp_phase) {
     for (size_t j = 0; j < channels_; j++)
@@ -279,8 +280,10 @@ double rf_pulse::average_power() const {
     for (size_t j = 0; j < channels_; j++)
       p += raw_data_[j].envelope.cwiseAbs2().sum();
   }
-  p /= (double) nsteps_;
-  p *= modulated_gain_ * modulated_gain_; // do not forget the amplitude gain.
+
+  p *= dt_ * 1e-6; // Hz^2*s
+  //p /= (double) nsteps_;
+  //p *= modulated_gain_ * modulated_gain_; // do not forget the amplitude gain (in general 1).
   return p;
 }
 
@@ -415,32 +418,32 @@ void rf_pulse::plot() const {
     string title = name() + " [" + raw_data_[i].channel + "]";
     if (g_output_terminal != "qt")
       gp << "set output "<< "'rf-" << title << "." << g_output_terminal << "'\n";
-    gp << "set multiplot layout 2,1 title '" << title << "'\n";
 
     gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/xyborder.cfg'\n";
     gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/grid.cfg'\n";
     gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/dark2.pal'\n";
 
     double dt = width_in_ms() / (double) nsteps_;
-    gp << "set xlabel 'Time / ms" << "'\n";
+    gp << "set xlabel 'Time / ms" << "'\n"; 
     gp << "set style fill solid 0.25\n";
     gp << "set border back\n";
     gp << "set key opaque\n";
 
-    //gp << "set xrange [0:" << width_in_ms() << "]\n";
+    gp << "set xrange [0:" << width_in_ms() << "]\n";
     if (mode_ == _amp_phase) {
+      gp << "set multiplot layout 2,1 title '" << title << "'\n";
       gp << "set ylabel 'amplitude / Hz'\n";
       gp << "plot 'shape.RF' u (($0+0.5)*" << dt << "):" << col1 << " title 'amp' with boxes ls 1\n";
       gp << "set ylabel 'phase / deg'\n";
       gp << "set yrange [0:360]\n";
       gp << "plot 'shape.RF' u (($0+0.5)*" << dt << "):" << col2 << " title 'phase' with boxes ls 2\n";
+      gp << "unset multiplot\n";
     }
     if (mode_ == _ux_uy) {
+      gp << "set title '" << title << "'\n"; // lw 5
       gp << "set ylabel 'amplitude / Hz'\n";
-      gp << "plot 'shape.RF' u (($0+0.5)*" << dt << "):" << col1 << " title 'ux' with boxes ls 1\n";
-      gp << "plot 'shape.RF' u (($0+0.5)*" << dt << "):" << col2 << " title 'uy' with boxes ls 2\n";
+      gp << "plot 'shape.RF' u (($0+0.5)*" << dt << "):" << col1 << " title 'ux' w l ls 1 lw 8, 'shape.RF' u (($0+0.5)*" << dt << "):" << col2 << " title 'uy' w l ls 2 lw 8\n";
     }
-    gp << "unset multiplot\n";
 #ifdef GP_SCRIPT_OUTPUT
     gp.close();
 #endif

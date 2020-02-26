@@ -81,14 +81,14 @@ class rf_pulse : public seq_block {
   vector<cx_vec> export_signal() const;
   double sampling_freq() const;
 
-  // rf power on all channels.
-  virtual double average_power() const;
+  // rf power on all channels.  \int_0^tp {u^2(t)dt}
+  virtual double rf_power() const;
  protected:
   virtual void assign();
  protected:
   size_t nsteps_;  ///< total segments of the rf pulse.
   size_t channels_;  ///< rf pulse channels, in MRI there is usually only 1H channel excitation.
-  double dt_;  // time duration of each step. !!!!!
+  double dt_;  // time duration of each step. !!!!! unit in us.
   timeline tl_dt_;
   vector<RFChannel> raw_data_;  ///< <amp, phase> in <rad, rad> or <ux,uy> in <rad,rad>
   vector<RFChannel> raw_data0_;  ///< <amp, phase> in <rad, rad> or <ux,uy> in <rad,rad>

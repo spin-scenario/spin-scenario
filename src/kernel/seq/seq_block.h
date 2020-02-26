@@ -124,7 +124,7 @@ class seq_block {
 
   // ONLY for RF.
   virtual void switch_rf_mode(string mode) {};
-  virtual double average_power() const {
+  virtual double rf_power() const {
     return 0;
   }
   //virtual void set_modulated_gain(double g) {};
