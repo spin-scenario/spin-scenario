@@ -195,12 +195,14 @@ void h5write(H5File &file, Group *group, string dataset_name, const mat &m);
 void h5write(H5File &file, Group *group, string dataset_name, const vec &v);
 void h5write(H5File &file, Group *group, string dataset_name, const ivec &iv);
 void h5write(H5File &file, Group *group, string dataset_name, const icube &cube);
+void h5write(H5File &file, Group *group, string dataset_name, const cube & m);
 
 mat h5read_mat(const H5File &file, string dataset_name);
 imat h5read_imat(const H5File &file, string dataset_name);
 cube h5read_cube(const H5File &file, string dataset_name);
 icube h5read_icube(const H5File &file, string dataset_name);
 
+mat h5read_mat(string file, string dataset_name);
 // seq time definition.
 typedef int timeline;
 typedef Eigen::Matrix<timeline, Eigen::Dynamic, 1> tlvec;
@@ -214,6 +216,9 @@ const double seq_time_scale = 1; // unit in us.
 
 #define zero_round_off(x) (abs(x) > 1e-8 ? x : 0)
 
+extern int g_fold;
+void set_fold(int val);
+
 extern int omp_core_num;
 extern sol::state *g_lua;
 extern CYacas *g_yacas;
@@ -221,6 +226,8 @@ extern vector<string> g_h5_string;
 #define PATH_SEPARATOR   '/'
 #define PATH_SEPARATOR_2 "/"
 void declare_path(const char *ptr2);
+char *sys_time();
+
 void load_yacas();
 // C++ and Lua interface for symbolic-computation.
 string yacas_evaluate(const string expr);
@@ -263,10 +270,17 @@ enum win_shape {
 std::map<string, win_shape> win_shape_map();
 const std::map<string, win_shape> g_win_shape = win_shape_map();
 
+mat unwrap2d(const mat &wrapped_phi);
 vec window_function(win_shape wshape, int length);
 win_shape window_interpreter(string win_name);
 struct stft_out {
   cx_mat specgram;
+  mat specgram_re;
+  mat specgram_im;
+  mat amp;
+  mat ampdB;
+  mat phase;
+  mat unwrap_phase;
   vec time; // time vector, s
   vec freq; // frequency vector, Hz
   double delta_time;
@@ -275,7 +289,7 @@ struct stft_out {
   stft_out(const cx_mat &a, const vec &b, const vec &c, double d, double e)
       : specgram(a), time(b), freq(c), delta_time(d), delta_freq(e) {};
 };
-// http://cn.mathworks.com/matlabcentral/fileexchange/45197-short-time-fourier-transformation--stft--with-matlab-implementation
+    // http://cn.mathworks.com/matlabcentral/fileexchange/45197-short-time-fourier-transformation--stft--with-matlab-implementation
 stft_out stft(const cx_vec &signal, win_shape wshape, int win_length, int hop, int nfft, double fs);
 
 enum cartesian {
@@ -334,8 +348,6 @@ sp_cx_vec div(const sp_cx_vec &a, cd b);
 mat table2mat(const sol::table& t, int nrows, int ncols);
 vec table2vec(const sol::table &t);
 
-char *sys_time();
-
 template<typename T>
 void print(sol::variadic_args va, const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> & /*m*/) {
   cout.precision(3);
@@ -353,7 +365,7 @@ void print(sol::variadic_args va, const Eigen::Matrix<T, Eigen::Dynamic, 1> & /*
   for (auto v : va) {
     Eigen::Matrix<T, Eigen::Dynamic, 1> val = v;
     string sep = "\n----------------------------------------\n";
-    Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "", "", "[", "]");
+       Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "", "", "[", "]");
     cout << val.format(OctaveFmt) << sep;
   }
 }
@@ -363,7 +375,7 @@ void print(sol::variadic_args va, const Eigen::SparseMatrix<T> & /*m*/) {
   for (auto v : va) {
     Eigen::SparseMatrix<T> val = v;
     string sep = "\n----------------------------------------\n";
-    Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "", "", "[", "]");
+       Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "", "", "[", "]");
     cout << val.toDense().format(OctaveFmt) << sep;
   }
 }

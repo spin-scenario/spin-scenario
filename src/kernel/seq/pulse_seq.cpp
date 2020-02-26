@@ -59,10 +59,26 @@ void specgram(const seq_block &rf, const sol::table &t) {
     return;
   const rf_pulse &shape = (const rf_pulse &) (rf);
   vector<cx_vec> sig = shape.export_signal();
+  // add baseline.
+  int n = shape.get_steps();
+  double ratio = 0;
+  if (is_retrievable("ratio", t))
+    ratio = retrieve_table("ratio", t).as<double>();
+  int add_n = n * ratio;
+
+  if (ratio>0)
+  for (size_t i = 0; i < sig.size(); i++) {
+     cx_vec new_sig(n + 2 * add_n);
+     new_sig.setZero();
+     new_sig.segment(add_n, n) = sig[i];
+     sig[i] = new_sig;
+  }
+
   vector<string> channels = shape.get_channels_str();
   double fs = shape.sampling_freq();
-  for (size_t i = 0; i < sig.size(); i++)
-    specgram(sig[i], t, fs, shape.name() + "-" + channels[i]);
+  for (size_t i = 0; i < sig.size(); i++) 
+    //specgram(sig[i], t, fs, shape.name() + "-" + channels[i]);
+    specgram(sig[i], t, fs, channels[i]);
 }
 void specgram(string file_name, const sol::table &t) {
   mat data = eigen_read(file_name);
@@ -111,35 +127,25 @@ void specgram(const cx_vec &sig, const sol::table &t, double fs, string label) {
 
   hop = wlen * (1 - overlap);
 
-  stft_out out = stft(sig.normalized(), wshape, wlen, hop, nfft, fs);
-#ifdef SSL_OUTPUT_ENABLE
-  string s = str(boost::format("%s %s * %s; ") % "specgram matrix size:" % out.specgram.rows() % out.specgram.cols());
-  s += str(boost::format("%s %s Hz / %s ms.\n") % "resolution:" % out.delta_freq % (out.delta_time * 1e3));
-  ssl_color_text("info", s);
-#endif
-  // define the coherent amplification of the window
-  //double K = window_function(_hamming, win_length).sum() / win_length;
-  //mat spec = out.specgram.cwiseAbs() / win_length / K;
-
-  //utility::range x(out.time[0], out.time[out.time.size() - 1], "time / ms", 1e3);
-  //utility::range y(out.freq[0], out.freq[out.freq.size() - 1], "freq / kHz", 1e-3);
-
-  mat spec_amp = out.specgram.cwiseAbs();
-  mat spec_phase = spec_amp;
-  for (int i = 0; i < out.specgram.rows(); i++)
-    for (int j = 0; j < out.specgram.cols(); j++)
-      spec_phase(i, j) = phase_in_degree(out.specgram(i, j));
+  stft_out out = stft(sig, wshape, wlen, hop, nfft, fs);  // sig.normalized()
 
   string style = "";
   if (is_retrievable("style", t))
     style = retrieve_table("style", t).as<string>();
 
-  ssl::utility::array amp;
-  if (style == "")
-    amp = spec_amp.array();
-
-  if (style == "dB")
-    amp = 20 * (spec_amp.array() + 1e-6).log10();
+  int is_ampdB, is_amp, is_phase;
+  if (style == "") {  // plot all.
+    is_ampdB = 1;
+    is_amp = 1;
+    is_phase = 1;
+  } else {
+    vector<string> par_vec;
+    boost::split(par_vec, style, boost::is_any_of("\t |"),
+                 boost::token_compress_on);
+    is_ampdB = std::count(par_vec.begin(), par_vec.end(), "dB");
+    is_amp = std::count(par_vec.begin(), par_vec.end(), "amp");
+    is_phase = std::count(par_vec.begin(), par_vec.end(), "phase");
+  }
 
   vec2 xrange, yrange;
   xrange[0] = out.time[0];
@@ -148,20 +154,41 @@ void specgram(const cx_vec &sig, const sol::table &t, double fs, string label) {
   yrange[0] = out.freq[0];
   yrange[1] = out.freq[out.freq.size() - 1];
   yrange *= 1e-3;
-  utility::map sg_map(amp.matrix());
-  sg_map.xrange = xrange;
-  sg_map.yrange = yrange;
+  double f0 = 0;
+  double f1 = 0;
+  if (is_retrievable("f0", t)) f0 = retrieve_table("f0", t).as<double>();
+  if (is_retrievable("f1", t)) f1 = retrieve_table("f1", t).as<double>();
 
-  (*g_lua)["_map_mag"] = sg_map;
-  string code = "plot('title<" + label + " magnitude specgram> xlabel<time/ ms> ylabel<freq / kHz>', _map_mag)";
-  g_lua->script(code);
+  string frange = "";
+  if (f1 > f0)
+    frange = "yrange<" + boost::lexical_cast<string>(f0) + ":" + boost::lexical_cast<string>(f1) + ">";
 
-  utility::map sp_map(spec_phase.matrix());
-  sp_map.xrange = xrange;
-  sp_map.yrange = yrange;
-  (*g_lua)["_map_phase"] = sp_map;
-  //code = "plot('title[" + label + " phase specgram] xlabel[time/ ms] ylabel[freq / kHz]', _map_phase)";
-  //g_lua->script(code);
+  string fig_spec ="'xlabel<time/ ms> ylabel<freq / kHz> color<Spectral> gnuplot<set palette negative> " +
+      frange;
+  if (is_amp) {
+    utility::map gnu(out.amp);
+    gnu.xrange = xrange;
+    gnu.yrange = yrange;
+    (*g_lua)["_amp"] = gnu;
+    g_lua->script("plot(" + fig_spec + " title<magnitude specgram [" + label+ "]>', _amp)");
+  }
+
+  if (is_ampdB) {
+    utility::map gnu(out.ampdB);
+    gnu.xrange = xrange;
+    gnu.yrange = yrange;
+    (*g_lua)["_ampdB"] = gnu;
+    g_lua->script("plot(" + fig_spec +
+                  " title<magnitude specgram (dB) [" + label+ "]>', _ampdB)");
+  }
+
+  if (is_phase) {
+    utility::map gnu(out.unwrap_phase);
+    gnu.xrange = xrange;
+    gnu.yrange = yrange;
+    (*g_lua)["_phase"] = gnu;
+    g_lua->script("plot(" + fig_spec + " title<phase specgram [" + label+ "]>', _phase)");
+  }
 }
 void plot(sol::variadic_args va, const seq_block & /*sb*/) {
   for (auto v : va) {
@@ -206,7 +233,7 @@ sol::object run_seq(const seq_block &sb) {
   cout << "start....\n";
 
   // in case of non-glue type bolck.
-  if (sb.category() != _glue)
+ if (sb.category() != _glue)
     return nullptr;
   // in case of non-serial block.
   glue &serial = (glue &) sb;

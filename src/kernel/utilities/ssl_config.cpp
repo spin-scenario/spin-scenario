@@ -12,6 +12,7 @@ limitations under the License.
 #include "ssl_config.h"
 #include <time.h>
 #include <kernel/spinsys/isotope.h>
+#include "unwrap2d.h"
 
 namespace ssl {
 namespace utility {
@@ -34,11 +35,11 @@ void init_global_lua(sol::state &lua) {
                   "/share/spin-scenario/config/ssl_global.lua");
 }
 
-  void load_expmv_theta() {
-  string path = utility::g_project_path + "/share/spin-scenario/config/expmv_theta.txt";
+void load_expmv_theta() {
+ string path = utility::g_project_path + "/share/spin-scenario/config/expmv_theta.txt";
   mat m = eigen_read(path);
   g_expmv_theta=m.col(0);
-  }
+}
 
 double g_pw90 = 5; // us.
 void set_pw90(double val) {
@@ -113,7 +114,7 @@ void set_B0(string mag) {
     ssl::spinsys::isotope proton("1H");
     double tesla = val_B0 * 2 * _pi / proton.gamma() * 1e6;
 #ifdef SSL_OUTPUT_ENABLE
-    string s = str(boost::format("%s %.3f MHz.\n") % "proton resonance frequency set to be" % val_B0);
+      string s = str(boost::format("%s %.3f MHz.\n") % "proton resonance frequency set to be" % val_B0);
     ssl_color_text("info", s);
 #endif
     g_B0_ = tesla;
@@ -133,7 +134,7 @@ void reduce_phantom(const sol::table &t) {
     string axis = key.as<string>();
     int index = val.as<int>();
 
-    if (axis == "x0")
+      if (axis == "x0")
       g_phantom_space.x0 = index;
 
     if (axis == "x1")
@@ -175,7 +176,7 @@ herr_t op_func(hid_t loc_id, const char *name, const H5L_info_t *info, void *ope
    */
   status = H5Oget_info_by_name(loc_id, name, &infobuf, H5P_DEFAULT);
   switch (infobuf.type) {
-    case H5O_TYPE_GROUP:g_h5_string.push_back(string(name));
+       case H5O_TYPE_GROUP:g_h5_string.push_back(string(name));
       //printf("  Group: %s\n", name);
       break;
     case H5O_TYPE_DATASET:
@@ -184,7 +185,7 @@ herr_t op_func(hid_t loc_id, const char *name, const H5L_info_t *info, void *ope
     case H5O_TYPE_NAMED_DATATYPE:
       //printf("  Datatype: %s\n", name);
       break;
-    default:printf("  Unknown: %s\n", name);
+       default:printf("  Unknown: %s\n", name);
   }
   return status;
 }
@@ -194,7 +195,7 @@ cube h5read_cube(const H5File &file, string dataset_name) {
   DataSpace dataspace = dataset.getSpace();
   int Ndims = dataspace.getSimpleExtentNdims();
   if (Ndims != 3) {
-    string s = "dims should be 3 for cube matrix, " + to_string(Ndims) + " in this dataset: " + dataset_name;
+      string s = "dims should be 3 for cube matrix, " + to_string(Ndims) + " in this dataset: " + dataset_name;
     throw std::runtime_error(s.c_str());
   }
 
@@ -221,12 +222,17 @@ icube h5read_icube(const H5File &file, string dataset_name) {
   dataset.read(m.data(), PredType::NATIVE_INT);
   return m;
 }
-mat h5read_mat(const H5File &file, string dataset_name) {
+mat h5read_mat(string file, string dataset_name) {
+  H5File h5file;
+  h5file.openFile(file, H5F_ACC_RDWR);
+  return h5read_mat(h5file, dataset_name);
+}
+  mat h5read_mat(const H5File &file, string dataset_name) {
   DataSet dataset = file.openDataSet(dataset_name);
   DataSpace dataspace = dataset.getSpace();
   int Ndims = dataspace.getSimpleExtentNdims();
   if (Ndims != 2) {
-    string s = "dims should be 2 for 2d matrix, " + to_string(Ndims) + " in this dataset: " + dataset_name;
+   string s = "dims should be 2 for 2d matrix, " + to_string(Ndims) + " in this dataset: " + dataset_name;
     throw std::runtime_error(s.c_str());
   }
 
@@ -372,18 +378,55 @@ void h5write(H5File &file, Group *group, string dataset_name, const ivec &iv) {
 
     ssl_color_text("info", s);
   }
-    // catch failure caused by the DataSet operations
+  // catch failure caused by the DataSet operations
   catch (DataSetIException error) {
     error.printErrorStack();
   }
 
-    // catch failure caused by the DataSpace operations
+  // catch failure caused by the DataSpace operations
   catch (DataSpaceIException error) {
     error.printErrorStack();
   }
 }
+void h5write(H5File &file, Group *group, string dataset_name, const cube & m)
+{
+  try {
+    hsize_t dims[3];
+    dims[0] = m.dimension(2);  // z
+    dims[1] = m.dimension(1);  // y
+    dims[2] = m.dimension(0);  // x
+    DataSpace dataspace = DataSpace(3, dims);
+    DataSet dataset;
+    if (group != nullptr)
+      dataset = DataSet(group->createDataSet(
+          dataset_name, PredType::NATIVE_DOUBLE, dataspace));
+    else
+      dataset = DataSet(
+          file.createDataSet(dataset_name, PredType::NATIVE_DOUBLE, dataspace));
+    dataset.write(m.data(), PredType::NATIVE_DOUBLE);
+    dataspace.close();
+    dataset.close();
+    string group_name;
+    if (group != nullptr) group_name = group->getObjnameByIdx(0);
+    string s = "write cube [" + to_string(dims[2]) + "*" + to_string(dims[1]) +
+               "*" + to_string(dims[0]) + "] to h5 file [" +
+               file.getFileName() + "] dataset [" + group_name + "/" +
+               dataset_name + "]\n";
 
-void h5write(H5File &file, Group *group, string dataset_name, const icube &cube) {
+    ssl_color_text("info", s);
+  }
+  // catch failure caused by the DataSet operations
+  catch (DataSetIException error) {
+    error.printErrorStack();
+  }
+
+  // catch failure caused by the DataSpace operations
+  catch (DataSpaceIException error) {
+    error.printErrorStack();
+  }
+}
+void h5write(H5File &file, Group *group, string dataset_name,
+             const icube &cube) {
   try {
     hsize_t dims[3];
     dims[0] = cube.dimension(2); // z
@@ -391,7 +434,7 @@ void h5write(H5File &file, Group *group, string dataset_name, const icube &cube)
     dims[2] = cube.dimension(0); // x
     DataSpace dataspace = DataSpace(3, dims);
     DataSet dataset;
-    if (group != nullptr)
+ if (group != nullptr)
       dataset = DataSet(group->createDataSet(dataset_name, PredType::NATIVE_INT, dataspace));
     else
       dataset = DataSet(file.createDataSet(dataset_name, PredType::NATIVE_INT, dataspace));
@@ -408,12 +451,12 @@ void h5write(H5File &file, Group *group, string dataset_name, const icube &cube)
 
     ssl_color_text("info", s);
   }
-    // catch failure caused by the DataSet operations
+  // catch failure caused by the DataSet operations
   catch (DataSetIException error) {
     error.printErrorStack();
   }
 
-    // catch failure caused by the DataSpace operations
+  // catch failure caused by the DataSpace operations
   catch (DataSpaceIException error) {
     error.printErrorStack();
   }
@@ -428,7 +471,7 @@ void declare_path(const char *ptr2) {
     os << "DefaultDirectory(\"" << ptr2 << "\");";
 
   g_yacas->Evaluate(os.str());
-  if (g_yacas->IsError())
+   if (g_yacas->IsError())
     std::cout << "Failed to set default directory: " << g_yacas->Error() << "\n";
 }
 void load_yacas() {
@@ -633,28 +676,28 @@ void ssl_version_output() {
 HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 WORD wOldColorAttrs = get_old_color_attrs();
 WORD get_old_color_attrs() {
-    CONSOLE_SCREEN_BUFFER_INFO csbiInfo;
-    GetConsoleScreenBufferInfo(hConsole, &csbiInfo);
-    return csbiInfo.wAttributes;
+  CONSOLE_SCREEN_BUFFER_INFO csbiInfo;
+  GetConsoleScreenBufferInfo(hConsole, &csbiInfo);
+  return csbiInfo.wAttributes;
 }
 #endif
 
 void ssl_color_text(const string &option, const string &s, ostream &ostr) {
 #ifdef WIN32
   if (option == "info") {
-      SetConsoleTextAttribute(hConsole, SSL_INFO_COLOR1);
-      ostr << "SSL-Info:" << flush;
-      SetConsoleTextAttribute(hConsole, SSL_INFO_COLOR2);
+    SetConsoleTextAttribute(hConsole, SSL_INFO_COLOR1);
+    ostr << "SSL-Info:" << flush;
+    SetConsoleTextAttribute(hConsole, SSL_INFO_COLOR2);
   }
   if (option == "warn") {
-      SetConsoleTextAttribute(hConsole, SSL_WARN_COLOR1);
-      ostr << "SSL-Warn:" << flush;
-      SetConsoleTextAttribute(hConsole, SSL_WARN_COLOR2);
+    SetConsoleTextAttribute(hConsole, SSL_WARN_COLOR1);
+    ostr << "SSL-Warn:" << flush;
+    SetConsoleTextAttribute(hConsole, SSL_WARN_COLOR2);
   }
   if (option == "err") {
-      SetConsoleTextAttribute(hConsole, SSL_ERR_COLOR1);
-      ostr << "SSL-Err:" << flush;
-      SetConsoleTextAttribute(hConsole, SSL_ERR_COLOR2);
+    SetConsoleTextAttribute(hConsole, SSL_ERR_COLOR1);
+    ostr << "SSL-Err:" << flush;
+    SetConsoleTextAttribute(hConsole, SSL_ERR_COLOR2);
   }
   ostr << " " << s;
   SetConsoleTextAttribute(hConsole, wOldColorAttrs);
@@ -671,7 +714,31 @@ void ssl_color_text(const string &option, const string &s, ostream &ostr) {
   ostr << " " << s << "\x1b[0m";
 #endif
 }
-stft_out stft(const cx_vec &signal, win_shape wshape, int win_length, int hop, int nfft, double fs) {
+mat unwrap2d(const mat &wrapped_phi) {
+  int nrow = wrapped_phi.rows();
+  int ncol = wrapped_phi.cols();
+  Eigen::MatrixXf wrapped_phi_f(wrapped_phi.rows(), wrapped_phi.cols());
+  for (int i = 0; i < wrapped_phi.rows(); i++)
+    for (int j = 0; j < wrapped_phi.cols(); j++)
+      wrapped_phi_f(i, j) = float(wrapped_phi(i, j));
+  typedef Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> boolmat;
+  boolmat mask(nrow, ncol);
+  for (int i = 0; i < mask.rows(); i++)
+    for (int j = 0; j < mask.cols(); j++) mask(i, j) = 0;
+
+  Eigen::MatrixXf unwrap_phase_f = wrapped_phi_f;
+  unwrap_phase_f.setZero();
+  unwrap2D(wrapped_phi_f.data(), unwrap_phase_f.data(), mask.data(), nrow, ncol,
+           0, 0);
+  mat unwrap_phase(unwrap_phase_f.rows(), unwrap_phase_f.cols());
+  for (int i = 0; i < unwrap_phase_f.rows(); i++)
+    for (int j = 0; j < unwrap_phase_f.cols(); j++)
+      unwrap_phase(i, j) = (double)unwrap_phase_f(i, j);
+  return unwrap_phase;
+}
+
+stft_out stft(const cx_vec &signal, win_shape wshape, int win_length, int hop,
+              int nfft, double fs) {
   // length of the signal.
   int sig_length = signal.size();
   vec win_func = window_function(wshape, win_length);
@@ -690,7 +757,7 @@ stft_out stft(const cx_vec &signal, win_shape wshape, int win_length, int hop, i
     cx_vec local_sig = signal.segment(time_pos, win_length);
     cx_vec local_win_sig = local_sig.cwiseProduct(win_func);
     cx_vec local_spec = fft(local_win_sig, nfft);
-    specgram.col(col_idx) = local_spec.segment(0, rows)/*.reverse()*/;
+   specgram.col(col_idx) = local_spec.segment(0, rows)/*.reverse()*/;
     // update the indexes
     time_pos += hop;
     col_idx++;
@@ -703,7 +770,48 @@ stft_out stft(const cx_vec &signal, win_shape wshape, int win_length, int hop, i
   vec freq = vec::LinSpaced(rows, -rows / 2, rows / 2);
   freq *= delta_freq;
 
-  return stft_out(specgram, time, freq, delta_time, delta_freq);
+#ifdef SSL_OUTPUT_ENABLE
+  string s = str(boost::format("%s %s * %s; ") % "specgram matrix size:" %
+                 specgram.rows() % specgram.cols());
+  s += str(boost::format("%s %s Hz / %s ms.\n") % "resolution:" % delta_freq %
+           (delta_time * 1e3));
+  ssl_color_text("info", s);
+#endif
+
+  mat specgram_re = specgram.real();
+  mat specgram_im = specgram.imag();
+  mat amp = specgram.cwiseAbs();
+  double max_amp = amp.maxCoeff();
+  amp /= max_amp;  // normalizes amp.
+  mat ampdB = (20 * (amp.array() + 1e-6).log10()).matrix();
+  mat phase(specgram.rows(), specgram.cols());
+
+  for (int i = 0; i < specgram.rows(); i++)
+    for (int j = 0; j < specgram.cols(); j++)
+      phase(i, j) = atan2(specgram(i, j).imag(), specgram(i, j).real());
+  // mat phase = specgram_im.cwiseQuotient(specgram_re).array().atan().matrix();
+  // // quite different!
+
+  mat unwrap_phase = unwrap2d(phase);
+  string time_s = sys_time();
+  // string folder = "raw_data_" + time_s;
+  // g_lua->script("os.execute('mkdir " + folder + "')");
+  // H5File file(folder + "/specgram.h5", H5F_ACC_TRUNC);
+  H5File file("specgram_" + time_s + ".h5", H5F_ACC_TRUNC);
+
+  h5write(file, nullptr, "info", s);
+  h5write(file, nullptr, "amp", amp);
+  h5write(file, nullptr, "ampdB", ampdB);
+  h5write(file, nullptr, "phase", phase);
+  h5write(file, nullptr, "spec_re", specgram_re);
+  h5write(file, nullptr, "spec_im", specgram_im);
+
+  stft_out val = stft_out(specgram, time, freq, delta_time, delta_freq);
+  val.phase = phase;
+  val.amp = amp;
+  val.ampdB = ampdB;
+  val.unwrap_phase = unwrap_phase;
+  return val;
 }
 
 extern const std::map<string, double> g_phase_map = phase_map();
@@ -1178,14 +1286,14 @@ void apodization(cx_vec &fid, double decay_rate,
   switch (wf) {
     case kWF_exp_1d: {
       vec d01 = vec::LinSpaced(fid.size(), 0, 1);
-      fid(0) /= 2;
+      //fid(0) /= 2;
       for (size_t i = 0; i < fid.size(); i++)
         fid(i) *= exp((double) (-decay_rate * d01(i)));
     }
       break;
     case kWF_crisp_1d: {
       vec d01 = vec::LinSpaced(fid.size(), 0, _pi / 2);
-      fid(0) /= 2;
+      //fid(0) /= 2;
       for (size_t i = 0; i < fid.size(); i++)
         fid(i) *= pow(cos(d01(i)), 8);
     }
