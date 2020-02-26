@@ -53,6 +53,8 @@ class spin_system {
   sp_cx_vec state(const sol::table &t) const;
   sp_cx_vec smart_state(const string expr) const;
 
+  sp_cx_vec equilibrium_state() const;
+
   vec nominal_broadband();
 
   map<string, sp_cx_vec> cartesian_basis_states() const;

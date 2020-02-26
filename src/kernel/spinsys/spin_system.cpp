@@ -137,6 +137,10 @@ sp_mat spin_system::op(const sol::table &t, op_side type) const {
   return comp_.op(list, type);
 }
 
+sp_cx_vec spin_system::equilibrium_state() const {
+  return inter_.equilibrium_state();
+  }
+
 sp_cx_mat spin_system::smart_op(const string expr) const {
   state_par s = state_evaluate(expr);
   int num = s.coeff.size();
