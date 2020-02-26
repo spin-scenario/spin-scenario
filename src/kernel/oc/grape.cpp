@@ -37,10 +37,14 @@ grape::grape(spin_system &sys)
   superop_.L0s = sys.free_hamiltonians();
   int bb_size = superop_.L0s.size();
   if (bb_size) {
-    superop_.profile = vec::Ones(bb_size);
+    // superop_.profile = vec::Ones(bb_size);
     superop_.nominal_offset = sys.nominal_broadband();
     superop_.grad_bb = vector<vector<double>>(bb_size);
+  } else {  // no offset case.
+    superop_.L0s.push_back(superop_.L0);
+    superop_.grad_bb = vector<vector<double>>(1);
   }
+  opt_model_ = _rho2rho;
 }
 
 grape::~grape() {
@@ -69,14 +73,14 @@ seq_block &grape::optimize(const sol::table &t) {
   if (opt_.stopval > 0)
     opt.set_stopval(opt_.stopval);
 
-  if (superop_.L0s.size() > 1)
-    opt.set_max_objective(objfunc_broadband, this);
-  else
-    opt.set_max_objective(objfunc, this);
-
+  if (opt_model_ == _rho2rho) 
+      opt.set_max_objective(objfunc_broadband, this);
+  if (opt_model_ == _propagator)
+    opt.set_max_objective(objfunc_propagator, this);
   // boundary limitation.
   opt_amplitude_constraint(opt);
 
+  // alpha0 = alpha0 / rf_->rf_power();
   double max_f;
   nlopt::result result = opt.optimize(x, max_f);
   if (result == nlopt::SUCCESS)
@@ -93,15 +97,31 @@ seq_block &grape::optimize(const sol::table &t) {
   return *rf_;
 }
 
-double grape::objfunc(const vector<double> &x, vector<double> &grad, void *func) {
-  return ((grape *) func)->objfunc(x, grad);
+double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad,
+                                void *func) {
+  return ((grape *)func)->objfunc_broadband(x, grad);
 }
-
-double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad, void *func) {
-  return ((grape *) func)->objfunc_broadband(x, grad);
+double grape::objfunc_propagator(const vector<double> &x, vector<double> &grad,
+                                 void *func) {
+  return ((grape *)func)->objfunc_propagator(x, grad);
 }
 
 void grape::assign_state(const sol::table &t) {
+  if (is_retrievable("targ_op", t)) {
+    opt_model_ = _propagator;
+    targ_op_ = sys_->smart_op(retrieve_table_str("targ_op", t));
+    targ_op_ = ssl::spinsys::propagator(targ_op_, _pi);
+    int n = targ_op_.rows();
+    init_op_ = sp_cx_mat(n, n);
+    init_op_.setIdentity();
+
+    // in case of unified targ for diff freq offsets.
+    if (superop_.L0s.size())
+      targ_op_list_ = vector<sp_cx_mat>(superop_.L0s.size(), targ_op_);
+    return;
+  }
+
+  opt_model_ = _rho2rho;
   init_state_ = sys_->smart_state(retrieve_table_str("init_state", t));
   init_state_ = norm_state(init_state_);
 
@@ -115,8 +135,8 @@ void grape::assign_state(const sol::table &t) {
       targ_list_ = vector<sp_cx_vec>(superop_.L0s.size(), targ_state_);
   }
 
- if (obj.get_type() == sol::type::table) {
-   targ_list_.clear();
+  if (obj.get_type() == sol::type::table) {
+    targ_list_.clear();
     sol::table targ_table = obj.as<sol::table>();
     for (size_t i = 0; i < targ_table.size(); i++) {
       sol::object val = targ_table[i + 1];
@@ -128,6 +148,19 @@ void grape::assign_state(const sol::table &t) {
 }
 
 void grape::assign_nlopt(const sol::table &t) {
+  // alpha0 = 0;
+  // if (is_retrievable("alpha", t)) {
+  //  alpha0 = retrieve_table_double("alpha", t);
+  //}
+  epsilon_ = 0;      // default val.
+  epsilon_num_ = 1;  // default val.
+  if (is_retrievable("epsilon", t)) {
+    epsilon_ = retrieve_table_double("epsilon", t);
+  }
+
+  if (is_retrievable("epsilon_num", t)) {
+    epsilon_num_ = retrieve_table_int("epsilon_num", t);
+  }
   // default algorithm for single pulse.
   opt_.algo = nlopt::LD_LBFGS; // default algorithm.
 
@@ -141,11 +174,9 @@ void grape::assign_nlopt(const sol::table &t) {
     string oc = retrieve_table_str("algorithm", t);
     boost::to_upper(oc);
 
-    if (oc == "LBFGS")
-      opt_.algo = nlopt::LD_LBFGS;
+    if (oc == "LBFGS")opt_.algo = nlopt::LD_LBFGS;
 
-    if (oc == "MNA")
-      opt_.algo = nlopt::LD_MMA;
+    if (oc == "MNA")opt_.algo = nlopt::LD_MMA;
   }
 
   if (is_retrievable("max_eval", t))
@@ -171,18 +202,23 @@ void grape::assign_pulse(const sol::table &t) {
   if (is_retrievable("init_pattern", t))
     pattern = retrieve_table_str("init_pattern", t);
 
+  double max_init_amp = 1;
+  if (is_retrievable("max_init_amp", t))
+    max_init_amp = retrieve_table_double("max_init_amp", t);
+
   double dt = width * 1e-3 / double(nsteps); // into s.
 
   string str_chs = boost::algorithm::join(superop_.rf_ctrl.chs, " ");
-  string code = "user_rf = shapedRF{name = 'opt-rf', width = " + boost::lexical_cast<string>(width) +
-      ",  step = " + boost::lexical_cast<string>(nsteps) +
-      ",  max_amp = 1" +
-      ",  channel = '" + str_chs + "'," +
-      "pattern = '" + pattern + "'}";
+  string code = "user_rf = shapedRF{name = 'opt-rf', width = " +
+                boost::lexical_cast<string>(width) +
+                ",  step = " + boost::lexical_cast<string>(nsteps) +
+                ",  max_amp = " + boost::lexical_cast<string>(max_init_amp) +
+                ",  channel = '" + str_chs + "'," + "pattern = '" + pattern +
+                "'}";
 
   g_lua->script(code);
 
-  string s = str(boost::format("pulse width - [%.3f] ms, steps - [%d], step width - [%.3f] us.\n") % width % nsteps
+   string s = str(boost::format("pulse width - [%.3f] ms, steps - [%d], step width - [%.3f] us.\n") % width % nsteps
                      % (dt * 1e6));
   ssl_color_text("info", s);
 
@@ -208,22 +244,30 @@ void grape::h5write(string file_name) const {
 }
 
 void grape::assign_aux_var() {
-  traj_ = state_traj(rf_->get_steps());
+  // traj_ = state_traj(rf_->get_steps());
   int nbb = superop_.L0s.size();
-  if (nbb > 1) {
+  if (nbb >= 1) {
     omp_set_num_threads(omp_core_num);
     for (size_t i = 0; i < superop_.grad_bb.size(); i++)
       superop_.grad_bb[i] = vector<double>(rf_->get_dims(), 0);
 
-    traj_omp_ = vector<state_traj>(omp_core_num);
-    for (int i = 0; i < omp_core_num; i++) {
-      traj_omp_[i] = state_traj(rf_->get_steps());
+    if (opt_model_ == _rho2rho) {
+      traj_omp_ = vector<state_traj>(omp_core_num);
+      for (int i = 0; i < omp_core_num; i++) {
+        traj_omp_[i] = state_traj(rf_->get_steps());
+      }
+    }
+    if (opt_model_ == _propagator) {
+      op_traj_omp_ = vector<op_traj>(omp_core_num);
+      for (int i = 0; i < omp_core_num; i++) {
+        op_traj_omp_[i] = op_traj(rf_->get_steps());
+      }
     }
   }
 }
 
 void grape::opt_amplitude_constraint(nlopt::opt &opt) {
-  if (opt_.max_amp <= 0)
+ if (opt_.max_amp <= 0)
     return;
 
   size_t dim = rf_->get_dims();
@@ -235,19 +279,6 @@ void grape::opt_amplitude_constraint(nlopt::opt &opt) {
   switch (opt_.algo) {
     case nlopt::LD_MMA:
     case nlopt::LD_LBFGS: {
-      //if(rf_mode_ ==_amp_phase)
-      //      for (size_t i = 0; i < opt_rf_.nsteps; i++) {
-      //          for (size_t j = 0; j < opt_rf_.nchannels; j++) {
-      //              // amp.
-      //              up_bound[2 * opt_rf_.nchannels * i + 2 * j] = opt_rf_.max_amp * 2 * _pi;
-      //              low_bound[2 * opt_rf_.nchannels * i + 2 * j] = 0;
-
-      //              // phase.
-      //              up_bound[2 * opt_rf_.nchannels * i + 2 * j + 1] = 2 * _pi;
-      //              low_bound[2 * opt_rf_.nchannels * i + 2 * j + 1] = 0;
-      //          }
-      //      }
-
       if (rf_->mode() == _ux_uy)
         for (size_t i = 0; i < nsteps; i++) {
           for (size_t j = 0; j < nchannels; j++) {
@@ -263,20 +294,9 @@ void grape::opt_amplitude_constraint(nlopt::opt &opt) {
 
       opt.set_upper_bounds(up_bound);
       opt.set_lower_bounds(low_bound);
-    }
+    } break;
+    default:
       break;
-      /*case nlopt::LD_MMA: {
-          amp_constraint_data data = { 0, 0, opt_rf_.nchannels, opt_rf_.max_amp * 2 * _pi };
-          for (size_t i = 0; i < opt_rf_.nsteps; i++) {
-              for (size_t j = 0; j < opt_rf_.nchannels; j++) {
-                  data.i = i;
-                  data.j = j;
-                  opt.add_inequality_constraint(amplitude_constraint, &data, opt_.opt_f);
-              }
-          }
-      }
-      break;*/
-    default:break;
   }
 }
 
@@ -287,55 +307,70 @@ double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
 
   size_t nsteps = rf_->get_steps();
   size_t nchannels = rf_->get_channels();
-  double dt = rf_->width_in_ms() * 1e-3 / double(nsteps); // into s.
+  double dt = rf_->get_dt() * 1e-6;  // into s.
+
+  // double alpha = alpha0;
+  vec rf_scaling =
+      vec::LinSpaced(epsilon_num_, -epsilon_, epsilon_);  // e.g. -10% - 10%
 
 #pragma omp parallel for
   for (int p = 0; p < N; p++) {
     int id = omp_get_thread_num();
     traj_omp_[id].forward[0] = init_state_;
     traj_omp_[id].backward[nsteps] = targ_list_[p];
-    //cout << id << "\n";
     sp_cx_mat L;
     sp_cx_mat L0 = superop_.L0s[p] + ci * superop_.R;
-    double kx = 1, ky = 1;
-    sp_cx_vec rho = traj_omp_[id].forward[0];
-    for (size_t i = 0; i < nsteps; i++) {
-      L = L0;
-      for (size_t j = 0; j < nchannels; j++)
-        L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
-      traj_omp_[id].forward[i + 1] = ssl::spinsys::step(rho, L, dt);
-      rho = traj_omp_[id].forward[i + 1];
-    }
-    rho = traj_omp_[id].backward[nsteps];
-    for (int i = nsteps - 1; i >= 0; i--) {
-      L = L0.adjoint();
-      for (size_t j = 0; j < nchannels; j++)
-        L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
-      traj_omp_[id].backward[i] = ssl::spinsys::step(rho, L, -dt);
-      rho = traj_omp_[id].backward[i];
-    }
-    sp_cx_mat Gx, Gy, tmp;
-    int k = 0;
-    for (size_t i = 0; i < nsteps; i++) {
-      L = L0;
-      for (size_t j = 0; j < nchannels; j++)
-        L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
-      tmp = traj_omp_[id].backward[i + 1].adjoint() * ssl::spinsys::propagator(L, dt);
-      for (size_t j = 0; j < nchannels; j++) {
-        Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
-        Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
 
-        superop_.grad_bb[p][k] = traced(tmp * Gx * traj_omp_[id].forward[i]).real();
-        superop_.grad_bb[p][k + 1] = traced(tmp * Gy * traj_omp_[id].forward[i]).real();
-        k += 2;
+    superop_.grad_bb[p] = vector<double>(rf_->get_dims(), 0);
+    // start rf inhom.
+
+    for (int q = 0; q < rf_scaling.size();
+         q++) {  // for each rf scaling factor, do
+
+      double kx = 1 + rf_scaling[q], ky = 1 + rf_scaling[q];
+
+      sp_cx_vec rho = traj_omp_[id].forward[0];
+      for (size_t i = 0; i < nsteps; i++) {
+        L = L0;
+        for (size_t j = 0; j < nchannels; j++)
+          L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
+        traj_omp_[id].forward[i + 1] = ssl::spinsys::step(rho, L, dt);
+        rho = traj_omp_[id].forward[i + 1];
       }
-    }
-    phi[p] = transfer_fidelity(traj_omp_[id].forward[nsteps], targ_list_[p]);
-    /// transfer_fidelity(targ_list_[p], targ_list_[p]);
-  } // end parallel for.
+      rho = traj_omp_[id].backward[nsteps];
+      for (int i = nsteps - 1; i >= 0; i--) {
+        L = L0.adjoint();
+        for (size_t j = 0; j < nchannels; j++)
+          L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
+        traj_omp_[id].backward[i] = ssl::spinsys::step(rho, L, -dt);
+        rho = traj_omp_[id].backward[i];
+      }
+      sp_cx_mat Gx, Gy, tmp;
+      int k = 0;
+      for (size_t i = 0; i < nsteps; i++) {
+        L = L0;
+        for (size_t j = 0; j < nchannels; j++)
+          L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
+        tmp = traj_omp_[id].backward[i + 1].adjoint() *
+              ssl::spinsys::propagator(L, dt);
+        for (size_t j = 0; j < nchannels; j++) {
+          Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
+          Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
 
-  double val = phi.sum() / (double) N;
-  double alpha = 0;
+          superop_.grad_bb[p][k] +=
+              traced(tmp * Gx * traj_omp_[id].forward[i]).real();
+          superop_.grad_bb[p][k + 1] +=
+              traced(tmp * Gy * traj_omp_[id].forward[i]).real();
+          k += 2;
+        }
+      }
+      phi[p] += transfer_fidelity(traj_omp_[id].forward[nsteps], targ_list_[p]);
+    }
+
+    /// transfer_fidelity(targ_list_[p], targ_list_[p]);
+  }  // end parallel for.
+
+  double val = phi.sum() / (double)N / (double)rf_scaling.size();
 
   int k = 0;
   for (size_t i = 0; i < nsteps; i++) {
@@ -346,103 +381,151 @@ double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
         gx += superop_.grad_bb[p][k];
         gy += superop_.grad_bb[p][k + 1];
       }
-      grad[k] = gx / (double) N;
-      grad[k + 1] = gy / (double) N;
-
-      //double gxx = grad[k];
-      //double gyy = grad[k + 1];
-
-      //if (opt_rf_.rf_mode == _amp_phase)  // Translate the control gradient into phase gradient
-      //cartesian2polar(x[k], x[k + 1], gxx, gyy, grad[k], grad[k + 1]);
+      grad[k] = gx / (double)N / (double)rf_scaling.size();
+      grad[k + 1] = gy / (double)N / (double)rf_scaling.size();
 
       // rf power reduction.
-      /*double ux, uy;
-      ux = x[2 * opt_rf_.nchannels * i + 2 * j];
-      uy = x[2 * opt_rf_.nchannels * i + 2 * j + 1];
-      grad[k] += 2.0 * alpha*ux*opt_rf_.dt;
-      grad[k+1] += 2.0 * alpha*uy*opt_rf_.dt;*/
-
+      /*if (alpha != 0) {
+        double ux, uy;
+        ux = x[2 * nchannels * i + 2 * j];
+        uy = x[2 * nchannels * i + 2 * j + 1];
+        grad[k] -= 2.0 * alpha * ux * dt;
+        grad[k + 1] -= 2.0 * alpha * uy * dt;
+      }*/
       k += 2;
     }
   }
 
-  double phi_rf = rf_->average_power();
   double PHI1 = val;
-  double PHI2 = alpha * phi_rf * dt;
-  //std::cout << boost::format("==> %04d  [%.4f] [%.4f]\n") % (++opt_.iter_count) % PHI1 % PHI2;
-  std::cout << boost::format("==> %04d  [%.4f]\n") % (++opt_.iter_count) % PHI1;
+  double PHI2 = 0;
+  // double PHI2 = alpha * rf_->rf_power();
+  // std::cout << boost::format("==> %04d  [%.8f] [%.8f]\n") %
+  // (++opt_.iter_count) % PHI1 % PHI2;
+  std::cout << boost::format("==> %04d  [%.8f]\n") % (++opt_.iter_count) % PHI1;
   opt_.vf.push_back(PHI1 - PHI2);
   return (PHI1 - PHI2);
 }
 
-double grape::objfunc(const vector<double> &x, vector<double> &grad) {
+double grape::objfunc_propagator(const vector<double> &x,
+                                 vector<double> &grad) {
   rf_->update_raw_data(x.data());
-  double alpha = 0;
+  int N = superop_.L0s.size();
+  vec phi = vec::Zero(N);
+
   size_t nsteps = rf_->get_steps();
   size_t nchannels = rf_->get_channels();
-  double dt = rf_->width_in_ms() * 1e-3 / double(nsteps); // into s.
-  traj_.forward[0] = init_state_;
-  traj_.backward[nsteps] = targ_state_;
-  sp_cx_mat L;
-  sp_cx_mat L0 = superop_.L0 + ci * superop_.R;
-  double kx = 1, ky = 1;
-  sp_cx_vec rho = traj_.forward[0];
-  for (size_t i = 0; i < nsteps; i++) {
-    L = L0;
-    for (size_t j = 0; j < nchannels; j++)
-      L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
-    traj_.forward[i + 1] = ssl::spinsys::step(rho, L, dt);
-    rho = traj_.forward[i + 1];
-  }
-  rho = traj_.backward[nsteps];
-  for (int i = nsteps - 1; i >= 0; i--) {
-    L = L0.adjoint();
-    for (size_t j = 0; j < nchannels; j++)
-      L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
-    traj_.backward[i] = ssl::spinsys::step(rho, L, -dt);
-    rho = traj_.backward[i];
-  }
-  sp_cx_mat Gx, Gy, tmp;
+  double dt = rf_->get_dt() * 1e-6;  // into s.
+
+  // double alpha = alpha0;
+  vec rf_scaling =
+      vec::LinSpaced(epsilon_num_, -epsilon_, epsilon_);  // e.g. -10% - 10%
+
+#pragma omp parallel for
+  for (int p = 0; p < N; p++) {
+    int id = omp_get_thread_num();
+    op_traj_omp_[id].forward[0] = init_op_;
+    op_traj_omp_[id].backward[nsteps] = targ_op_list_[p];
+    sp_cx_mat L;
+    sp_cx_mat L0 = superop_.L0s[p] + ci * superop_.R;
+
+    superop_.grad_bb[p] = vector<double>(rf_->get_dims(), 0);
+    // start rf inhom.
+
+    for (int q = 0; q < rf_scaling.size();
+         q++) {  // for each rf scaling factor, do
+
+      double kx = 1 + rf_scaling[q], ky = 1 + rf_scaling[q];
+
+      sp_cx_mat rho = op_traj_omp_[id].forward[0];
+      for (size_t i = 0; i < nsteps; i++) {
+        L = L0;
+        for (size_t j = 0; j < nchannels; j++)
+          L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
+        op_traj_omp_[id].forward[i + 1] = ssl::spinsys::propagator(L, dt) * rho;
+        rho = op_traj_omp_[id].forward[i + 1];
+      }
+      rho = op_traj_omp_[id].backward[nsteps];
+      for (int i = nsteps - 1; i >= 0; i--) {
+        L = L0;
+        for (size_t j = 0; j < nchannels; j++)
+          L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
+        op_traj_omp_[id].backward[i] =
+            ssl::spinsys::propagator(L, dt).adjoint() * rho;
+        rho = op_traj_omp_[id].backward[i];
+      }
+      sp_cx_mat Gx, Gy, tmp;
+      int k = 0;
+      for (size_t i = 0; i < nsteps; i++) {
+        L = L0;
+        for (size_t j = 0; j < nchannels; j++)
+          L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
+        tmp = op_traj_omp_[id].backward[i + 1].adjoint() *
+              ssl::spinsys::propagator(L, dt);
+        for (size_t j = 0; j < nchannels; j++) {
+          Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
+          Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
+
+          superop_.grad_bb[p][k] +=
+              traced(tmp * Gx * op_traj_omp_[id].forward[i]).real();
+          superop_.grad_bb[p][k + 1] +=
+              traced(tmp * Gy * op_traj_omp_[id].forward[i]).real();
+          k += 2;
+        }
+      }
+      phi[p] += transfer_fidelity(op_traj_omp_[id].forward[nsteps],
+                                  targ_op_list_[p]) /
+                transfer_fidelity(targ_op_list_[p], targ_op_list_[p]);
+    }
+
+    /// transfer_fidelity(targ_list_[p], targ_list_[p]);
+  }  // end parallel for.
+
+  double val = phi.sum() / (double)N / (double)rf_scaling.size();
+
   int k = 0;
   for (size_t i = 0; i < nsteps; i++) {
-    L = L0;
-    for (size_t j = 0; j < nchannels; j++)
-      L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
-    tmp = traj_.backward[i + 1].adjoint() * ssl::spinsys::propagator(L, dt);
     for (size_t j = 0; j < nchannels; j++) {
-      Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
-      Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
-      grad[k] = traced(tmp * Gx * traj_.forward[i]).real();
-      grad[k + 1] = traced(tmp * Gy * traj_.forward[i]).real();
+      double gx = 0;
+      double gy = 0;
+      for (int p = 0; p < N; p++) {
+        gx += superop_.grad_bb[p][k];
+        gy += superop_.grad_bb[p][k + 1];
+      }
+      grad[k] = gx / (double)N / (double)rf_scaling.size();
+      grad[k + 1] = gy / (double)N / (double)rf_scaling.size();
 
       // rf power reduction.
-      double ux, uy;
-      ux = x[2 * nchannels * i + 2 * j];
-      uy = x[2 * nchannels * i + 2 * j + 1];
-      grad[k] += 2.0 * alpha * ux * dt;
-      grad[k + 1] += 2.0 * alpha * uy * dt;
+      /*if (alpha != 0) {
+        double ux, uy;
+        ux = x[2 * nchannels * i + 2 * j];
+        uy = x[2 * nchannels * i + 2 * j + 1];
+        grad[k] -= 2.0 * alpha * ux * dt;
+        grad[k + 1] -= 2.0 * alpha * uy * dt;
+      }*/
       k += 2;
     }
   }
-  double val = transfer_fidelity(traj_.forward[nsteps], targ_state_);// / transfer_fidelity(targ_state_, targ_state_);
-  double phi_rf = rf_->average_power();
+
   double PHI1 = val;
-  double PHI2 = alpha * phi_rf * dt;
-  //std::cout << boost::format("==> %04d  [%.4f] [%.4f]\n") % (++opt_.iter_count) % PHI1 % PHI2;
-  std::cout << boost::format("==> %04d  [%.4f]\n") % (++opt_.iter_count) % PHI1;
+  double PHI2 = 0;
+  // double PHI2 = alpha * rf_->rf_power();
+  // std::cout << boost::format("==> %04d  [%.8f] [%.8f]\n") %
+  // (++opt_.iter_count) % PHI1 % PHI2;
+  std::cout << boost::format("==> %04d  [%.8f]\n") % (++opt_.iter_count) % PHI1;
   opt_.vf.push_back(PHI1 - PHI2);
   return (PHI1 - PHI2);
 }
+// void grape::cartesian2polar(double amp, double phase, double gx, double gy,
+//                            double &g_amp, double &g_phase) {
+//  double ux = amp * cos(phase);
+//  double uy = amp * sin(phase);
+//  g_amp = gx * ux + gy * uy;
+//  g_amp /= amp;
+//  g_phase = -gx * uy + gy * ux;
+//}
 
-void grape::cartesian2polar(double amp, double phase, double gx, double gy, double &g_amp, double &g_phase) {
-  double ux = amp * cos(phase);
-  double uy = amp * sin(phase);
-  g_amp = gx * ux + gy * uy;
-  g_amp /= amp;
-  g_phase = -gx * uy + gy * ux;
-}
-
-double grape::amplitude_constraint(unsigned n, const double *x, double *grad, void *data) {
+double grape::amplitude_constraint(unsigned n, const double *x, double *grad,
+                                   void *data) {
   amp_constraint_data *d = reinterpret_cast<amp_constraint_data *>(data);
 
   double ux = x[2 * d->chs * d->i + 2 * d->j];
@@ -451,21 +534,10 @@ double grape::amplitude_constraint(unsigned n, const double *x, double *grad, vo
   return ux * ux + uy * uy - d->amp * d->amp;
 }
 
-sp_cx_mat grape::update_rf_ham(const double *x,
-                               size_t step,
-                               size_t channel,
-                               size_t nchannels,
-                               double kx,
-                               double ky) const {
+sp_cx_mat grape::update_rf_ham(const double *x, size_t step, size_t channel,
+                               size_t nchannels, double kx, double ky) const {
   double ux = x[2 * nchannels * step + 2 * channel];
   double uy = x[2 * nchannels * step + 2 * channel + 1];
-
-  /*if (opt_rf_.rf_mode ==_amp_phase) {
-      double uxx = ux*cos(uy);
-      double uyy = ux*sin(uy);
-      ux = uxx;
-      uy = uyy;
-  }*/
   // Rf inhom
   ux *= kx;
   uy *= ky;
@@ -481,6 +553,14 @@ sp_cx_mat grape::propagator_derivative(const sp_cx_mat &L, const sp_cx_mat &Lrf,
 }
 
 void grape::projection(const sol::table &t) {
+  epsilon_ = 0;
+  epsilon_num_ = 1;  // default val.
+  if (is_retrievable("epsilon", t)) {
+    epsilon_ = retrieve_table_double("epsilon", t);
+  }
+  if (is_retrievable("epsilon_num", t)) {
+    epsilon_num_ = retrieve_table_int("epsilon_num", t);
+  }
   sol::object val = retrieve_table("init_state", t);
   sp_cx_vec init_state = sys_->smart_state(val.as<string>());
   init_state = norm_state(init_state);
@@ -488,7 +568,7 @@ void grape::projection(const sol::table &t) {
 
   val = retrieve_table("rf", t);
   seq_block &sb = val.as<seq_block &>();
-  shaped_rf &user_rf = (shaped_rf &) sb; // transfrom into 'shaped_rf'.
+ shaped_rf &user_rf = (shaped_rf &) sb; // transfrom into 'shaped_rf'.
   user_rf.convert2(_ux_uy);
 
   size_t nsteps = user_rf.get_steps();
@@ -519,92 +599,84 @@ void grape::projection(const sol::table &t) {
   std::map<string, sp_cx_vec>::iterator iter;
   for (iter = obsrv_state_map.begin(); iter != obsrv_state_map.end(); iter++) {
     obsrv_state.push_back(norm_state(iter->second));
-    //obsrv_state.push_back(levante_ernst(iter->second));
+    // obsrv_state.push_back(levante_ernst(iter->second));
     expr.push_back(iter->first);
   }
-
+  string dim1 = "observed states\n";
+  string dim2 = "";
+  string dim3 = "rf scaling\n";
   string s;
   for (size_t p = 0; p < expr.size(); p++)
-    s += "row " + to_string(p + 1) + "-" + expr[p] + " ";
-  //std::cout << "row " << p + 1 << "=>" << expr[p] << "\n";
+    s += to_string(p + 1) + "-" + expr[p] + "\n";
+  dim1 += s;
 
   string str_opt = "step";
-  if (is_retrievable("option", t))
-    str_opt = retrieve_table_str("option", t);
+  if (is_retrievable("option", t)) str_opt = retrieve_table_str("option", t);
 
-  int nrows = 0;
-  if (str_opt == "step")
-    nrows = nsteps;
-  else if (str_opt == "broadband")
-    nrows = superop_.L0s.size();
-  else {
-    string s = "unknown projection option ** " + str_opt + " ** using ‘step’ or 'broadband' instead.";
+  if (str_opt != "step" && str_opt != "broadband") {
+    string s = "unknown projection option ** " + str_opt +
+               " ** using 'step' or 'broadband' instead.";
     throw std::runtime_error(s.c_str());
   }
 
-  mat transfer_wave = mat::Zero(nrows, expr.size());
-
   vector<double> x = user_rf.clone_raw_data();
+  vec rf_scaling =
+      vec::LinSpaced(epsilon_num_, -epsilon_, epsilon_);  // e.g. -10% - 10%
+
+  size_t n = rf_scaling.size();
+  if (n == 1)
+    dim3 += "no rf inhomogeneity";
+  else
+    dim3 += boost::lexical_cast<string>(rf_scaling[0] * 100) + ":" +
+            boost::lexical_cast<string>(rf_scaling[n - 1] * 100) + " " +
+            boost::lexical_cast<string>(n) + " %\n";
+
+  cube comp_dist;
+  // for BROADBAND case: states, freq offsets, rf scalings
+  // for STEP case: states, steps, rf scalings
+
   if (str_opt == "step") {
+    dim2 = "pulse steps\n";
+    dim2 += "interval: " + boost::lexical_cast<string>(dt) + " s\n";
+    comp_dist = cube(obsrv_state.size(), nsteps,
+                     rf_scaling.size());  // states, freq offsets, rf scalings
     sp_cx_mat L;
-    sp_cx_mat L0 = superop_.L0 + superop_.R;
+    sp_cx_mat L0 = superop_.L0 + ci * superop_.R;
     sp_cx_vec *forward = new sp_cx_vec[nsteps + 1];
     forward[0] = init_state;
-    sp_cx_vec rho = forward[0];
 
-    for (size_t i = 0; i < nsteps; i++) {
-      L = L0;
-      for (size_t j = 0; j < nchannels; j++)
-        L += update_rf_ham(x.data(), i, j, nchannels);
-      forward[i + 1] = ssl::spinsys::step(rho, L, dt);
-      rho = forward[i + 1];
+    for (int q = 0; q < rf_scaling.size();
+         q++) {  // for each rf scaling factor, do
 
-      for (size_t k = 0; k < obsrv_state.size(); k++) {
-        sp_cx_vec compo = obsrv_state[k];
-        transfer_wave(i, k) = transfer_fidelity(rho, compo);// / transfer_fidelity(compo, compo);
+      sp_cx_vec rho = forward[0];
+
+      for (size_t i = 0; i < nsteps; i++) {
+        L = L0;
+        for (size_t j = 0; j < nchannels; j++)
+          L += update_rf_ham(x.data(), i, j, nchannels);
+        forward[i + 1] = ssl::spinsys::step(rho, L, dt);
+        rho = forward[i + 1];
+
+        for (size_t k = 0; k < obsrv_state.size(); k++) {
+          sp_cx_vec compo = obsrv_state[k];
+          comp_dist(k, i, q) = transfer_fidelity(rho, compo);
+        }
       }
     }
-
-    // TO BE REMOVED (for NSFC project).
-    /*
-    for (size_t i = 0; i < nsteps / 2; i++) {
-      L = L0;
-      for (size_t j = 0; j < nchannels; j++)
-        L += update_rf_ham(x.data(), i, j, nchannels);
-      forward[i + 1] = ssl::spinsys::step(rho, L, dt);
-      rho = forward[i + 1];
-
-      for (size_t k = 0; k < obsrv_state.size(); k++) {
-        sp_cx_vec compo = obsrv_state[k];
-        transfer_wave(i, k) = transfer_fidelity(rho, compo);// / transfer_fidelity(compo, compo);
-      }
-    }
-
-    //cout<< (superop_.rf_ctrl.Lx[0]*superop_.L0-superop_.L0*superop_.rf_ctrl.Lx[0])<<"\n";
-    //exit(0);
-    sp_cx_mat Lrf = superop_.rf_ctrl.Lx[0] + superop_.rf_ctrl.Lx[1];
-    sp_cx_vec tmp = ssl::spinsys::step(rho, Lrf, _pi);
-    rho = tmp;
-
-    for (size_t i = nsteps / 2; i < nsteps; i++) {
-      L = L0;
-      for (size_t j = 0; j < nchannels; j++)
-        L += update_rf_ham(x.data(), i, j, nchannels);
-      forward[i + 1] = ssl::spinsys::step(rho, L, dt);
-      rho = forward[i + 1];
-
-      for (size_t k = 0; k < obsrv_state.size(); k++) {
-        sp_cx_vec compo = obsrv_state[k];
-        transfer_wave(i, k) = transfer_fidelity(rho, compo);// / transfer_fidelity(compo, compo);
-      }
-    }
-     */
-    // TO BE REMOVED (for NSFC project).
-
   } else if (str_opt == "broadband") {
+    dim2 = "freq offsets\n";
+    int n = superop_.nominal_offset.size();
+    dim2 += boost::lexical_cast<string>(superop_.nominal_offset[0]) + ":" +
+            boost::lexical_cast<string>(superop_.nominal_offset[n - 1]) + " " +
+            boost::lexical_cast<string>(n) + " Hz\n";
+
+    comp_dist = cube(obsrv_state.size(), superop_.L0s.size(),
+                     rf_scaling.size());  // states, freq offsets, rf scalings
+
     omp_set_num_threads(omp_core_num);
 
-    vector<sp_cx_vec *> forward_trajs_parfor = vector<sp_cx_vec *>(omp_core_num);
+    vector<sp_cx_vec *> forward_trajs_parfor =
+        vector<sp_cx_vec *>(omp_core_num);
     for (int i = 0; i < omp_core_num; i++) {
       sp_cx_vec *forward = new sp_cx_vec[nsteps + 1];
       forward[0] = init_state;
@@ -612,121 +684,115 @@ void grape::projection(const sol::table &t) {
     }
 
 #pragma omp parallel for
-    for (int p = 0; p < nrows; p++) {
+    for (int p = 0; p < superop_.L0s.size(); p++) {
       int id = omp_get_thread_num();
 
-      sp_cx_mat L;
-      sp_cx_mat L0 = superop_.L0s[p] + ci * superop_.R;
-      sp_cx_vec rho = forward_trajs_parfor[id][0];
+      for (int q = 0; q < rf_scaling.size();
+           q++) {  // for each rf scaling factor, do
+        double kx = 1 + rf_scaling[q], ky = 1 + rf_scaling[q];
+        sp_cx_mat L;
+        sp_cx_mat L0 = superop_.L0s[p] + ci * superop_.R;
+        sp_cx_vec rho = forward_trajs_parfor[id][0];
 
-      for (size_t i = 0; i < nsteps; i++) {
-        L = L0;
-        for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(x.data(), i, j, nchannels);
-        forward_trajs_parfor[id][i + 1] = ssl::spinsys::step(rho, L, dt);
-        rho = forward_trajs_parfor[id][i + 1];
-      }
+        for (size_t i = 0; i < nsteps; i++) {
+          L = L0;
+          for (size_t j = 0; j < nchannels; j++)
+            L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
+          forward_trajs_parfor[id][i + 1] = ssl::spinsys::step(rho, L, dt);
+          rho = forward_trajs_parfor[id][i + 1];
+        }
 
-      // TO BE REMOVED (for NSFC project).
-      /*
-      for (size_t i = 0; i < nsteps / 2; i++) {
-        L = L0;
-        for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(x.data(), i, j, nchannels);
-        forward_trajs_parfor[id][i + 1] = ssl::spinsys::step(rho, L, dt);
-        rho = forward_trajs_parfor[id][i + 1];
-      }
-
-      sp_cx_mat Lrf = superop_.rf_ctrl.Lx[0] + superop_.rf_ctrl.Lx[1];
-      sp_cx_vec tmp = ssl::spinsys::step(rho, Lrf, _pi);
-      rho = tmp;
-
-      for (size_t i = nsteps / 2; i < nsteps; i++) {
-        L = L0;
-        for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(x.data(), i, j, nchannels);
-        forward_trajs_parfor[id][i + 1] = ssl::spinsys::step(rho, L, dt);
-        rho = forward_trajs_parfor[id][i + 1];
-      }
-       */
-      // TO BE REMOVED (for NSFC project).
-
-      for (size_t k = 0; k < obsrv_state.size(); k++) {
-        sp_cx_vec compo = obsrv_state[k];
-        transfer_wave(p, k) = transfer_fidelity(rho, compo);// / transfer_fidelity(compo, compo);
+        for (size_t k = 0; k < obsrv_state.size(); k++) {
+          sp_cx_vec compo = obsrv_state[k];
+          // transfer_wave(p, k) = transfer_fidelity(rho, compo);  // /
+          // transfer_fidelity(compo, compo);
+          comp_dist(k, p, q) = transfer_fidelity(rho, compo);
+        }
       }
     }
   }
 
-  // plot.
-  sol::table lines = g_lua->create_table();
-  for (int i = 0; i < transfer_wave.cols(); i++) {
-    vec line = transfer_wave.col(i);
-    lines.add(line);
+  string time_s = sys_time();
+  H5File file("proj_" + time_s + ".h5", H5F_ACC_TRUNC);
+  ssl::utility::h5write(file, nullptr, "projection", comp_dist);
+  ssl::utility::h5write(file, nullptr, "dim1", dim1);
+  ssl::utility::h5write(file, nullptr, "dim2", dim2);
+  ssl::utility::h5write(file, nullptr, "dim3", dim3);
+  file.close();
+
+  if (rf_scaling.size() == 1) {  // no rf inhomogeneity.
+    Eigen::Tensor<double, 2> sub =
+        comp_dist.chip(0, 2);  // rf scaling at dim 2.
+    Eigen::Map<mat> m(sub.data(), sub.dimension(0), sub.dimension(1));
+    mat grid = m.matrix();
+
+    sol::table lines;
+
+    lines = g_lua->create_table();
+    for (int i = 0; i < grid.rows(); i++) {  // each state.
+      vec line = grid.row(i).transpose();
+      lines.add(line);
+    }
+
+    string fig_spec;
+    vec xval;
+    if (str_opt == "step") {
+      xval = vec::LinSpaced(grid.cols(), 0, user_rf.width_in_ms()); // transfer trajectories of basis operators
+      fig_spec =
+          "title<initial state I_{1x}+I_{1y}> xlabel<pulse "
+          "duration "
+          "/ ms> ylabel<coefficient>";
+      fig_spec +=
+          "xrange<0:" + boost::lexical_cast<string>(user_rf.width_in_ms()) +
+          "> ";
+    } else if (str_opt == "broadband") {
+      int n = superop_.nominal_offset.size();
+      xval = vec::LinSpaced(grid.cols(), superop_.nominal_offset[0],
+                            superop_.nominal_offset[n - 1]);
+      xval *= 1e-3;
+      fig_spec = "title<transfer coefficient> xlabel<frequency offset / kHz> ";
+      fig_spec += "xrange<" + boost::lexical_cast<string>(xval[0]) + ":" +
+                  boost::lexical_cast<string>(xval[xval.size() - 1]) + "> ";
+    }
+    if (expr.size() > 5)
+      fig_spec += " gnuplot<set ytics 0.2\n set key outside>";
+    fig_spec += " lw<7>";
+    fig_spec += " color<YiZhang16,16>";
+    string lege;
+    for (size_t i = 0; i < expr.size(); i++) lege += expr[i] + ";";
+    fig_spec += " legend<" + lege + ">";
+    plot(fig_spec, line_series(xval, lines));
+    return;
   }
 
-  //vec ss1 = transfer_wave.col(0).cwiseAbs2();
-  //vec ss2 = transfer_wave.col(1).cwiseAbs2();
-  //vec ss = ss1 + ss2;
-  //vec s = ss.cwiseSqrt();
-  //lines.add(s);
+  // rf scaling case.
 
-  string fig_spec;
-  vec time;
-  if (str_opt == "step") {
-    time = vec::LinSpaced(nrows, 0, user_rf.width_in_ms());
-    fig_spec = "title<transfer trajectories of basis operators> xlabel<pulse duration / ms> ylabel<coefficient>";
-  } else if (str_opt == "broadband") {
-    int n = superop_.nominal_offset.size();
-    time = vec::LinSpaced(nrows, superop_.nominal_offset[0], superop_.nominal_offset[n - 1]);
-    //fig_spec = "title[transfer coefficient] xlabel[freq offset / kHz]";
-    fig_spec = "title<transfer coefficient> xlabel<J coupling / Hz>";
-  }
-
-  if (expr.size() > 5)
-    fig_spec += " gnuplot<set key outside>";
-
-  fig_spec += " color<Spectral>";
-  //fig_spec += " latex[ON]";
-
-  string lege;
-  for (size_t i = 0; i < expr.size(); i++)
-    lege += expr[i] + ";";
-  fig_spec += "legend<" + lege + ">";
-
-  plot(fig_spec, line_series(time, lines));
-
-  ofstream ofstr("basis_projection.dat");
-  ofstr.precision(3);
-  ofstr << transfer_wave;
-  ofstr.close();
-
-  return; // Currently ignore the following map plot.
+  Eigen::Tensor<double, 2> sub =
+      comp_dist.chip(0, 0);  // observed states at dim 0, by default, plot the
+                             // map for first state.
+  string state_name = expr[0];
+  Eigen::Map<mat> m(sub.data(), sub.dimension(0), sub.dimension(1));
+  mat grid = m.matrix();
 
   vec2 xrange, yrange;
-  if (str_opt == "step") {
-    xrange[0] = 0;
-    xrange[1] = user_rf.width_in_ms();
-  } else if (str_opt == "broadband") {
-    int n = superop_.nominal_offset.size();
-    xrange[0] = superop_.nominal_offset[0];
-    xrange[1] = superop_.nominal_offset[n - 1];
-  }
-  yrange[0] = 1;
-  yrange[1] = expr.size();
-  utility::map transfer_map(transfer_wave.transpose().matrix());
-  transfer_map.xrange = xrange;
-  transfer_map.yrange = yrange;
-  (*g_lua)["_map"] = transfer_map;
-  //g_lua->script("plot('title#transfer coefficient# xlabel#pulse duration / ms# ylabel#projection component# gnuplot#set label front \"ttt\" at graph 0.5,0.5#', _map)");
-  if (str_opt == "step")
-    g_lua->script(
-        "plot('title<transfer coefficient> xlabel<pulse duration / ms> ylabel<projection component> gnuplot<set label front \""
-            + s + "\"  at graph 0.5,0.5 center font \",10\">', _map)");
-  if (str_opt == "broadband")
-    g_lua->script(
-        "plot('title<transfer coefficient> xlabel<J coupling / Hz> ylabel<projection component> gnuplot<set label front \""
-            + s + "\"  at graph 0.5,0.5 center font \",10\">', _map)");
+  yrange[0] = superop_.nominal_offset[0];
+  yrange[1] = superop_.nominal_offset[superop_.nominal_offset.size() - 1];
+  yrange *= 1e-3;  // into kHz.
+  xrange[0] = rf_scaling[0];
+  xrange[1] = rf_scaling[rf_scaling.size() - 1];
+  xrange *= 100;  // into %
+
+  utility::map gnu(grid, "style<3d>");
+  gnu.xrange = xrange;
+  gnu.yrange = yrange;
+  string fig_spec =
+      "'ylabel<freq offset / kHz> xlabel<rf inhomogeneity / %> color<Spectral> "
+      "gnuplot<set xlabel offset -1,-1; set ylabel offset -2,-2; set palette "
+      "negative; set zrange [0.8:1]; set cbrange [0.8:1]> ";
+
+  (*g_lua)["_comp_dist"] = gnu;
+  g_lua->script("plot(" + fig_spec + " title<magnetization map [" + state_name +
+                "]>', _comp_dist)");
 }
 
 } /* namespace oc */

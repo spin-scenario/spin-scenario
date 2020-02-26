@@ -77,5 +77,17 @@ struct state_traj {
   }
 };
 
+struct op_traj {
+  sp_cx_mat *forward;
+  sp_cx_mat *backward;
+  op_traj() {
+    forward = nullptr;
+    backward = nullptr;
+  }
+  op_traj(size_t nsteps) {
+    forward = new sp_cx_mat[nsteps + 1];
+    backward = new sp_cx_mat[nsteps + 1];
+  }
+};
 } /* namespace oc */
 } /* namespace ssl */

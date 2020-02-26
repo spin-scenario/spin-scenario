@@ -17,6 +17,7 @@ using namespace ssl::seq;
 
 namespace ssl {
 namespace oc {
+enum opt_model {_rho2rho, _propagator};
 class grape {
  public:
   grape(spin_system &sys);
@@ -30,12 +31,13 @@ class grape {
   virtual void assign_pulse(const sol::table &t);
   virtual void assign_aux_var();
   virtual void h5write(string file_name = "") const;
-  static double objfunc(const vector<double> &x, vector<double> &grad, void *func);
   static double objfunc_broadband(const vector<double> &x, vector<double> &grad, void *func);
-  double objfunc(const vector<double> &x, vector<double> &grad);
+  static double objfunc_propagator(const vector<double> &x, vector<double> &grad, void *func);
+  // double objfunc(const vector<double> &x, vector<double> &grad);
   double objfunc_broadband(const vector<double> &x, vector<double> &grad);
+  double objfunc_propagator(const vector<double> &x, vector<double> &grad);
 
-  sp_cx_mat update_rf_ham(const double *x,
+   sp_cx_mat update_rf_ham(const double *x,
                           size_t step,
                           size_t channel,
                           size_t nchannels,
@@ -46,8 +48,10 @@ class grape {
   void opt_amplitude_constraint(nlopt::opt &opt);
   static double amplitude_constraint(unsigned n, const double *x, double *grad, void *data);
 
-  void cartesian2polar(double amp, double phase, double gx, double gy, double &g_amp, double &g_phase);
+  //void cartesian2polar(double amp, double phase, double gx, double gy, double &g_amp, double &g_phase);
+
  protected:
+  opt_model opt_model_;
   spin_sys_superop superop_;
   shaped_rf *rf_;
 
@@ -55,12 +59,21 @@ class grape {
   sp_cx_vec targ_state_;
   vector<sp_cx_vec> targ_list_;
 
-  state_traj traj_;
+  //state_traj traj_;
   vector<state_traj> traj_omp_;
+
+  sp_cx_mat init_op_;
+  sp_cx_mat targ_op_;
+  vector<sp_cx_mat> targ_op_list_;
+
+  vector<op_traj> op_traj_omp_;
 
   opt_ctrl opt_;
   spin_system *sys_;
   bool is_coop_;
+  // double alpha0;
+  double epsilon_;   // rf scaling factor. [-epsilon_, epsilon_]
+  int epsilon_num_;  // rf scaling number.
 };
 
 } /* namespace oc */
