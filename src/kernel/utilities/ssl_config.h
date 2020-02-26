@@ -216,9 +216,6 @@ const double seq_time_scale = 1; // unit in us.
 
 #define zero_round_off(x) (abs(x) > 1e-8 ? x : 0)
 
-extern int g_fold;
-void set_fold(int val);
-
 extern int omp_core_num;
 extern sol::state *g_lua;
 extern CYacas *g_yacas;

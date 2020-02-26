@@ -18,7 +18,7 @@ namespace utility {
 string g_output_terminal = "qt";
 string g_output_font = "Arial,12";
 void set_output_terminal(const sol::table &t) {
-    g_output_terminal = retrieve_table_str("type", t, "gnuplot terminal");
+  g_output_terminal = retrieve_table_str("type", t, "gnuplot terminal");
     if(is_retrievable("font", t))
         g_output_font = retrieve_table_str("font", t, "gnuplot terminal");
 }
@@ -193,8 +193,9 @@ void plot(string fig_info, const line_series &v) {
   gp << "set title '" << fig.title << "'\n";
   gp << "set xlabel  '" << fig.xlabel << "'\n";
   gp << "set ylabel  '" << fig.ylabel << "'\n";
-  gp << "set key width 1\n";
-  
+  gp << "set key width 2\n";
+  gp << "set key samplen 2\n";
+
   int ncolor = fig.ncolor;
   gp << "load '" << g_project_path
      << "/share/spin-scenario/config/gnuplot/colorbrewer/"
@@ -227,7 +228,7 @@ void plot(string fig_info, const line_series &v) {
       if (v.is_y_only)
         write_line(v.y[i], "gnuplot/" + file_i);
       else
-        write_line(v.x, v.y[i], "gnuplot/"  + file_i);
+         write_line(v.x, v.y[i], "gnuplot/"  + file_i);
       files.push_back(file_i);
     }
   }
@@ -325,8 +326,17 @@ void plot(string fig_info, sol::variadic_args va, const map &) {
 		set isosamples 50
 		set hidden3d
 	)";
-    } else
+    } else if (map.style == "image")
       gp << "set pm3d map\n";
+    else if (map.style == "contour") {
+      gp << R"(
+      set view 60, 30, 0.85, 1.1
+      set samples 20, 20
+      set isosamples 21, 21
+      set contour base
+      set dgrid3d 10,10,4
+	)";
+    }
 
     gp << "set xrange [" << val.xrange[0] << ":" << val.xrange[1] << "]\n";
     gp << "set yrange [" << val.yrange[0] << ":" << val.yrange[1] << "]\n";
@@ -346,11 +356,17 @@ void plot(string fig_info, sol::variadic_args va, const map &) {
          << (val.xrange[1] - val.xrange[0]) / (double) (val.m.cols() - 1) << "):" << "(" << val.yrange[0]
          << " + $2*" << (val.yrange[1] - val.yrange[0]) / (double) (val.m.rows() - 1)
          << ") : ($3) matrix with image\n";
-    else
+    else if (map.style == "3d")
       gp << "splot '" << file << "' u (" << val.xrange[0] << "+$1*"
          << (val.xrange[1] - val.xrange[0]) / (double) (val.m.cols() - 1) << "):" << "(" << val.yrange[0]
          << " + $2*" << (val.yrange[1] - val.yrange[0]) / (double) (val.m.rows() - 1)
          << ") : ($3) matrix with lines\n";
+    else if (map.style == "contour")
+      gp << "splot '" << file << "' u (" << val.xrange[0] << "+$1*"
+         << (val.xrange[1] - val.xrange[0]) / (double)(val.m.cols() - 1) << "):"
+         << "(" << val.yrange[0] << " + $2*"
+         << (val.yrange[1] - val.yrange[0]) / (double)(val.m.rows() - 1)
+         << ") : ($3)\n";
     gp << "set output\n";
   }
 #ifdef GP_SCRIPT_OUTPUT
@@ -615,6 +631,5 @@ std::map<string, string> map_color() {
   return color_map;
 }
 
-}
-}
-
+}  // namespace utility
+}  // namespace ssl

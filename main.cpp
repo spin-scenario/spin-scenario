@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
         lua.script("script_transform ('" + string(what[1]) + "')"); // transform the script file into 'temp.lua'.
         lua.script_file("temp.lua");
         lua.script("os.remove('temp.lua')");
-        lua.script("os.execute('rm -rf gnuplot')"); // delete tmp files of gnuplot
+        //lua.script("os.execute('rm -rf gnuplot')"); // delete tmp files of gnuplot
         lua.script("os.remove('shape.RF')"); 
         lua.script("os.remove('gnu_grad')");
       } else

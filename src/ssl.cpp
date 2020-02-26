@@ -21,6 +21,7 @@ void bindings(sol::state &lua) {
   lua.set_function("cas", &ssl::utility::yacas_evaluate);
   lua.set_function("core", &ssl::utility::set_openmp_core);
 
+  //lua.set_function("set_fold", &ssl::utility::set_fold);
   ssl.set_function(
       "print",
       sol::overload(
@@ -60,6 +61,8 @@ void bindings(sol::state &lua) {
           sol::resolve<void(string, const sol::table &)>(&ssl::seq::specgram)));
 
   lua.set("ci", ci);
+
+  lua.set_function("h5read_mat",  sol::overload(sol::resolve<mat(string, string)>(h5read_mat)));
 
   lua.set_function("table2mat", table2mat);
   lua.set_function("table2vec", table2vec);
@@ -189,7 +192,7 @@ void bindings(sol::state &lua) {
       "cecilia", sol::constructors<sol::types<const spin_system &>>(),
       "projection", &tf_opt::projection, "optimize", &tf_opt::optimize);
 #endif  // TENSORFLOW_ENABLED
-
+  
   ssl.new_usertype<grape>(
       "rf_optimizer", sol::constructors<sol::types<const spin_system &>>(),
       "maxf", sol::property(&grape::maxf), "projection", &grape::projection,
@@ -213,8 +216,8 @@ void bindings(sol::state &lua) {
       &seq_block::config, "set_name", &seq_block::set_name, "name",
       sol::property(&seq_block::name), "tau",
       sol::property(&seq_block::width_in_ms), "switch",
-      &seq_block::switch_rf_mode, "average_power",
-      sol::property(&seq_block::average_power), sol::meta_function::addition,
+      &seq_block::switch_rf_mode, "rf_power",
+      sol::property(&seq_block::rf_power), sol::meta_function::addition,
       &ssl::seq::concurrent, sol::meta_function::multiplication,
       &ssl::seq::set_cycle_priority, sol::meta_function::division,
       &ssl::seq::set_loop_array, sol::meta_function::modulus,
