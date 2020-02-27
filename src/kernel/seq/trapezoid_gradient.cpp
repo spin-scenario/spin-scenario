@@ -34,7 +34,6 @@ void trapezoid_gradient::assign() {
 
   if (is_retrievable("func")) {
     string str_func = retrieve_config_table_str("func");
-    func_ = _general_grad;
     if (str_func == "phase_encode")
       func_ = _phase_encoding;
     if (str_func == "read_out")
@@ -53,7 +52,7 @@ void trapezoid_gradient::assign() {
         //2 * g_seq_param->max_grad / (double) (g_seq_param->matrix[_cy] - 1); // graident increment, mT/m.
         double min_duration = delta_area / delta_grad; // ms.
         double duration;
-        if (is_retrievable("width")) {
+         if (is_retrievable("width")) {
           duration = retrieve_config_table_double("width"); // unit in ms.
           if (duration < min_duration) {
             string s = "invalid gradient width for phase encoding, minimum width: "
@@ -63,12 +62,12 @@ void trapezoid_gradient::assign() {
         } else
           config_table_.set("width", min_duration);
 
-        double all_area = delta_area * g_seq_param->matrix[_cy];
-        string par = boost::lexical_cast<string>(-all_area / 2) + ":" + boost::lexical_cast<string>(all_area / 2) + ":"
+          double all_area = delta_area * g_seq_param->matrix[_cy];
+                  string par = boost::lexical_cast<string>(-all_area / 2) + ":" + boost::lexical_cast<string>(all_area / 2) + ":"
             + boost::lexical_cast<string>(g_seq_param->matrix[_cy]);
         //string par = "0:" + boost::lexical_cast<string>(delta_area*g_seq_param->matrix[_cy]) + ":" + boost::lexical_cast<string>(g_seq_param->matrix[_cy]);
-        config_table_.set("areas", par);
-        loop_ctrl_.loop_count = g_seq_param->matrix[_cy];
+          config_table_.set("areas", par);
+          loop_ctrl_.loop_count = g_seq_param->matrix[_cy];
       }
         break;
       case _freq_encoding: {
@@ -86,7 +85,8 @@ void trapezoid_gradient::assign() {
       default:break;
     }
 
-  }
+  } else
+    func_ = _general_grad;
 
   load_shape();
 
@@ -149,14 +149,19 @@ void trapezoid_gradient::load_shape() {
     if (parse(par, val)) {
 
       areas = vec(val.num);
-      double delta_s = (val.b - val.a) / (double) val.num;
-      for (int i = 0; i < val.num; i++)
+      areas = vec::LinSpaced(val.num, val.a, val.b);
+
+      //double delta_s = (val.b - val.a) / (double) val.num;
+      //for (int i = 0; i < val.num; i++)
         //areas[i]=-delta_s*(double)val.num/2.0+delta_s*(double)i;
-        areas[i] = delta_s * (i - val.num / 2);
+       //areas[i] = delta_s * (i - val.num / 2);
 
       //cout<<areas<<"\n";
       if_areas = true;
       area = areas[0]; // set 1st phase-encoding area.
+      loop_ctrl_.loop_count = val.num;
+      if (func_==_general_grad) 
+		  func_ = _list_grads;
     }
   }
 
@@ -293,12 +298,11 @@ trap_data trapezoid_gradient::switch2loop(int index) const {
 }
 
 void trapezoid_gradient::plot() const {
-  if (func_ == _phase_encoding) {
-    g_lua->script("os.execute('rm -rf grad')");
-    g_lua->script("os.execute('mkdir grad')");
+  if (areas.size()>1) {
+    g_lua->script("os.execute('mkdir gnuplot')");
     for (int i = 0; i < areas.size(); i++) {
       trap_data data = switch2loop(i);
-      ofstream ofstr("grad/phase-" + std::to_string(i + 1));
+      ofstream ofstr("gnuplot/phase-" + std::to_string(i + 1));
       ofstr.precision(4);
       ofstr << 0 << " " << 0 << "\n";
       ofstr << data.rise_time << " " << data.amp << "\n";
@@ -307,8 +311,8 @@ void trapezoid_gradient::plot() const {
       ofstr.close();
     }
     string gp =
-        "plot(\"xlabel<time / ms> ylabel<amplitude / mT/s> gnuplot<unset key> title<" + grad_func_str[func_] + ">"
-            + "xrange<0:" + std::to_string(width_in_ms()) + ">\", lines('grad/phase-1:"
+        "plot(\"xlabel<time / ms> ylabel<amplitude / mT/s> color<YiZhang16,16> gnuplot<unset key> title<" + grad_func_str[func_] + ">"
+            + "xrange<0:" + std::to_string(width_in_ms()) + ">\", lines('phase-1:"
             + std::to_string(areas.size()) + "'))";
     // gnuplot[set key outside]
     g_lua->script(gp);
@@ -327,7 +331,7 @@ int trapezoid_gradient::switch2loop(int index) {
   if (id == -1)
     return 0;
 
-  if (func_ == _phase_encoding)
+  if (func_ == _phase_encoding || func_==_list_grads)
     config_table_.set("area", areas[id - 1]);
 
   load_shape();

@@ -21,7 +21,6 @@ void bindings(sol::state &lua) {
   lua.set_function("cas", &ssl::utility::yacas_evaluate);
   lua.set_function("core", &ssl::utility::set_openmp_core);
 
-  //lua.set_function("set_fold", &ssl::utility::set_fold);
   ssl.set_function(
       "print",
       sol::overload(
