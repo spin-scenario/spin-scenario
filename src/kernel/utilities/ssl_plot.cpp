@@ -330,11 +330,11 @@ void plot(string fig_info, sol::variadic_args va, const map &) {
       gp << "set pm3d map\n";
     else if (map.style == "contour") {
       gp << R"(
-      set view 60, 30, 0.85, 1.1
-      set samples 20, 20
-      set isosamples 21, 21
-      set contour base
-      set dgrid3d 10,10,4
+      set view 30,80
+	  set contour
+      set style increment default
+      set cntrparam levels auto 15 unsorted
+      set dgrid3d 128, 128
 	)";
     }
 
@@ -366,7 +366,7 @@ void plot(string fig_info, sol::variadic_args va, const map &) {
          << (val.xrange[1] - val.xrange[0]) / (double)(val.m.cols() - 1) << "):"
          << "(" << val.yrange[0] << " + $2*"
          << (val.yrange[1] - val.yrange[0]) / (double)(val.m.rows() - 1)
-         << ") : ($3)\n";
+         << ") : ($3) matrix with lines\n";
     gp << "set output\n";
   }
 #ifdef GP_SCRIPT_OUTPUT
