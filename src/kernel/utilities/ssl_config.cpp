@@ -662,9 +662,14 @@ char *sys_time() {
   // http://www.cnblogs.com/likwo/archive/2012/08/30/2663242.html
 }
 void ssl_version_output() {
+  char arr_date[20];                 
+  char arr_time[20];                
+  sprintf(arr_date, "%s", __DATE__);  
+  sprintf(arr_time, "%s", __TIME__);  
   cout << endl;
   cout << boost::format("%10tS P I N  S C E N A R I O") << endl;
-  cout << boost::format("%10t%s") % "version 1.0   last modified 2020-02-02" << endl;
+  cout << boost::format("%10t%s") % "version 1.0   last modified " << arr_time <<" "<< arr_date << endl;
+
   cout << endl;
   cout << boost::format("%10t%s") % "Copyright(C) 2019-2020" << endl;
   cout << boost::format("%10t%s") % "Yan Chang (changy@sibet.ac.cn)" << endl;
