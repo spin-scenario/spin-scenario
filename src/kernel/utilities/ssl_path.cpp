@@ -4,9 +4,9 @@ namespace ssl {
 namespace utility {
 
 #ifdef WIN32
-// std::string g_project_path = ".."; // ONLY for test purpose.
-std::string g_project_path =
-    "C:/Program Files/spin-scenario 1.0.0/bin/..";  // WINDOWS 10 INSTALL.
+ std::string g_project_path = ".."; // ONLY for development purpose.
+//std::string g_project_path =
+    //"C:/Program Files/spin-scenario 1.0.0/bin/..";  // WINDOWS 10 INSTALL.
 string g_spin_scenario = "";
 #else
 string g_spin_scenario = "";
