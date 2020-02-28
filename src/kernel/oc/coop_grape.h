@@ -17,6 +17,9 @@ limitations under the License.
 namespace ssl {
 namespace oc {
 
+vec spec_avg(const sol::table &t);
+vec abs(const vec &a, const vec &b);
+
 struct coop_var;
 class coop_grape : public grape {
  public:

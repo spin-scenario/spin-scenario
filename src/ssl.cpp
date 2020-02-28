@@ -208,6 +208,9 @@ void bindings(sol::state &lua) {
           sol::resolve<sol::object(const sol::table &, sol::this_state)>(
               &coop_grape::optimize)));
 
+    lua.set_function("spec_avg", spec_avg);
+    lua.set_function("abs", &ssl::oc::abs);
+
   g_lua = &lua;
 
   ssl.new_usertype<seq_block>(

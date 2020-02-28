@@ -288,6 +288,21 @@ void coop_grape::projection(const sol::table &t) {
         obsrv_state_map.insert(pair<string, sp_cx_vec>(exp, rho));
       }
     }
+  } else if (is_retrievable("ignore_states", t)) {
+    val = retrieve_table("ignore_states", t);
+    sol::table expr_table = val.as<sol::table>();
+    if (expr_table.size() == 0) {
+      obsrv_state_map = sys_->cartesian_basis_states();
+    } else {
+      obsrv_state_map = sys_->cartesian_basis_states();
+
+      for (size_t i = 0; i < expr_table.size(); i++) {
+        sol::object val = expr_table[i + 1];
+        string exp = val.as<string>();
+        std::map<string, sp_cx_vec>::iterator key = obsrv_state_map.find(exp);
+        if (key != obsrv_state_map.end()) obsrv_state_map.erase(key);
+      }
+    }
   } else {
     obsrv_state_map = sys_->cartesian_basis_states();
   }
@@ -433,7 +448,14 @@ void coop_grape::projection(const sol::table &t) {
   if (expr.size() > 5)
     fig_spec += " gnuplot<set key outside>";
 
-  fig_spec += " color<PairedLines,16>";
+ fig_spec +=
+      "xrange<0:" + boost::lexical_cast<string>(co_rfs[0]->width_in_ms()) +
+      "> ";
+
+  if (expr.size() > 5) fig_spec += " gnuplot<set key center left>";
+  // fig_spec += " gnuplot<unset key>";
+
+  fig_spec += " color<YiZhang16,16>";
   fig_spec += " lw<4>";
 
   string lege;
@@ -481,6 +503,28 @@ sp_cx_mat coop_grape::update_rf_ham(Eigen::Map<const mat> &m,
   ux *= kx;
   uy *= ky;
   return ux * superop_.rf_ctrl.Lx[channel] + uy * superop_.rf_ctrl.Ly[channel];
+}
+vec spec_avg(const sol::table &t) {
+  vec v_avg;
+  for (size_t i = 0; i < t.size(); i++) {
+    sol::object val = t[i + 1];
+    vec v = val.as<vec>();
+    if (i == 0) {
+      v_avg = v;
+      continue;
+    }
+    v_avg += v;
+  }
+
+  v_avg /= (double)t.size();
+
+  return v_avg;
+}
+vec abs(const vec &a, const vec &b) {
+  cx_vec c(a.size());
+  c.real() = a;
+  c.imag() = b;
+  return c.cwiseAbs();
 }
 }
 }

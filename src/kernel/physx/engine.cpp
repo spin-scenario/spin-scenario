@@ -476,7 +476,7 @@ cx_vec engine::accu_signal() {
     }
   }
   // optional
-  apodization(sig, 10);
+  //apodization(sig, 10);
 
   return sig;
   /*sol::table lines = g_lua->create_table();
