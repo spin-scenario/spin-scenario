@@ -1,5 +1,11 @@
 function script_transform(file)
     local old_file = io.open(file, 'r')
+    if (old_file == nil)
+    then
+        print(" ==> scenario script file ***".. file .. "*** is not in this folder, please check and try again!" )
+        return
+    end
+
     local script = old_file:read("*all")
     old_file:close()
     -- http://www.lua.org/manual/5.3/manual.html#pdf-string.gsub
@@ -17,6 +23,9 @@ function script_transform(file)
     local new_file = io.open('temp.lua', 'w')
     new_file:write(script)
     new_file:close()
+
+    dofile('temp.lua')
+    os.remove('temp.lua')
 end
 
 function rf_optimizer_tf(par)

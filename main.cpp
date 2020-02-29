@@ -93,11 +93,9 @@ int main(int argc, char *argv[]) {
       // in case of running lua code from file.
       if (boost::regex_search(line.c_str(), what, reg_load)) {
         lua.script("script_transform ('" + string(what[1]) + "')"); // transform the script file into 'temp.lua'.
-        lua.script_file("temp.lua");
-        lua.script("os.remove('temp.lua')");
         //lua.script("os.execute('rm -rf gnuplot')"); // delete tmp files of gnuplot
-        lua.script("os.remove('shape.RF')"); 
-        lua.script("os.remove('gnu_grad')");
+        //lua.script("os.remove('shape.RF')"); 
+        //lua.script("os.remove('gnu_grad')");
       } else
         lua.script(line);
 
