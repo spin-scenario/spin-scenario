@@ -38,7 +38,7 @@ class shaped_rf : public rf_pulse {
   void set_shape(vector<string> channels, rf_pattern p, double maxamp);
   void set_shape(vector<string> channels, string file);
   void set_shape(vector<string> channels, const mat &m);
- protected:
+ //protected:
   virtual void assign();
 
 };
