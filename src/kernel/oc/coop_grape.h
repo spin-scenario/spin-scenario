@@ -20,7 +20,7 @@ namespace oc {
 vec spec_avg(const sol::table &t);
 vec abs(const vec &a, const vec &b);
 
-struct coop_var;
+struct ms_coop_ctrl;
 class coop_grape : public grape {
  public:
   coop_grape(spin_system &sys);
@@ -29,9 +29,11 @@ class coop_grape : public grape {
   virtual void projection(const sol::table &t);
  protected:
   virtual void h5write(string file_name = "") const;
+  void opt_amplitude_constraint(nlopt::opt &opt);
   virtual void assign_pulse(const sol::table &t);
   virtual void assign_aux_var();
-  static double co_objfunc(const vector<double> &x, vector<double> &g, void *func);
+  static double objfunc_broadband(const vector<double> &x, vector<double> &g, void *func);
+  double objfunc_broadband(const vector<double> &x, vector<double> &g);
   double co_objfunc(const vector<double> &x, vector<double> &g);
 
   sp_cx_mat update_rf_ham(Eigen::Map<const mat> &m,
@@ -42,9 +44,10 @@ class coop_grape : public grape {
                           double kx = 1,
                           double ky = 1) const;
  private:
-  vector<shaped_rf *> coop_rf_;
+  vector<shaped_rf*> coop_rf_;
   vector<state_traj> coop_traj_;
-  coop_var *coop_var_;
+
+  ms_coop_ctrl* coop_par_;
 };
 }
 }
