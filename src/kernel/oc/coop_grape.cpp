@@ -53,11 +53,11 @@ struct ms_coop_ctrl {
     for (int i = 0; i < ms_traj.size(); i++)
       rho_bar += ms_traj[i].forward[nsteps];
 
-    //rho_bar /= (double)ms_traj.size(); // average.
-    //rho_bar.coeffRef(0) = 1;  // IMPROTANT! DO NOT NORMALIED FOR BB CASE.
+    rho_bar /= (double)ms_traj.size(); // average.
+    rho_bar.coeffRef(0) = 1;  // IMPROTANT! DO NOT NORMALIED FOR BB CASE.
 
-    rho_bar.coeffRef(0) = 0;
-    rho_bar = norm_state(rho_bar); // need to be normalizd FOR NORMAL CASE.
+    //rho_bar.coeffRef(0) = 0;
+    //rho_bar = norm_state(rho_bar); // need to be normalizd FOR NORMAL CASE.
   }
   void calc_lambdaN(size_t ncoop) {
     for (size_t i = 0; i < obsrv_state.size(); i++)
@@ -117,6 +117,11 @@ sol::object coop_grape::optimize(const sol::table &t, sol::this_state s) {
   for (size_t i = 0; i < coop_rf_.size(); i++) {
     coop_rf_[i]->convert2(_ux_uy);
     vector<double> raw = coop_rf_[i]->clone_raw_data();
+    if (i==1) {
+      for (size_t j = 0; j < raw.size(); j++) {
+        raw[i] *= -1;
+      }
+    }
     x.insert(x.end(), raw.begin(), raw.end());  // column major.
     raw.clear();
   }
@@ -211,7 +216,7 @@ void coop_grape::h5write(string file_name) const {
 
 double coop_grape::objfunc_broadband(const vector<double> &x, vector<double> &g,
                                      void *func) {
-  return ((coop_grape *)func)->co_objfunc(x, g);
+  return ((coop_grape *)func)->objfunc_broadband(x, g);  // co_objfunc
 }
 
 double coop_grape::objfunc_broadband(const vector<double> &x,
