@@ -357,14 +357,14 @@ double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
           Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
           Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
 
-          superop_.grad_bb[p][k] +=
+          superop_.grad_bb[p][k] =
               traced(tmp * Gx * traj_omp_[id].forward[i]).real();
-          superop_.grad_bb[p][k + 1] +=
+          superop_.grad_bb[p][k + 1] =
               traced(tmp * Gy * traj_omp_[id].forward[i]).real();
           k += 2;
         }
       }
-      phi[p] += transfer_fidelity(traj_omp_[id].forward[nsteps], targ_list_[p]);
+      phi[p] = transfer_fidelity(traj_omp_[id].forward[nsteps], targ_list_[p]);
     }
 
     /// transfer_fidelity(targ_list_[p], targ_list_[p]);
@@ -592,6 +592,21 @@ void grape::projection(const sol::table &t) {
       }
     }
 
+  } else if (is_retrievable("ignore_states", t)) {
+    val = retrieve_table("ignore_states", t);
+    sol::table expr_table = val.as<sol::table>();
+    if (expr_table.size() == 0) {
+      obsrv_state_map = sys_->cartesian_basis_states();
+    } else {
+      obsrv_state_map = sys_->cartesian_basis_states();
+
+      for (size_t i = 0; i < expr_table.size(); i++) {
+        sol::object val = expr_table[i + 1];
+        string exp = val.as<string>();
+        std::map<string, sp_cx_vec>::iterator key = obsrv_state_map.find(exp);
+        if (key != obsrv_state_map.end()) obsrv_state_map.erase(key);
+      }
+    }
   } else {
     obsrv_state_map = sys_->cartesian_basis_states();
   }
@@ -639,7 +654,7 @@ void grape::projection(const sol::table &t) {
     dim2 = "pulse steps\n";
     dim2 += "interval: " + boost::lexical_cast<string>(dt) + " s\n";
     comp_dist = cube(obsrv_state.size(), nsteps,
-                     rf_scaling.size());  // states, freq offsets, rf scalings
+                     rf_scaling.size());  // states, steps, rf scalings
     sp_cx_mat L;
     sp_cx_mat L0 = superop_.L0 + ci * superop_.R;
     sp_cx_vec *forward = new sp_cx_vec[nsteps + 1];
@@ -647,13 +662,13 @@ void grape::projection(const sol::table &t) {
 
     for (int q = 0; q < rf_scaling.size();
          q++) {  // for each rf scaling factor, do
-
+      double kx = 1 + rf_scaling[q], ky = 1 + rf_scaling[q];
       sp_cx_vec rho = forward[0];
 
       for (size_t i = 0; i < nsteps; i++) {
         L = L0;
         for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(x.data(), i, j, nchannels);
+          L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
         forward[i + 1] = ssl::spinsys::step(rho, L, dt);
         rho = forward[i + 1];
 
