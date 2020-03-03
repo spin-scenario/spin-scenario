@@ -637,7 +637,7 @@ void coop_grape::projection(const sol::table &t) {
       fig_spec =
           "title<initial state I_{1x}+I_{1y}> xlabel<pulse "
           "duration "
-          "/ ms> ylabel<coefficient>";
+          "/ ms> ylabel<magnetization>";
       fig_spec +=
           "xrange<0:" + boost::lexical_cast<string>(co_rfs[0]->width_in_ms()) +
           "> ";
@@ -646,12 +646,15 @@ void coop_grape::projection(const sol::table &t) {
       xval = vec::LinSpaced(grid.cols(), superop_.nominal_offset[0],
                             superop_.nominal_offset[n - 1]);
       xval *= 1e-3;
-      fig_spec = "title<transfer coefficient> xlabel<frequency offset / kHz> ";
+      fig_spec = "xlabel<frequency offset / kHz> ylabel<magnetization>"; //transfer coefficient title<2-scan MS-COOP> 
       fig_spec += "xrange<" + boost::lexical_cast<string>(xval[0]) + ":" +
                   boost::lexical_cast<string>(xval[xval.size() - 1]) + "> ";
     }
+    //fig_spec += " gnuplot<set key horizontal center>";
     if (expr.size() > 5)
-      fig_spec += " gnuplot<set ytics 0.2\n set key outside>";
+      //fig_spec += " gnuplot<set label 'MS-COOP' at graph 0.5,0.5 center font 'Arial,26'\n set ytics 0.2\n set key horizontal above>";
+		      fig_spec += " gnuplot<set label 'MS-COOP' at graph 0.5,0.5 center font 'Arial,26'\n set ytics 0.2\n unset key>";
+
     fig_spec += " lw<7>";
     fig_spec += " color<YiZhang16,16>";
     string lege;

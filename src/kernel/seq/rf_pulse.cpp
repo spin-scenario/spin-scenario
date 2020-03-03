@@ -428,13 +428,17 @@ void rf_pulse::plot() const {
     gp << "set style fill solid 0.25\n";
     gp << "set border back\n";
     gp << "set key opaque\n";
+    gp << "set key samplen 2\n";
 
     gp << "set xrange [0:" << width_in_ms() << "]\n";
     if (mode_ == _amp_phase) {
       gp << "set multiplot layout 2,1 title '" << title << "'\n";
-      gp << "set ylabel 'amplitude / Hz'\n";
+      gp << "set ylabel 'Hz'\n";
+      //gp << "set ytics 2000\n";
+      //gp << "set key top center\n";
       gp << "plot 'shape.RF' u (($0+0.5)*" << dt << "):" << col1 << " title 'amp' with boxes ls 1\n";
-      gp << "set ylabel 'phase / deg'\n";
+      gp << "set ylabel 'deg'\n";
+      gp << "set ytics 90\n";
       gp << "set yrange [0:360]\n";
       gp << "plot 'shape.RF' u (($0+0.5)*" << dt << "):" << col2 << " title 'phase' with boxes ls 2\n";
       gp << "unset multiplot\n";

@@ -754,9 +754,9 @@ void grape::projection(const sol::table &t) {
     if (str_opt == "step") {
       xval = vec::LinSpaced(grid.cols(), 0, user_rf.width_in_ms()); // transfer trajectories of basis operators
       fig_spec =
-          "title<initial state I_{1x}+I_{1y}> xlabel<pulse "
+          "title<initial state I_{1y}> xlabel<pulse "
           "duration "
-          "/ ms> ylabel<coefficient>";
+          "/ ms> ylabel<magnetization>";
       fig_spec +=
           "xrange<0:" + boost::lexical_cast<string>(user_rf.width_in_ms()) +
           "> ";
@@ -765,12 +765,15 @@ void grape::projection(const sol::table &t) {
       xval = vec::LinSpaced(grid.cols(), superop_.nominal_offset[0],
                             superop_.nominal_offset[n - 1]);
       xval *= 1e-3;
-      fig_spec = "title<transfer coefficient> xlabel<frequency offset / kHz> ";
+      fig_spec = "xlabel<frequency offset / kHz> ylabel<magnetization>"; // title<scan 1> 
       fig_spec += "xrange<" + boost::lexical_cast<string>(xval[0]) + ":" +
                   boost::lexical_cast<string>(xval[xval.size() - 1]) + "> ";
     }
     if (expr.size() > 5)
-      fig_spec += " gnuplot<set ytics 0.2\n set key outside>";
+      //fig_spec += " gnuplot<set label 'Scan 2' at graph 0.5,0.5 center font 'Arial,26'\n set ytics 0.2\n set key horizontal above>";
+	  //fig_spec += " gnuplot<set label 'Scan 2' at graph 0.5,0.5 center font 'Arial,26'\n set ytics 0.2\n unset key>";
+		fig_spec += " gnuplot<set ytics 0.2\n unset key>";
+
     fig_spec += " lw<7>";
     fig_spec += " color<YiZhang16,16>";
     string lege;
