@@ -330,8 +330,11 @@ void plot(string fig_info, sol::variadic_args va, const map &) {
       gp << "set pm3d map\n";
     else if (map.style == "contour") {
       gp << R"(
-      set view 30,80
-	  set contour
+      set hidden3d
+	  set contour 
+      #unset surface
+      #set view map
+      #set pm3d at b
       set style increment default
       set cntrparam levels auto 15 unsorted
       set dgrid3d 128, 128
