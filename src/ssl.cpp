@@ -74,6 +74,8 @@ void bindings(sol::state &lua) {
 
   lua.set_function("B0", set_B0_api);
 
+  lua.set_function("phase_cycle_steps", set_phase_cycle_steps_api);
+
   // lua["pw90"] = &pw90;
 
   lua.new_usertype<sp_mat>(

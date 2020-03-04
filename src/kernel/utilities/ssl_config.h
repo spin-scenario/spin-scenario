@@ -64,10 +64,13 @@ WORD get_old_color_attrs();
 #define SSL_INFO_COLOR1 BACKGROUND_GREEN | BACKGROUND_INTENSITY
 #define SSL_WARN_COLOR1 BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_INTENSITY
 #define SSL_ERR_COLOR1 BACKGROUND_RED | BACKGROUND_INTENSITY
+#define SSL_PHASE_COLOR1 BACKGROUND_BLUE | BACKGROUND_INTENSITY
 
 #define SSL_INFO_COLOR2 FOREGROUND_GREEN | FOREGROUND_INTENSITY
 #define SSL_WARN_COLOR2 FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY
 #define SSL_ERR_COLOR2 FOREGROUND_RED | FOREGROUND_INTENSITY
+#define SSL_PHASE_COLOR2 FOREGROUND_BLUE | FOREGROUND_INTENSITY
+
 #endif
 
 void ssl_color_text(const string &option, const string &s, ostream &ostr = cout);
@@ -109,6 +112,7 @@ typedef Eigen::Vector3cd cx_vec3;
 typedef Eigen::Matrix<cd, 5, 1> cx_vec5;
 typedef Eigen::Matrix<double, 8, 1> vec8;
 
+extern size_t g_phase_cycle_steps;
 extern double g_pw90; // us.
 extern double g_max_grad; // mT/m.
 extern double g_max_slew_rate; // T/m/s.
@@ -174,6 +178,8 @@ extern seq_param *g_seq_param;
 std::map<string, double> phase_map();
 extern const std::map<string, double> g_phase_map;
 
+void set_phase_cycle_steps(size_t n);
+void set_phase_cycle_steps_api(const sol::table &t);
 void set_pw90_api(const sol::table &t);
 void set_pw90(double val);
 void set_max_grad(double val);

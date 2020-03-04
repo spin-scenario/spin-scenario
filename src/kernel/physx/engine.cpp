@@ -79,7 +79,7 @@ void engine::init_ensemble(const phantom *p_phantom) {
               .L0;  //////////////////////////////////////////////////////////////////////////
       ensemble_[0].Lz0 = unified_spinsys_.Lz0;
       ensemble_[0].R = unified_spinsys_.R;
-         ensemble_[0].pd = 1;
+      ensemble_[0].pd = 1;
 #endif
       return;
     }
@@ -253,7 +253,7 @@ void engine::evolution(timeline dt, const seq_const &ctrl) {
       delete[] host_x;
       delete[] host_y;
     }
-    //if (ctrl.acq.adc) {
+     //if (ctrl.acq.adc) {
     //cout << ctrl.acq.index << "\n";
     //}
 
@@ -587,7 +587,27 @@ sol::object engine::process_signal() {
   //  g_lua->script("write('raw_fid_im.txt', _raw_fid_im)");
   //  g_lua->script("write('raw_fid_abs.txt', _raw_fid_abs)");
 
-  cx_mat img = fft_2d(FID);
+  // process the raw data if needed.
+  cx_mat FID_post;
+  if (g_phase_cycle_steps > 1) {
+    size_t nrows = FID.rows();
+    if (nrows % g_phase_cycle_steps != 0)
+      throw std::runtime_error(
+          "number of scans must be integral multiple of number of steps in the "
+          "phase cycle!");
+
+    FID_post = cx_mat(nrows / g_phase_cycle_steps, FID.cols());
+    Eigen::RowVectorXcd sum_fid(FID.cols());
+    for (size_t i = 0; i < FID_post.rows(); i++) {
+      sum_fid.setZero();
+      for (size_t j = 0; j < g_phase_cycle_steps; j++)
+        sum_fid += FID.row(i * g_phase_cycle_steps + j);
+      FID_post.row(i) = sum_fid;
+    }
+  } else
+    FID_post = FID;
+
+  cx_mat img = fft_2d(FID_post);
   Group group2(file.createGroup("IMG"));
   // raw data files.
   mat img_re = img.real();
@@ -603,6 +623,7 @@ sol::object engine::process_signal() {
   h5write(file, &group2, "IMG:re", img_re);
   h5write(file, &group2, "IMG:im", img_im);
   h5write(file, &group2, "IMG:abs", img_abs);
+  h5write(file, &group2, "phase cycle steps", boost::lexical_cast<string>(g_phase_cycle_steps));
 
   Group group3(file.createGroup("SPEC"));
   // raw data files.

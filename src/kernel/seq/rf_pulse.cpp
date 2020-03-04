@@ -190,6 +190,7 @@ void rf_pulse::evolution(int index) {
     ssl_color_text("warn", "unknown compute engine, rf evolution ignored.\n");
     return;
   }
+  cout << "evolution rf " << index << " " << width_in_ms() << " ms\n";
   switch2loop(index);
   seq_const sc;
   sc.rf_if = 1;
@@ -217,7 +218,6 @@ void rf_pulse::evolution(int index) {
     //auto duration = duration_cast<microseconds>(end - start);
     //cout << "Use Time:" << double(duration.count()) * microseconds::period::num / microseconds::period::den<<" s.\n";
   }
-  cout << "evolution rf " << index << " " << width_in_ms() << " ms\n";
 }
 
 void rf_pulse::get_ctrl(const timeline key0, const timeline key1, seq_const &ctrl) const {

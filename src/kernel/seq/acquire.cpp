@@ -118,7 +118,8 @@ int acquire::switch2loop(int index) {
     idi = ni;
   double cur_phase = loop_phase_list_.deg[idi - 1];
   g_seq_param->acq_phase = deg2rad(cur_phase); // update the global acq phase.
-
+  string s = "phi[" + boost::lexical_cast<string>(cur_phase) + "]\n";
+  ssl_color_text("seq_phase", s);
   return 1;
 }
 void acquire::get_ctrl(const timeline key0, const timeline key1, seq_const &ctrl) const {
@@ -141,6 +142,7 @@ void acquire::evolution(int index) {
     ssl_color_text("warn", "unknown compute engine, acq evolution ignored.\n");
     return;
   }
+  cout << "evolution acq " << index << " " << width_in_ms() << " ms\n";
   switch2loop(index);
 
   if (npts_ == 1) {
@@ -179,7 +181,6 @@ void acquire::evolution(int index) {
 
   //
   //g_engine->reset_rho0();
-  cout << "evolution acq " << index << " " << width_in_ms() << " ms\n";
 }
 } /* namespace seq */
 } /* namespace ssl */

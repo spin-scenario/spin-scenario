@@ -25,6 +25,9 @@ vector<string> g_h5_string;
 vec g_expmv_theta;
 int g_openmp_core;
 
+size_t g_phase_cycle_steps = 1; // every # lines for the addition, this is for phase cycle.
+
+
 void set_openmp_core(int n) {
   g_openmp_core = n;
 }
@@ -44,6 +47,15 @@ void load_expmv_theta() {
 double g_pw90 = 5; // us.
 void set_pw90(double val) {
   g_pw90 = val;
+}
+
+void set_phase_cycle_steps(size_t n) { g_phase_cycle_steps = n; }
+void set_phase_cycle_steps_api(const sol::table &t) {
+  for (auto &kv : t) {
+    size_t val = kv.second.as<size_t>();
+    set_phase_cycle_steps(val);
+    break;
+  }
 }
 
 void set_pw90_api(const sol::table &t) {
@@ -703,6 +715,11 @@ void ssl_color_text(const string &option, const string &s, ostream &ostr) {
     SetConsoleTextAttribute(hConsole, SSL_ERR_COLOR1);
     ostr << "SSL-Err:" << flush;
     SetConsoleTextAttribute(hConsole, SSL_ERR_COLOR2);
+  }
+  if (option == "seq_phase") {
+    SetConsoleTextAttribute(hConsole, SSL_PHASE_COLOR1);
+    ostr << "          " << flush;
+    SetConsoleTextAttribute(hConsole, SSL_PHASE_COLOR2);
   }
   ostr << " " << s;
   SetConsoleTextAttribute(hConsole, wOldColorAttrs);

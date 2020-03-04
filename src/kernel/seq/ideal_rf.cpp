@@ -179,7 +179,8 @@ int ideal_rf::switch2loop(int index) {
     if (idi == 0)
       idi = ni;
     double cur_phase = loop_phase_list_[i].deg[idi - 1];
-    //cout << "-----" << cur_phase << "\n";
+    string s = "phi[" + boost::lexical_cast<string>(cur_phase) + "]\n";
+    ssl_color_text("seq_phase", s);
     cur_phase = deg2rad(cur_phase);
     cd tmp = raw_data_[i].envelope[0];
     if (mode_ == _ux_uy)
