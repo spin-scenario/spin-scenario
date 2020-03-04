@@ -62,7 +62,7 @@ void serial_block::evolution(int index) {
         vector<int>::iterator pos = find(priors.begin(), priors.end(), sub_blocks_[j]->cycle_priority());
         if (pos != priors.end()) {
           int prior_id = distance(priors.begin(), pos); // column index of the cycling matrix for this block.
-          loop_index = cycling_matrix(i, prior_id);
+          loop_index = cycling_matrix(i, priors.size()-1 -prior_id); // priority fixed in 03/04/2020.
         }
         // local array loop.
         if (sub_blocks_[j]->local_loop_if())
@@ -108,7 +108,7 @@ imat serial_block::descending_cycle_matrix() const {
 
   vector<vector<int>> cycle_list;
   for (size_t i = 0; i < counts.size(); i++)
-    cycle_list = cycle_index_list(cycle_list, counts[i]);
+    cycle_list = cycle_index_list(cycle_list, counts[counts.size() -1 - i]); // priority fixed in 03/04/2020.
 
   imat m(cycle_list.size(), levels);
   for (int i = 0; i < m.rows(); i++) {
