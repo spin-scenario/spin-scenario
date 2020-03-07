@@ -20,6 +20,8 @@ namespace oc {
 vec spec_avg(const sol::table &t);
 vec abs(const vec &a, const vec &b);
 
+enum coop_model { _ms_coop, _ss_coop};
+
 struct ms_coop_ctrl;
 class coop_grape : public grape {
  public:
@@ -33,8 +35,10 @@ class coop_grape : public grape {
   virtual void assign_pulse(const sol::table &t);
   virtual void assign_aux_var();
   static double objfunc_broadband(const vector<double> &x, vector<double> &g, void *func);
-  double objfunc_broadband(const vector<double> &x, vector<double> &g);
-  double co_objfunc(const vector<double> &x, vector<double> &g);
+  //static double objfunc_propagator(const vector<double> &x, vector<double> &grad, void *func); // reserved for propagator optimization case.
+  double objfunc_broadband_ms_coop(const vector<double> &x, vector<double> &g);
+  double objfunc_broadband_ss_coop(const vector<double> &x, vector<double> &g);
+  double co_objfunc(const vector<double> &x, vector<double> &g); // this is for superposition state preparation, should be merged with objfunc_broadband.
 
   sp_cx_mat update_rf_ham(Eigen::Map<const mat> &m,
                           int scan,
@@ -43,11 +47,18 @@ class coop_grape : public grape {
                           size_t nchannels,
                           double kx = 1,
                           double ky = 1) const;
+  sp_cx_mat update_rf_ham(Eigen::Map<const vec> &v, size_t step,
+                          size_t channel, size_t nchannels, double kx = 1,
+                          double ky = 1) const;
  private:
   vector<shaped_rf*> coop_rf_;
   vector<state_traj> coop_traj_;
 
+
+  vector<sp_cx_mat> inserted_ops_; // only for ss-coop.
+
   ms_coop_ctrl* coop_par_;
+  static coop_model coop_model_;
 };
 }
 }

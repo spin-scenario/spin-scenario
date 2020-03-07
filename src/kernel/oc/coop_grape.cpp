@@ -17,6 +17,8 @@ using namespace ssl::utility;
 
 namespace ssl {
 namespace oc {
+coop_model coop_grape::coop_model_;  // by default, use multi-scan cooperative
+                                     // pulses optimization model.
 
 struct ms_coop_ctrl {
   sp_cx_vec rho_bar;
@@ -79,7 +81,7 @@ struct ms_coop_ctrl {
   }
 };
 
-coop_grape::coop_grape(spin_system &sys) : grape(sys) { is_coop_ = true; }
+coop_grape::coop_grape(spin_system &sys) : grape(sys) { is_coop_ = true; coop_model_=_ms_coop;}
 
 coop_grape::~coop_grape() {}
 
@@ -94,6 +96,30 @@ void coop_grape::assign_pulse(const sol::table &t) {
     coop_rf_.push_back(ptr);
   }
 
+  coop_model_ = _ms_coop;
+  if (is_retrievable("coop_model", t)) {
+    string s = retrieve_table_str("coop_model", t);
+    if (s == "ss-coop") coop_model_ = _ss_coop;
+  }
+
+  if (is_retrievable("insert_op", t)) {
+    int sys_dim = superop_.L0.rows();
+    sp_cx_mat Ie = sp_cx_mat(sys_dim, sys_dim);
+    Ie.setIdentity();
+    inserted_ops_ =
+        vector<sp_cx_mat>(coop_rf_.size() - 1, Ie);  // note size ncoop-1.
+
+    sol::object obj = retrieve_table("insert_op", t);
+    sol::table par_table = obj.as<sol::table>();
+
+    sol::object val = par_table[1];  // 1st element: operator.
+    sp_cx_mat op = sys_->smart_op(val.as<string>());
+    op = ssl::spinsys::propagator(op, _pi);
+    val = par_table[2];  // 2nd element: id(1,2,3...)
+    inserted_ops_[val.as<size_t>() - 1] = op;
+
+    coop_model_ = _ss_coop;
+  }
 }
 
 void coop_grape::assign_aux_var() {
@@ -216,11 +242,146 @@ void coop_grape::h5write(string file_name) const {
 
 double coop_grape::objfunc_broadband(const vector<double> &x, vector<double> &g,
                                      void *func) {
-  return ((coop_grape *)func)->objfunc_broadband(x, g);  // co_objfunc
+  if (coop_model_ == _ms_coop)
+   return ((coop_grape *)func)->objfunc_broadband_ms_coop(x, g);  // co_objfunc
+  else
+  return ((coop_grape *)func)->objfunc_broadband_ss_coop(x, g); 
+}
+double coop_grape::objfunc_broadband_ss_coop(const vector<double> &x,
+                                             vector<double> &g) {
+  int N = superop_.L0s.size();
+  vec phi = vec::Zero(N);
+
+  int ncoop = (int)coop_rf_.size();
+
+  vector<Eigen::Map<const vec>> shapes;  // pointer.
+  vector<Eigen::Map<vec>> grads;         // pointer.
+  vector<vec> grads_ss_coop;
+  int idx = 0;
+  for (int i = 0; i < ncoop; i++) {
+    int dim = (int)coop_rf_[i]->get_dims();
+    Eigen::Map<const vec> shape(x.data() + idx, dim);
+    Eigen::Map<vec> grad(g.data() + idx, dim);
+    grad.setZero();
+    shapes.push_back(shape);
+    grads.push_back(grad);
+    vec g(dim);
+    g.setZero();
+    grads_ss_coop.push_back(g);
+    idx += dim;
+  }
+
+  vector<vector<vec>> grad_bb(N, grads_ss_coop);
+
+#pragma omp parallel for
+  for (int p = 0; p < N; p++) {
+    sp_cx_mat L0 = superop_.L0s[p] + ci * superop_.R;
+
+    vector<state_traj> co_traj_rho;
+    for (int index = 0; index < ncoop; index++) {
+      state_traj cur_index = state_traj(coop_rf_[index]->get_steps());
+
+      if (index == 0)  // only for 1st pulse since it is ss-coop.
+        cur_index.forward[0] = init_state_;
+      if (index == ncoop - 1)  // only for last pulse since it is ss-coop.
+        cur_index.backward[coop_rf_[index]->get_steps()] = targ_list_[p];
+
+      co_traj_rho.push_back(cur_index);
+    }
+    //cout << "##1\n";
+    //#pragma omp parallel for
+    for (int index = 0; index < ncoop; index++) {
+      sp_cx_mat L;
+      double kx = 1, ky = 1;
+      size_t nsteps = coop_rf_[index]->get_steps();
+      size_t nchannels = coop_rf_[index]->get_channels();
+      double dt =
+          coop_rf_[index]->width_in_ms() * 1e-3 / double(nsteps);  // into s.
+
+      for (size_t i = 0; i < nsteps; i++) {
+        L = L0;
+        for (size_t j = 0; j < nchannels; j++)
+          L += update_rf_ham(shapes[index], i, j, nchannels, kx, ky);
+        co_traj_rho[index].forward[i + 1] =
+            ssl::spinsys::step(co_traj_rho[index].forward[i], L, dt);
+      }
+
+      // init for the next pulse.
+      if (index + 1 < ncoop)  // do not do for the last pulse.
+        co_traj_rho[index + 1].forward[0] =
+            inserted_ops_[index] * co_traj_rho[index].forward[nsteps];
+    }
+    //cout << "##2\n";
+    //#pragma omp parallel for
+    for (int index = ncoop - 1; index >= 0; index--) {
+      sp_cx_mat L;
+      double kx = 1, ky = 1;
+      size_t nsteps = coop_rf_[index]->get_steps();
+      size_t nchannels = coop_rf_[index]->get_channels();
+      double dt =
+          coop_rf_[index]->width_in_ms() * 1e-3 / double(nsteps);  // into s.
+
+      for (int i = nsteps - 1; i >= 0; i--) {
+        L = L0.adjoint();
+        for (size_t j = 0; j < nchannels; j++)
+          L += update_rf_ham(shapes[index], i, j, nchannels, kx, ky);
+        co_traj_rho[index].backward[i] =
+            ssl::spinsys::step(co_traj_rho[index].backward[i + 1], L, -dt);
+      }
+
+      // init for the previous pulse.
+      if (index - 1 >= 0)  // do not do for the first pulse.
+        co_traj_rho[index - 1].backward[coop_rf_[index - 1]->get_steps()] =
+            inserted_ops_[index - 1].adjoint() * co_traj_rho[index].backward[0];
+    }
+    //cout << "##3\n";
+    //#pragma omp parallel for
+    for (int index = 0; index < ncoop; index++) {
+      sp_cx_mat Gx, Gy, tmp;
+      sp_cx_mat L;
+      int k = 0;
+      double kx = 1, ky = 1;
+      size_t nsteps = coop_rf_[index]->get_steps();
+      size_t nchannels = coop_rf_[index]->get_channels();
+      double dt =
+          coop_rf_[index]->width_in_ms() * 1e-3 / double(nsteps);  // into s.
+      for (size_t i = 0; i < nsteps; i++) {
+        L = L0;
+        for (size_t j = 0; j < nchannels; j++)
+          L += update_rf_ham(shapes[index], i, j, nchannels, kx, ky);
+        tmp = co_traj_rho[index].backward[i + 1].adjoint() *
+              ssl::spinsys::propagator(L, dt);
+        for (size_t j = 0; j < nchannels; j++) {
+          Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
+          Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
+          grad_bb[p][index](k) =
+              traced(tmp * Gx * co_traj_rho[index].forward[i]).real();
+          grad_bb[p][index](k + 1) =
+              traced(tmp * Gy * co_traj_rho[index].forward[i]).real();
+          k += 2;
+        }
+      }
+    }
+    //cout << "##4\n";
+    phi[p] = transfer_fidelity(
+        co_traj_rho[ncoop - 1].forward[coop_rf_[ncoop - 1]->get_steps()],
+        targ_list_[p]);
+  }
+
+  for (int index = 0; index < ncoop; index++) {
+    for (int p = 0; p < grad_bb.size(); p++) grads[index] += grad_bb[p][index];
+    grads[index] /= (double)N;
+  }
+
+  double val = phi.sum() / (double)N;
+
+  std::cout << boost::format("==> %04d [%.7f]\n") % (++opt_.iter_count) % val;
+  opt_.vf.push_back(val);
+  return val;
 }
 
-double coop_grape::objfunc_broadband(const vector<double> &x,
-                                     vector<double> &g) {
+double coop_grape::objfunc_broadband_ms_coop(const vector<double> &x,
+                                             vector<double> &g) {
   int ncoop = (int)coop_rf_.size();
   int dim = (int)rf_->get_dims();
   Eigen::Map<const mat> shape(x.data(), dim, ncoop);
@@ -318,7 +479,7 @@ double coop_grape::objfunc_broadband(const vector<double> &x,
   return val;
 }
 
- double coop_grape::co_objfunc(const vector<double> &x, vector<double> &g) {
+double coop_grape::co_objfunc(const vector<double> &x, vector<double> &g) {
   int ncoop = (int)coop_rf_.size();
   int dim = (int)rf_->get_dims();
   Eigen::Map<const mat> shape(x.data(), dim, ncoop);
@@ -495,76 +656,180 @@ void coop_grape::projection(const sol::table &t) {
   cube comp_dist;
   // for BROADBAND case: states, freq offsets, rf scalings
   // for STEP case: states, steps, rf scalings
+  //  if given 'insert_op', the coop mode must be ss-coop.
+	    if (is_retrievable("insert_op", t)) {
+      inserted_ops_.clear();
+      int sys_dim = superop_.L0.rows();
+      sp_cx_mat Ie = sp_cx_mat(sys_dim, sys_dim);
+      Ie.setIdentity();
+      inserted_ops_ =
+          vector<sp_cx_mat>(co_rfs.size() - 1, Ie);  // note size ncoop-1.
 
-  vector<double> x;
-  for (size_t i = 0; i < co_rfs.size(); i++) {
-    co_rfs[i]->convert2(_ux_uy);
-    vector<double> raw = co_rfs[i]->clone_raw_data();
-    x.insert(x.end(), raw.begin(), raw.end());  // column major.
-    raw.clear();
-  }
-  int ncoop = co_rfs.size();
-  Eigen::Map<const mat> shape(x.data(), co_rfs[0]->get_dims(), ncoop);
+      sol::object obj = retrieve_table("insert_op", t);
+      sol::table par_table = obj.as<sol::table>();
 
-  if (str_opt == "step") {
-    dim2 = "pulse steps\n";
-    dim2 += "interval: " + boost::lexical_cast<string>(dt) + " s\n";
-    comp_dist = cube(obsrv_state.size(), nsteps,
-                     rf_scaling.size());  // states, steps, rf scalings
-    sp_cx_mat L0 = superop_.L0 + ci * superop_.R;
+      sol::object val = par_table[1];  // 1st element: operator.
+      sp_cx_mat op = sys_->smart_op(val.as<string>());
+      op = ssl::spinsys::propagator(op, _pi);
+      val = par_table[2];  // 2nd element: id(1,2,3...)
+      inserted_ops_[val.as<size_t>() - 1] = op;
 
-    for (int q = 0; q < rf_scaling.size();
-         q++) {  // for each rf scaling factor, do
-      double kx = 1 + rf_scaling[q], ky = 1 + rf_scaling[q];
+      coop_model_ = _ss_coop;
+            }
 
-      vector<state_traj> co_traj_rho;
-      for (size_t i = 0; i < co_rfs.size(); i++)
-        co_traj_rho.push_back(state_traj(nsteps));
 
-      for (int p = 0; p < ncoop; p++) co_traj_rho[p].forward[0] = init_state;
+	if (coop_model_ == _ss_coop) {
+    vector<double> x;
+    for (size_t i = 0; i < co_rfs.size(); i++) {
+      co_rfs[i]->convert2(_ux_uy);
+      vector<double> raw = co_rfs[i]->clone_raw_data();
+      x.insert(x.end(), raw.begin(), raw.end());  // column major.
+      raw.clear();
+    }
 
-      for (size_t i = 0; i < nsteps; i++) {
-        sp_cx_mat L;
+    int ncoop = (int)co_rfs.size();
 
-        for (int p = 0; p < ncoop; p++) {
-          L = L0;
+    vector<Eigen::Map<const vec>> shapes;  // pointer.
+    int idx = 0;
+    for (int i = 0; i < ncoop; i++) {
+      int dim = (int)co_rfs[i]->get_dims();
+      Eigen::Map<const vec> shape(x.data() + idx, dim);
+      shapes.push_back(shape);
+      idx += dim;
+    }
+    if (str_opt == "step") {
+      dim2 = "pulse steps\n";
+      dim2 += "interval: " + boost::lexical_cast<string>(dt) + " s\n";
 
-          sp_cx_vec rho = co_traj_rho[p].forward[i];
+      int ss_nsteps = 0;
+      for (int index = 0; index < ncoop; index++)
+        ss_nsteps += co_rfs[index]->get_steps();
 
-          for (size_t j = 0; j < nchannels; j++)
-            L += update_rf_ham(shape, p, i, j, nchannels, kx, ky);
+      comp_dist = cube(obsrv_state.size(), ss_nsteps,
+                       rf_scaling.size());  // states, steps, rf scalings
 
-          co_traj_rho[p].forward[i + 1] = ssl::spinsys::step(rho, L, dt);
+	  cout << ss_nsteps << "\n";
+      sp_cx_mat L0 = superop_.L0 + ci * superop_.R;
+
+      for (int q = 0; q < rf_scaling.size();
+           q++) {  // for each rf scaling factor, do
+        double kx = 1 + rf_scaling[q], ky = 1 + rf_scaling[q];
+
+        vector<state_traj> co_traj_rho;
+        for (size_t i = 0; i < co_rfs.size(); i++)
+          co_traj_rho.push_back(state_traj(co_rfs[i]->get_steps()));
+
+        // init for the 1st pulse.
+        co_traj_rho[0].forward[0] = init_state;
+
+        int ss_nsteps = 0;
+
+        for (int index = 0; index < ncoop; index++) {
+          sp_cx_mat L;
+          size_t nsteps = co_rfs[index]->get_steps();
+          size_t nchannels = co_rfs[index]->get_channels();
+          double dt = co_rfs[index]->width_in_ms() * 1e-3 /
+                      double(nsteps);  // into s.
+
+          for (size_t i = 0; i < nsteps; i++) {
+            L = L0;
+            for (size_t j = 0; j < nchannels; j++)
+              L += update_rf_ham(shapes[index], i, j, nchannels, kx, ky);
+            co_traj_rho[index].forward[i + 1] =
+                ssl::spinsys::step(co_traj_rho[index].forward[i], L, dt);
+
+            for (size_t k = 0; k < obsrv_state.size(); k++) {
+              sp_cx_vec compo = obsrv_state[k];
+              comp_dist(k, ss_nsteps + (int)i, q) =
+                  transfer_fidelity(co_traj_rho[index].forward[i + 1], compo);
+            }
+
+          }
+          ss_nsteps += nsteps;
+          // init for the next pulse.
+          if (index + 1 < ncoop)  // do not do for the last pulse.
+            co_traj_rho[index + 1].forward[0] =
+                inserted_ops_[index] * co_traj_rho[index].forward[nsteps];
         }
+      }
+    } else if (str_opt == "broadband") {
+      dim2 = "freq offsets\n";
+      int n = superop_.nominal_offset.size();
+      dim2 += boost::lexical_cast<string>(superop_.nominal_offset[0]) + ":" +
+              boost::lexical_cast<string>(superop_.nominal_offset[n - 1]) +
+              " " + boost::lexical_cast<string>(n) + " Hz\n";
 
-        sp_cx_vec rho_bar = init_state;
-        rho_bar.setZero();
+      comp_dist = cube(obsrv_state.size(), superop_.L0s.size(),
+                       rf_scaling.size());  // states, freq offsets, rf scalings
+      comp_dist.setZero();
+      omp_set_num_threads(omp_core_num);
+#pragma omp parallel for
+      for (int p = 0; p < superop_.L0s.size(); p++) {
+        for (int q = 0; q < rf_scaling.size();
+             q++) {  // for each rf scaling factor, do
+          double kx = 1 + rf_scaling[q], ky = 1 + rf_scaling[q];
 
-        for (int p = 0; p < ncoop; p++)
-          rho_bar += co_traj_rho[p].forward[i + 1];
+          vector<state_traj> co_traj_rho;
+          for (size_t i = 0; i < co_rfs.size(); i++)
+            co_traj_rho.push_back(state_traj(co_rfs[i]->get_steps()));
 
-        rho_bar.coeffRef(0) = 0;
-        rho_bar = norm_state(rho_bar);
+          // init for the 1st pulse.
+          co_traj_rho[0].forward[0] = init_state;
 
-        for (size_t k = 0; k < obsrv_state.size(); k++) {
-          sp_cx_vec compo = obsrv_state[k];
-          comp_dist(k, i, q) = transfer_fidelity(rho_bar, compo);
+          int ss_nsteps = 0;
+
+          sp_cx_mat L;
+          sp_cx_mat L0 = superop_.L0s[p] + ci * superop_.R;
+
+          for (int index = 0; index < ncoop; index++) {
+            sp_cx_mat L;
+            size_t nsteps = co_rfs[index]->get_steps();
+            size_t nchannels = co_rfs[index]->get_channels();
+            double dt = co_rfs[index]->width_in_ms() * 1e-3 /
+                        double(nsteps);  // into s.
+
+            for (size_t i = 0; i < nsteps; i++) {
+              L = L0;
+              for (size_t j = 0; j < nchannels; j++)
+                L += update_rf_ham(shapes[index], i, j, nchannels, kx, ky);
+              co_traj_rho[index].forward[i + 1] =
+                  ssl::spinsys::step(co_traj_rho[index].forward[i], L, dt);
+            }
+
+            // init for the next pulse.
+            if (index + 1 < ncoop)  // do not do for the last pulse.
+              co_traj_rho[index + 1].forward[0] =
+                  inserted_ops_[index] * co_traj_rho[index].forward[nsteps];
+          }
+
+          for (size_t k = 0; k < obsrv_state.size(); k++) {
+            sp_cx_vec compo = obsrv_state[k];
+            comp_dist(k, p, q) = transfer_fidelity(
+                co_traj_rho[ncoop - 1].forward[co_rfs[ncoop - 1]->get_steps()],
+                compo);
+          }
         }
       }
     }
-  } else if (str_opt == "broadband") {
-    dim2 = "freq offsets\n";
-    int n = superop_.nominal_offset.size();
-    dim2 += boost::lexical_cast<string>(superop_.nominal_offset[0]) + ":" +
-            boost::lexical_cast<string>(superop_.nominal_offset[n - 1]) + " " +
-            boost::lexical_cast<string>(n) + " Hz\n";
+  } else
+  if (coop_model_ == _ms_coop) {
+    vector<double> x;
+    for (size_t i = 0; i < co_rfs.size(); i++) {
+      co_rfs[i]->convert2(_ux_uy);
+      vector<double> raw = co_rfs[i]->clone_raw_data();
+      x.insert(x.end(), raw.begin(), raw.end());  // column major.
+      raw.clear();
+    }
+    int ncoop = co_rfs.size();
+    Eigen::Map<const mat> shape(x.data(), co_rfs[0]->get_dims(), ncoop);
 
-    comp_dist = cube(obsrv_state.size(), superop_.L0s.size(),
-                     rf_scaling.size());  // states, freq offsets, rf scalings
-    comp_dist.setZero();
-    omp_set_num_threads(omp_core_num);
-#pragma omp parallel for
-    for (int p = 0; p < superop_.L0s.size(); p++) {
+    if (str_opt == "step") {
+      dim2 = "pulse steps\n";
+      dim2 += "interval: " + boost::lexical_cast<string>(dt) + " s\n";
+      comp_dist = cube(obsrv_state.size(), nsteps,
+                       rf_scaling.size());  // states, steps, rf scalings
+      sp_cx_mat L0 = superop_.L0 + ci * superop_.R;
+
       for (int q = 0; q < rf_scaling.size();
            q++) {  // for each rf scaling factor, do
         double kx = 1 + rf_scaling[q], ky = 1 + rf_scaling[q];
@@ -573,38 +838,90 @@ void coop_grape::projection(const sol::table &t) {
         for (size_t i = 0; i < co_rfs.size(); i++)
           co_traj_rho.push_back(state_traj(nsteps));
 
-        for (int index = 0; index < ncoop; index++)
-          co_traj_rho[index].forward[0] = init_state;
-
-        sp_cx_mat L;
-        sp_cx_mat L0 = superop_.L0s[p] + ci * superop_.R;
+        for (int p = 0; p < ncoop; p++) co_traj_rho[p].forward[0] = init_state;
 
         for (size_t i = 0; i < nsteps; i++) {
-          for (int index = 0; index < ncoop; index++) {
-            sp_cx_mat L = L0;
-            sp_cx_vec rho = co_traj_rho[index].forward[i];
-            for (size_t j = 0; j < nchannels; j++)
-              L += update_rf_ham(shape, index, i, j, nchannels, kx, ky);
+          sp_cx_mat L;
 
-            co_traj_rho[index].forward[i + 1] = ssl::spinsys::step(rho, L, dt);
+          for (int p = 0; p < ncoop; p++) {
+            L = L0;
+
+            sp_cx_vec rho = co_traj_rho[p].forward[i];
+
+            for (size_t j = 0; j < nchannels; j++)
+              L += update_rf_ham(shape, p, i, j, nchannels, kx, ky);
+
+            co_traj_rho[p].forward[i + 1] = ssl::spinsys::step(rho, L, dt);
+          }
+
+          sp_cx_vec rho_bar = init_state;
+          rho_bar.setZero();
+
+          for (int p = 0; p < ncoop; p++)
+            rho_bar += co_traj_rho[p].forward[i + 1];
+
+          rho_bar.coeffRef(0) = 0;
+          rho_bar = norm_state(rho_bar);
+
+          for (size_t k = 0; k < obsrv_state.size(); k++) {
+            sp_cx_vec compo = obsrv_state[k];
+            comp_dist(k, i, q) = transfer_fidelity(rho_bar, compo);
           }
         }
+      }
+    } else if (str_opt == "broadband") {
+      dim2 = "freq offsets\n";
+      int n = superop_.nominal_offset.size();
+      dim2 += boost::lexical_cast<string>(superop_.nominal_offset[0]) + ":" +
+              boost::lexical_cast<string>(superop_.nominal_offset[n - 1]) +
+              " " + boost::lexical_cast<string>(n) + " Hz\n";
 
-        sp_cx_vec rho_bar = init_state;
-        rho_bar.setZero();
-        for (int index = 0; index < ncoop; index++)
-          rho_bar += co_traj_rho[index].forward[nsteps];
-        rho_bar *= 1 / (double)ncoop;
-        rho_bar.coeffRef(0) = 1;
+      comp_dist = cube(obsrv_state.size(), superop_.L0s.size(),
+                       rf_scaling.size());  // states, freq offsets, rf scalings
+      comp_dist.setZero();
+      omp_set_num_threads(omp_core_num);
+#pragma omp parallel for
+      for (int p = 0; p < superop_.L0s.size(); p++) {
+        for (int q = 0; q < rf_scaling.size();
+             q++) {  // for each rf scaling factor, do
+          double kx = 1 + rf_scaling[q], ky = 1 + rf_scaling[q];
 
-        for (size_t k = 0; k < obsrv_state.size(); k++) {
-          sp_cx_vec compo = obsrv_state[k];
-          comp_dist(k, p, q) = transfer_fidelity(rho_bar, compo);
+          vector<state_traj> co_traj_rho;
+          for (size_t i = 0; i < co_rfs.size(); i++)
+            co_traj_rho.push_back(state_traj(nsteps));
+
+          for (int index = 0; index < ncoop; index++)
+            co_traj_rho[index].forward[0] = init_state;
+
+          sp_cx_mat L;
+          sp_cx_mat L0 = superop_.L0s[p] + ci * superop_.R;
+
+          for (size_t i = 0; i < nsteps; i++) {
+            for (int index = 0; index < ncoop; index++) {
+              sp_cx_mat L = L0;
+              sp_cx_vec rho = co_traj_rho[index].forward[i];
+              for (size_t j = 0; j < nchannels; j++)
+                L += update_rf_ham(shape, index, i, j, nchannels, kx, ky);
+
+            co_traj_rho[index].forward[i + 1] = ssl::spinsys::step(rho, L, dt);
+            }
+          }
+
+          sp_cx_vec rho_bar = init_state;
+          rho_bar.setZero();
+          for (int index = 0; index < ncoop; index++)
+            rho_bar += co_traj_rho[index].forward[nsteps];
+          rho_bar *= 1 / (double)ncoop;
+          rho_bar.coeffRef(0) = 1;
+
+          for (size_t k = 0; k < obsrv_state.size(); k++) {
+            sp_cx_vec compo = obsrv_state[k];
+            comp_dist(k, p, q) = transfer_fidelity(rho_bar, compo);
+          }
         }
       }
     }
   }
-
   string time_s = sys_time();
   H5File file("proj_" + time_s + ".h5", H5F_ACC_TRUNC);
   ssl::utility::h5write(file, nullptr, "projection", comp_dist);
@@ -630,31 +947,42 @@ void coop_grape::projection(const sol::table &t) {
     string fig_spec;
     vec xval;
     if (str_opt == "step") {
-      xval = vec::LinSpaced(
-          grid.cols(), 0,
-          co_rfs[0]
-              ->width_in_ms());  // transfer trajectories of basis operators
+      double ms = 0;
+      if (coop_model_ == _ms_coop) ms = co_rfs[0]->width_in_ms();
+      if (coop_model_ == _ss_coop) { 
+        for (int index = 0; index < co_rfs.size(); index++)
+          ms += co_rfs[index]->width_in_ms();  // may be not suit for variable
+                                               // dt of different pulses.
+      }
+      cout << ms << " " << grid.cols() << "\n";
+      xval = vec::LinSpaced(grid.cols(), 0, ms);  // transfer trajectories of basis operators
       fig_spec =
           "title<initial state I_{1x}+I_{1y}> xlabel<pulse "
           "duration "
           "/ ms> ylabel<magnetization>";
       fig_spec +=
-          "xrange<0:" + boost::lexical_cast<string>(co_rfs[0]->width_in_ms()) +
+          "xrange<0:" + boost::lexical_cast<string>(ms) +
           "> ";
     } else if (str_opt == "broadband") {
       int n = superop_.nominal_offset.size();
       xval = vec::LinSpaced(grid.cols(), superop_.nominal_offset[0],
                             superop_.nominal_offset[n - 1]);
       xval *= 1e-3;
-      fig_spec = "xlabel<frequency offset / kHz> ylabel<magnetization>"; //transfer coefficient title<2-scan MS-COOP> 
+      fig_spec =
+          "xlabel<frequency offset / kHz> ylabel<magnetization>";  // transfer
+                                                                   // coefficient
+                                                                   // title<2-scan
+                                                                   // MS-COOP>
       fig_spec += "xrange<" + boost::lexical_cast<string>(xval[0]) + ":" +
                   boost::lexical_cast<string>(xval[xval.size() - 1]) + "> ";
     }
-    //fig_spec += " gnuplot<set key horizontal center>";
+    // fig_spec += " gnuplot<set key horizontal center>";
     if (expr.size() > 5)
-		fig_spec += " gnuplot<set key outside>";
-      //fig_spec += " gnuplot<set label 'MS-COOP' at graph 0.5,0.5 center font 'Arial,26'\n set ytics 0.2\n set key horizontal above>";
-	  //fig_spec += " gnuplot<set label 'MS-COOP' at graph 0.5,0.5 center font 'Arial,26'\n set ytics 0.2\n unset key>";
+        fig_spec += " gnuplot<set key outside>";
+      // fig_spec += " gnuplot<set label 'MS-COOP' at graph 0.5,0.5 center font
+      // 'Arial,26'\n set ytics 0.2\n set key horizontal above>";
+      //fig_spec +=" gnuplot<set label 'MS-COOP' at graph 0.5,0.5 center font 'Arial,26'\n set ytics 0.2\n unset key>";
+
 
     fig_spec += " lw<7>";
     fig_spec += " color<YiZhang16,16>";
@@ -677,6 +1005,18 @@ sp_cx_mat coop_grape::update_rf_ham(Eigen::Map<const mat> &m, int index,
   uy *= ky;
   return ux * superop_.rf_ctrl.Lx[channel] + uy * superop_.rf_ctrl.Ly[channel];
 }
+
+sp_cx_mat coop_grape::update_rf_ham(Eigen::Map<const vec> &v, size_t step,
+                                    size_t channel, size_t nchannels, double kx,
+                                    double ky) const {
+  double ux = v(2 * nchannels * step + 2 * channel);
+  double uy = v(2 * nchannels * step + 2 * channel + 1);
+  // Rf inhom
+  ux *= kx;
+  uy *= ky;
+  return ux * superop_.rf_ctrl.Lx[channel] + uy * superop_.rf_ctrl.Ly[channel];
+}
+
 vec spec_avg(const sol::table &t) {
   vec v_avg;
   for (size_t i = 0; i < t.size(); i++) {
