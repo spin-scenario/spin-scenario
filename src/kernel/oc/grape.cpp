@@ -357,14 +357,14 @@ double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
           Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
           Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
 
-          superop_.grad_bb[p][k] =
+          superop_.grad_bb[p][k] +=
               traced(tmp * Gx * traj_omp_[id].forward[i]).real();
-          superop_.grad_bb[p][k + 1] =
+          superop_.grad_bb[p][k + 1] +=
               traced(tmp * Gy * traj_omp_[id].forward[i]).real();
           k += 2;
         }
       }
-      phi[p] = transfer_fidelity(traj_omp_[id].forward[nsteps], targ_list_[p]);
+      phi[p] += transfer_fidelity(traj_omp_[id].forward[nsteps], targ_list_[p]);
     }
 
     /// transfer_fidelity(targ_list_[p], targ_list_[p]);
