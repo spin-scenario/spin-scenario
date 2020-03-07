@@ -770,9 +770,10 @@ void grape::projection(const sol::table &t) {
                   boost::lexical_cast<string>(xval[xval.size() - 1]) + "> ";
     }
     if (expr.size() > 5)
+        fig_spec += " gnuplot<set key outside>";
       //fig_spec += " gnuplot<set label 'Scan 2' at graph 0.5,0.5 center font 'Arial,26'\n set ytics 0.2\n set key horizontal above>";
 	  //fig_spec += " gnuplot<set label 'Scan 2' at graph 0.5,0.5 center font 'Arial,26'\n set ytics 0.2\n unset key>";
-		fig_spec += " gnuplot<set ytics 0.2\n unset key>";
+	  //fig_spec += " gnuplot<set ytics 0.2\n unset key>";
 
     fig_spec += " lw<7>";
     fig_spec += " color<YiZhang16,16>";
