@@ -1591,7 +1591,7 @@ vector<vector<jcoup_par>> interaction::parsing_Jcoupling_broadband() {
     result0.push_back(b);
   }
   result = result0;
-  for (size_t i = 1; i < zeeman_.bb_scalars.size(); i++) {
+  for (size_t i = 1; i < coupling_.bb_scalars.size(); i++) {
     result = parsing_Jcoupling_broadband(result, coupling_.bb_scalars[i]);
   }
   return result;

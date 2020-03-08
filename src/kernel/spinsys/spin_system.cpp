@@ -244,6 +244,8 @@ vector<sp_cx_mat> spin_system::free_hamiltonians() {
     cout << "j-coupling num: " << result_jcoup.size() << "\n";
   // zeeman case.
   vector<double> scalars = inter_.zeeman_.scalars; // backup.
+  mat scalar = inter_.coupling_.scalar;
+  if (result_cs.size()&&result_jcoup.size()==0)
   for (size_t i = 0; i < result_cs.size(); i++) {
     for (size_t j = 0; j < result_cs[i].size(); j++) {
       const cs_par &cur = result_cs[i][j];
@@ -257,7 +259,7 @@ vector<sp_cx_mat> spin_system::free_hamiltonians() {
     inter_.zeeman_.scalars = scalars; // recover to original pars for the next L0 calculation.
   }
   // J-coupling case.
-  mat scalar = inter_.coupling_.scalar;
+    if (result_cs.size()==0&&result_jcoup.size())
   for (size_t i = 0; i < result_jcoup.size(); i++) {
     for (size_t j = 0; j < result_jcoup[i].size(); j++) {
       const jcoup_par &cur = result_jcoup[i][j];
@@ -273,6 +275,35 @@ vector<sp_cx_mat> spin_system::free_hamiltonians() {
     L0s.push_back(free_hamiltonian());
     inter_.coupling_.scalar = scalar;
   }
+	//omp_set_num_threads(omp_core_num);
+	if(result_cs.size()&&result_jcoup.size()) {
+    //#pragma omp parallel for    
+    for (size_t i = 0; i < result_cs.size(); i++) {
+      if (i % 100 == 0) cout << i << "==>\n";
+
+      for (size_t j = 0; j < result_cs[i].size(); j++) {
+        const cs_par &cur = result_cs[i][j];
+        inter_.zeeman_.scalars[cur.id] += cur.val;
+      }
+
+      for (size_t ii = 0; ii < result_jcoup.size(); ii++) {
+
+        for (size_t jj = 0; jj < result_jcoup[ii].size(); jj++) {
+          const jcoup_par &cur = result_jcoup[ii][jj];
+          int id1 = cur.id1;
+          int id2 = cur.id2;
+          inter_.coupling_.scalar(id1, id2) += cur.val;
+          if (id1 != id2) inter_.coupling_.scalar(id2, id1) += cur.val;
+        }
+
+        inter_.init_broadband();
+        L0s.push_back(free_hamiltonian());
+
+        inter_.coupling_.scalar = scalar;
+      }
+      inter_.zeeman_.scalars = scalars;  // recover to original pars for the next L0 calculation.
+    }
+	}
   return L0s;
 }
 
