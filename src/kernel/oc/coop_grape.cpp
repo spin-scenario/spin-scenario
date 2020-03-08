@@ -366,6 +366,9 @@ double coop_grape::objfunc_broadband_ss_coop(const vector<double> &x,
     phi[p] = transfer_fidelity(
         co_traj_rho[ncoop - 1].forward[coop_rf_[ncoop - 1]->get_steps()],
         targ_list_[p]);
+
+	for (size_t i = 0; i < co_traj_rho.size(); i++)
+		co_traj_rho[i].free();
   }
 
   for (int index = 0; index < ncoop; index++) {
@@ -467,6 +470,9 @@ double coop_grape::objfunc_broadband_ms_coop(const vector<double> &x,
         }
       }
     }
+
+		for (size_t i = 0; i < co_traj_rho.size(); i++)
+		co_traj_rho[i].free();
   }
 
   for (int i = 0; i < grad_bb.size(); i++) grad += grad_bb[i];

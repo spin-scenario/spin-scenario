@@ -75,6 +75,10 @@ struct state_traj {
     forward = new sp_cx_vec[nsteps + 1];
     backward = new sp_cx_vec[nsteps + 1];
   }
+  void free() {
+	  delete []forward;
+	  delete []backward;
+  }
 };
 
 struct op_traj {

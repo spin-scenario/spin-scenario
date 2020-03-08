@@ -36,6 +36,7 @@ grape::grape(spin_system &sys)
   superop_.R = sys.relaxation();
   superop_.L0s = sys.free_hamiltonians();
   int bb_size = superop_.L0s.size();
+  cout << bb_size << "\n";
   if (bb_size) {
     // superop_.profile = vec::Ones(bb_size);
     superop_.nominal_offset = sys.nominal_broadband();
