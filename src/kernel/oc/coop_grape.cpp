@@ -11,7 +11,8 @@ limitations under the License.
 ==============================================================================*/
 
 #include "coop_grape.h"
-
+#include <chrono>
+using namespace chrono;
 #include <kernel/utilities/ssl_plot.h>
 using namespace ssl::utility;
 
@@ -249,6 +250,7 @@ double coop_grape::objfunc_broadband(const vector<double> &x, vector<double> &g,
 }
 double coop_grape::objfunc_broadband_ss_coop(const vector<double> &x,
                                              vector<double> &g) {
+  auto start = system_clock::now();
   int N = superop_.L0s.size();
   vec phi = vec::Zero(N);
 
@@ -378,7 +380,10 @@ double coop_grape::objfunc_broadband_ss_coop(const vector<double> &x,
 
   double val = phi.sum() / (double)N;
 
+  auto end = system_clock::now();
+  auto duration = duration_cast<microseconds>(end - start);
   std::cout << boost::format("==> %04d [%.7f]\n") % (++opt_.iter_count) % val;
+  //cout << "Use Time:" << double(duration.count()) * microseconds::period::num / microseconds::period::den << " s.\n";
   opt_.vf.push_back(val);
   return val;
 }
@@ -973,9 +978,9 @@ void coop_grape::projection(const sol::table &t) {
       int n = superop_.nominal_offset.size();
       xval = vec::LinSpaced(grid.cols(), superop_.nominal_offset[0],
                             superop_.nominal_offset[n - 1]);
-      xval *= 1e-3;
-      fig_spec =
-          "xlabel<frequency offset / kHz> ylabel<magnetization>";  // transfer
+      fig_spec = "xlabel<J / Hz> ylabel<magnetization>";
+	  //xval *= 1e-3;
+      //fig_spec = "xlabel<frequency offset / kHz> ylabel<magnetization>";  // transfer
                                                                    // coefficient
                                                                    // title<2-scan
                                                                    // MS-COOP>

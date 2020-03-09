@@ -16,7 +16,8 @@ using namespace ssl::utility;
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
-
+#include <chrono>
+using namespace chrono;
 namespace ssl {
 namespace oc {
 
@@ -214,7 +215,9 @@ void grape::assign_pulse(const sol::table &t) {
                 boost::lexical_cast<string>(width) +
                 ",  step = " + boost::lexical_cast<string>(nsteps) +
                 ",  max_amp = " + boost::lexical_cast<string>(max_init_amp) +
-                ",  channel = '" + str_chs + "'," + "pattern = '" + pattern +
+                //",  channel = '" + str_chs + "'," + "pattern = '" + pattern +
+				",  channel = '1H'," + "pattern = '" + pattern + // JUST FOR TEST.
+
                 "'}";
 
   g_lua->script(code);
@@ -302,6 +305,7 @@ void grape::opt_amplitude_constraint(nlopt::opt &opt) {
 }
 
 double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
+  auto start = system_clock::now();
   rf_->update_raw_data(x.data());
   int N = superop_.L0s.size();
   vec phi = vec::Zero(N);
@@ -396,7 +400,8 @@ double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
       k += 2;
     }
   }
-
+  auto end = system_clock::now();
+  auto duration = duration_cast<microseconds>(end - start);
   double PHI1 = val;
   double PHI2 = 0;
   // double PHI2 = alpha * rf_->rf_power();
@@ -404,6 +409,7 @@ double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
   // (++opt_.iter_count) % PHI1 % PHI2;
   std::cout << boost::format("==> %04d  [%.8f]\n") % (++opt_.iter_count) % PHI1;
   opt_.vf.push_back(PHI1 - PHI2);
+  //cout << "Use Time:" << double(duration.count()) * microseconds::period::num / microseconds::period::den << " s.\n";
   return (PHI1 - PHI2);
 }
 
