@@ -33,7 +33,7 @@ string terminal_cmd(string key) {
     if (key == "svg")
 		s = "set terminal svg fname 'Verdana' fsize 10\n";
 	if (key == "tex")
-    s = "set terminal epslatex standalone color colortext header '\\newcommand{ \\ft }[0]{ \\footnotesize}'\n";
+    s = "set terminal epslatex color colortext header '\\newcommand{ \\ft }[0]{ \\footnotesize}'\n";
   return s;
 }
   vec linspace(double start, double stop, int num) {
@@ -133,7 +133,7 @@ void plot(string fig_info, sol::variadic_args va, const line &) {
     if (!line.dash.empty())
       gp << "set style line " << i << " dt " << line.dash << "\n";
     if (!line.marker.empty())
-      gp << "set style line " << i << " pt " << line.marker << " ps 1\n";
+      gp << "set style line " << i << " pt " << line.marker << " ps 1.5\n";
     if (!line.color.empty())
       gp << "set style line " << i << " lc rgb " << line.color << "\n";
     lines.push_back(line);
