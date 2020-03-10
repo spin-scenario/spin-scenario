@@ -65,6 +65,13 @@ void ideal_rf::assign() {
     vector<string> pha_vec;
     boost::split(pha_vec, phase_par, boost::is_any_of("|"), boost::token_compress_on);
 
+    // in case of this case: hardRF{ channel ="1H 13C", beta = 90, phase = 'x'} should be equal to phase = 'x|x'.
+     if (pha_vec.size() < channels_) {
+      size_t n = channels_ - pha_vec.size();
+      string s = pha_vec.back();
+      for (size_t i = 0; i < n; i++) pha_vec.push_back(s);
+    }
+
     for (size_t i = 0; i < pha_vec.size(); i++) {
       RFChannel chl;
       chl.envelope = cx_vec::Zero(1);
