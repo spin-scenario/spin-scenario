@@ -136,7 +136,9 @@ void set_B0(string mag) {
   //set_proton_freq(val_B0);
 }
 
-phantom_space g_phantom_space = phantom_space();
+double get(size_t i, const vec &v) { return v[i]; }
+
+  phantom_space g_phantom_space = phantom_space();
 
 void reduce_phantom(const sol::table &t) {
   for (auto &kv : t) {

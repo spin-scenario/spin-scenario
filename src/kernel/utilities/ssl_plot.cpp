@@ -133,7 +133,7 @@ void plot(string fig_info, sol::variadic_args va, const line &) {
     if (!line.dash.empty())
       gp << "set style line " << i << " dt " << line.dash << "\n";
     if (!line.marker.empty())
-      gp << "set style line " << i << " pt " << line.marker << " ps 1.5\n";
+      gp << "set style line " << i << " pt " << line.marker << " ps 1\n";
     if (!line.color.empty())
       gp << "set style line " << i << " lc rgb " << line.color << "\n";
     lines.push_back(line);

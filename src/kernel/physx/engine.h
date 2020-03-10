@@ -81,9 +81,9 @@ else
 
 }
 #endif
-    double norm_rho0 = rho0.norm();
-    double norm_det =det.norm();
-    det *= norm_rho0 / norm_det; // this make norm(det)==norm(rho0), please DO NOT change rho0.
+    //double norm_rho0 = rho0.norm();
+    //double norm_det =det.norm();
+    //det *= norm_rho0 / norm_det; // this make norm(det)==norm(rho0), please DO NOT change rho0.
     levante_ernst_correction(rho0);
     levante_ernst_correction(det);
   }
