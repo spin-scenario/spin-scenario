@@ -1134,6 +1134,14 @@ vec table2vec(const sol::table &t) {
   }
   return v;
 }
+sol::table vec2table(const vec &v) {
+    sol::table t = g_lua->create_table();
+    for (int i=0;i<v.size();i++)
+    {
+        t.add(v(i));
+    }
+    return t;
+}
 
 void write(string file, sol::variadic_args va, const mat & /*m*/) {
   string sep = "\n#----------------------------------------\n";

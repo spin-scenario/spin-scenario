@@ -353,6 +353,7 @@ sp_cx_vec div(const sp_cx_vec &a, cd b);
 
 mat table2mat(const sol::table& t, int nrows, int ncols);
 vec table2vec(const sol::table &t);
+sol::table vec2table(const vec &v);
 
 template<typename T>
 void print(sol::variadic_args va, const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> & /*m*/) {

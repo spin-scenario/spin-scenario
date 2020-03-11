@@ -67,6 +67,7 @@ void bindings(sol::state &lua) {
 
   lua.set_function("table2mat", table2mat);
   lua.set_function("table2vec", table2vec);
+  lua.set_function("vec2table", vec2table);
 
   lua.set_function("pw90", set_pw90_api);
 
