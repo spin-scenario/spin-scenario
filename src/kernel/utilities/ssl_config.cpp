@@ -137,6 +137,7 @@ void set_B0(string mag) {
 }
 
 double get(size_t i, const vec &v) { return v[i]; }
+double max(const mat &m) { return m.maxCoeff(); }
 
   phantom_space g_phantom_space = phantom_space();
 

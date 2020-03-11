@@ -126,6 +126,8 @@ enum axis {
 };
 
 double get(size_t i, const vec &v);
+double max(const mat &m);
+
 struct seq_param {
   vec2 fov = vec2::Zero(); // unit in mm.
   ivec2 matrix = ivec2::Zero();

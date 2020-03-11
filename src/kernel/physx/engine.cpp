@@ -35,8 +35,35 @@ engine::engine(const sol::table &t) {
   if (is_retrievable("spinsys", t)) {
     // general one spin system case.
     sol::object par = retrieve_table("spinsys", t);
-    const spin_system &par_sys = par.as<const spin_system &>();
-    unified_spinsys_.init(par_sys);
+    if (par.get_type() ==
+        sol::type::table) {  // special case for multi-spin system.
+      sol::table sys_table = par.as<sol::table>();
+
+      for (size_t i = 0; i < sys_table.size(); i++) {
+        sol::object val = sys_table[i + 1];
+        const spin_system &par_sys = val.as<const spin_system &>();
+        unified_spinsys sys;
+        sys.init(par_sys);
+        each_spinsys each;
+
+        each.pos = vec3::Zero();
+        each.rho = sys.rho0;
+        each.L0 =
+            sys.L0;  //////////////////////////////////////////////////////////////////////////
+        each.Lz0 = sys.Lz0;
+        each.R = sys.R;
+        each.pd = 1;
+        ensemble_.push_back(each);
+
+		if (i == 0) {
+          unified_spinsys_ = sys; // unified_spinsys_ need init because evolution use it.
+        }
+      }
+
+    } else {
+      const spin_system &par_sys = par.as<const spin_system &>();
+      unified_spinsys_.init(par_sys);
+    }
   } else {
     // g_lua->script("_sys = spin_system{B0 = '3 T', spins = '1H'}");
     g_lua->script("_sys = spin_system{spin = '1H'}");
@@ -60,27 +87,29 @@ void engine::init_ensemble(const phantom *p_phantom) {
     if (!p_phantom) {
       ssl_color_text("warn",
                      "no phantom specified, ONLY one spin system used.\n");
-      each_spinsys each;
-      ensemble_ = vector<each_spinsys>(1, each);
+      if (ensemble_.size() == 0) { // because for multi-spin sys already init.
+        each_spinsys each;
+        ensemble_ = vector<each_spinsys>(1, each);
 #ifdef DENSE_MATRIX_COMPUTE
-      ensemble_[0].pos = vec3::Zero();
-      ensemble_[0].rho = unified_spinsys_.rho0.toDense();
-      ensemble_[0].L0 =
-          unified_spinsys_.L0
-              .toDense();  //////////////////////////////////////////////////////////////////////////
-      ensemble_[0].Lz0 = unified_spinsys_.Lz0.toDense();
-      ensemble_[0].R = unified_spinsys_.R.toDense();
-      ensemble_[0].pd = 1;
+        ensemble_[0].pos = vec3::Zero();
+        ensemble_[0].rho = unified_spinsys_.rho0.toDense();
+        ensemble_[0].L0 =
+            unified_spinsys_.L0
+                .toDense();  //////////////////////////////////////////////////////////////////////////
+        ensemble_[0].Lz0 = unified_spinsys_.Lz0.toDense();
+        ensemble_[0].R = unified_spinsys_.R.toDense();
+        ensemble_[0].pd = 1;
 #else
-      ensemble_[0].pos = vec3::Zero();
-      ensemble_[0].rho = unified_spinsys_.rho0;
-      ensemble_[0].L0 =
-          unified_spinsys_
-              .L0;  //////////////////////////////////////////////////////////////////////////
-      ensemble_[0].Lz0 = unified_spinsys_.Lz0;
-      ensemble_[0].R = unified_spinsys_.R;
-      ensemble_[0].pd = 1;
+        ensemble_[0].pos = vec3::Zero();
+        ensemble_[0].rho = unified_spinsys_.rho0;
+        ensemble_[0].L0 =
+            unified_spinsys_
+                .L0;  //////////////////////////////////////////////////////////////////////////
+        ensemble_[0].Lz0 = unified_spinsys_.Lz0;
+        ensemble_[0].R = unified_spinsys_.R;
+        ensemble_[0].pd = 1;
 #endif
+      }
       return;
     }
 
