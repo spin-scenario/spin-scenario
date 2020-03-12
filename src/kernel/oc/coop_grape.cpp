@@ -144,12 +144,19 @@ sol::object coop_grape::optimize(const sol::table &t, sol::this_state s) {
   for (size_t i = 0; i < coop_rf_.size(); i++) {
     coop_rf_[i]->convert2(_ux_uy);
     vector<double> raw = coop_rf_[i]->clone_raw_data();
+    // ONLY FOR TEST.
+    vector<double> raw_x;
+    for (int i=0;i<raw.size();i++)
+      if (i % 2 == 0) raw_x.push_back(raw[i]);
+
     if (i==1) {
       for (size_t j = 0; j < raw.size(); j++) {
         raw[i] *= -1;
       }
     }
-    x.insert(x.end(), raw.begin(), raw.end());  // column major.
+    x.insert(x.end(), raw_x.begin(), raw_x.end());  // column major.
+    raw_x.clear();
+    //x.insert(x.end(), raw.begin(), raw.end());  // column major.
     raw.clear();
   }
 
@@ -179,11 +186,25 @@ sol::object coop_grape::optimize(const sol::table &t, sol::this_state s) {
 
   opt_.max_f = max_f;
 
+
+  // ONLY FOR TEST.
+  int dimx = (int)rf_->get_dims()/2;
+  vector<double> xx;
+  for (int i=0;i<dimx;i++)
+  {
+    xx.push_back(x[i]);
+    xx.push_back(0);
+  }
+  for (int i = 0; i < dimx; i++) {
+    xx.push_back(x[i+dimx]);
+     xx.push_back(0);
+  }
+  cout << xx.size() << "\n";
   sol::state_view lua(s);
   sol::table rfs = lua.create_table();
   int dim = (int)rf_->get_dims();
   for (size_t i = 0; i < coop_rf_.size(); i++) {
-    coop_rf_[i]->update_raw_data(x.data() + i * dim);
+    coop_rf_[i]->update_raw_data(xx.data() + i * dim);
     rfs.add((seq_block *)coop_rf_[i]);
   }
   h5write();
@@ -261,7 +282,7 @@ double coop_grape::objfunc_broadband_ss_coop(const vector<double> &x,
   vector<vec> grads_ss_coop;
   int idx = 0;
   for (int i = 0; i < ncoop; i++) {
-    int dim = (int)coop_rf_[i]->get_dims();
+    int dim = (int)coop_rf_[i]->get_dims()/2; // ONLY FOR TEST. /2 ONLY X AXIS.
     Eigen::Map<const vec> shape(x.data() + idx, dim);
     Eigen::Map<vec> grad(g.data() + idx, dim);
     grad.setZero();
@@ -355,12 +376,13 @@ double coop_grape::objfunc_broadband_ss_coop(const vector<double> &x,
               ssl::spinsys::propagator(L, dt);
         for (size_t j = 0; j < nchannels; j++) {
           Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
-          Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
+          //Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
           grad_bb[p][index](k) =
               traced(tmp * Gx * co_traj_rho[index].forward[i]).real();
-          grad_bb[p][index](k + 1) =
-              traced(tmp * Gy * co_traj_rho[index].forward[i]).real();
-          k += 2;
+          //grad_bb[p][index](k + 1) =
+          //    traced(tmp * Gy * co_traj_rho[index].forward[i]).real();
+          //k += 2; // ONLY FOR TEST.
+          k += 1;
         }
       }
     }
@@ -1020,12 +1042,16 @@ sp_cx_mat coop_grape::update_rf_ham(Eigen::Map<const mat> &m, int index,
 sp_cx_mat coop_grape::update_rf_ham(Eigen::Map<const vec> &v, size_t step,
                                     size_t channel, size_t nchannels, double kx,
                                     double ky) const {
-  double ux = v(2 * nchannels * step + 2 * channel);
-  double uy = v(2 * nchannels * step + 2 * channel + 1);
+  //double ux = v(2 * nchannels * step + 2 * channel);
+  //double uy = v(2 * nchannels * step + 2 * channel + 1);
+  //// Rf inhom
+  //ux *= kx;
+  //uy *= ky;
+  //return ux * superop_.rf_ctrl.Lx[channel] + uy * superop_.rf_ctrl.Ly[channel];
+  double ux = v(step);
   // Rf inhom
   ux *= kx;
-  uy *= ky;
-  return ux * superop_.rf_ctrl.Lx[channel] + uy * superop_.rf_ctrl.Ly[channel];
+  return ux * superop_.rf_ctrl.Lx[channel];
 }
 
 vec spec_avg(const sol::table &t) {

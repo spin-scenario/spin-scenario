@@ -245,6 +245,8 @@ void bindings(sol::state &lua) {
   lua.set_function("reduce_phantom", &ssl::utility::reduce_phantom);
 
   lua.set_function("multiRF", &ssl::seq::multi_shaped_rf);
+  lua.set_function("set_ham_Jcoupl", &ssl::physx::set_ham_Jcoupl);
+  
 
   // phantom bindings.
   ssl.new_usertype<engine>(

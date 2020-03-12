@@ -30,6 +30,8 @@ using namespace ssl::utility;
 namespace ssl {
 namespace physx {
 
+extern sp_cx_mat g_ham_coupl;
+void set_ham_Jcoupl(const sp_cx_mat &m);
 enum physx_model {
   _quantum_cpu,
   _quantum_gpu,

@@ -18,7 +18,11 @@ namespace ssl {
 namespace physx {
 
 engine *g_engine = nullptr;
-engine::engine(const sol::table &t) {
+sp_cx_mat g_ham_coupl;
+void set_ham_Jcoupl(const sp_cx_mat& m) {
+	g_ham_coupl = m;
+}
+  engine::engine(const sol::table &t) {
   string acc_str = "cpu";  // default option.
   if (is_retrievable("acc", t)) {
     acc_str = retrieve_table_str("acc", t);
@@ -454,6 +458,7 @@ void engine::evolution_for_each(double dt, const seq_const &ctrl,
       if (df != 0) each.L += df * 2 * _pi * each.Lz0;
     }
 
+  //if (ctrl.acq.adc) each.L -= g_ham_coupl;
   each.rho = ssl::spinsys::step(each.rho, each.L, dt);
   // each.rho = ssl::spinsys::expmv(each.rho, -ci * each.L, dt, mat(1, 1), 1,
   // false);
