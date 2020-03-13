@@ -767,7 +767,7 @@ void coop_grape::projection(const sol::table &t) {
           for (size_t i = 0; i < nsteps; i++) {
             L = L0;
             for (size_t j = 0; j < nchannels; j++)
-              L += update_rf_ham(shapes[index], i, j, nchannels, kx, ky);
+              L += update_rf_ham_test(shapes[index], i, j, nchannels, kx, ky);
             co_traj_rho[index].forward[i + 1] =
                 ssl::spinsys::step(co_traj_rho[index].forward[i], L, dt);
 
@@ -824,7 +824,7 @@ void coop_grape::projection(const sol::table &t) {
             for (size_t i = 0; i < nsteps; i++) {
               L = L0;
               for (size_t j = 0; j < nchannels; j++)
-                L += update_rf_ham(shapes[index], i, j, nchannels, kx, ky);
+                L += update_rf_ham_test(shapes[index], i, j, nchannels, kx, ky);
               co_traj_rho[index].forward[i + 1] =
                   ssl::spinsys::step(co_traj_rho[index].forward[i], L, dt);
             }
@@ -1049,11 +1049,20 @@ sp_cx_mat coop_grape::update_rf_ham(Eigen::Map<const vec> &v, size_t step,
   //uy *= ky;
   //return ux * superop_.rf_ctrl.Lx[channel] + uy * superop_.rf_ctrl.Ly[channel];
   double ux = v(step);
-  // Rf inhom
+  //// Rf inhom
   ux *= kx;
   return ux * superop_.rf_ctrl.Lx[channel];
 }
-
+sp_cx_mat coop_grape::update_rf_ham_test(Eigen::Map<const vec> &v, size_t step,
+                                    size_t channel, size_t nchannels, double kx,
+                                    double ky) const {
+  double ux = v(2 * nchannels * step + 2 * channel);
+  double uy = v(2 * nchannels * step + 2 * channel + 1);
+  // Rf inhom
+  ux *= kx;
+  uy *= ky;
+  return ux * superop_.rf_ctrl.Lx[channel] + uy * superop_.rf_ctrl.Ly[channel];
+}
 vec spec_avg(const sol::table &t) {
   vec v_avg;
   for (size_t i = 0; i < t.size(); i++) {

@@ -27,7 +27,10 @@ int g_openmp_core;
 
 size_t g_phase_cycle_steps = 1; // every # lines for the addition, this is for phase cycle.
 
-
+int g_zero_pad_num =0;
+void set_zero_pad(int n) {
+	g_zero_pad_num = n;
+}
 void set_openmp_core(int n) {
   g_openmp_core = n;
 }

@@ -18,11 +18,12 @@ void bindings(sol::state &lua) {
   // ssl IO utility bindings.
   sol::table ssl = lua.create_named_table("ssl");
 
+  lua.set_function("set_zero_pad", &ssl::utility::set_zero_pad);
   lua.set_function("get", &ssl::utility::get);
   lua.set_function("max", &ssl::utility::max);
   lua.set_function("cas", &ssl::utility::yacas_evaluate);
   lua.set_function("core", &ssl::utility::set_openmp_core);
-
+ 
   ssl.set_function(
       "print",
       sol::overload(

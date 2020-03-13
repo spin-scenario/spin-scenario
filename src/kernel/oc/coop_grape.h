@@ -50,6 +50,9 @@ class coop_grape : public grape {
   sp_cx_mat update_rf_ham(Eigen::Map<const vec> &v, size_t step,
                           size_t channel, size_t nchannels, double kx = 1,
                           double ky = 1) const;
+  sp_cx_mat update_rf_ham_test(Eigen::Map<const vec> &v, size_t step,
+                          size_t channel, size_t nchannels, double kx = 1,
+                          double ky = 1) const;
  private:
   vector<shaped_rf*> coop_rf_;
   vector<state_traj> coop_traj_;

@@ -118,6 +118,8 @@ extern double g_max_grad; // mT/m.
 extern double g_max_slew_rate; // T/m/s.
 extern double g_B0_;
 extern int g_openmp_core;
+extern int g_zero_pad_num;
+void set_zero_pad(int n);
 void set_openmp_core(int n);
 enum axis {
   _cx = 0,
