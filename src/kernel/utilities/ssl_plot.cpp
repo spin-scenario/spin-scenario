@@ -68,6 +68,110 @@ mat vec_table(const sol::table &t) {
 void plot(sol::variadic_args va, const line &b) {
   plot("", va, b);
 }
+void plot(string fig_info, sol::variadic_args va, const line_series &b) {
+#ifdef GP_SCRIPT_OUTPUT
+  ofstream gp("plot_line.gnu");
+#else
+  Gnuplot gp;
+#endif
+  gp << "reset\n";
+  gp << "load '" << g_project_path
+     << "/share/spin-scenario/config/gnuplot/xyborder.cfg'\n";
+  gp << "load '" << g_project_path
+     << "/share/spin-scenario/config/gnuplot/grid.cfg'\n";
+
+  fig_spec fig = parsing_fig_spec(fig_info);
+  gp << "set title '" << fig.title << "'\n";
+  gp << "set xlabel  '" << fig.xlabel << "'\n";
+  gp << "set ylabel  '" << fig.ylabel << "'\n";
+  gp << "set key width 2\n";
+  gp << "set key samplen 2\n";
+
+  int ncolor = fig.ncolor;
+  gp << "load '" << g_project_path
+     << "/share/spin-scenario/config/gnuplot/colorbrewer/"
+     << find_color(fig.color) << "'\n";
+
+  string time_s = sys_time();
+  gp << terminal_cmd(g_output_terminal);
+  if (g_output_terminal != "qt")
+    gp << "set output "
+       << "'output_" << time_s << "." << g_output_terminal << "'\n";
+
+  size_t nleg = fig.legend.size();
+  if (fig.xrange.norm())
+    gp << "set xrange [" << fig.xrange[0] << ":" << fig.xrange[1] << "]\n";
+  if (fig.yrange.norm())
+    gp << "set yrange [" << fig.yrange[0] << ":" << fig.yrange[1] << "]\n";
+
+  gp << "set border back\n";
+  gp << "set key opaque\n";
+  gp << fig.gnu_cmd << "\n";
+
+  int id = 0;
+  g_lua->script("os.execute('mkdir gnuplot')");
+  gp << "cd 'gnuplot'\n";
+
+  string s;
+    for (auto v : va) {
+    id++;
+    const line_series &val = v;
+
+    vector<string> files;
+    size_t i = 0;
+
+    if (val.is_file)
+      files = val.files;
+    else {
+      for (i = 0; i < val.y.size(); i++) {
+        string file_i =
+            "dat" + boost::lexical_cast<string>(i + 1) + "_" + time_s + "_" + boost::lexical_cast<string>(id);
+        if (val.is_y_only)
+          write_line(val.y[i], "gnuplot/" + file_i);
+        else
+          write_line(val.x, val.y[i], "gnuplot/" + file_i);
+        files.push_back(file_i);
+      }
+    }
+
+    if (!files.size()) return;
+
+   s+= "'"+files[0] + "' with l ls 1 lw " + fig.lw;
+    if (nleg) s+= " t '" + fig.legend[0] + "'";
+    if (files.size() == 1) {
+      s+= "\n";
+      //return;
+    } else
+      s+= ",";
+
+    for (i = 1; i < files.size() - 1; i++) {
+      s+= " '" + files[i] + "' with l ls "
+         + boost::lexical_cast<string>((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor) + " lw "
+         + fig.lw;
+      if (nleg) {
+        string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
+         s+= " t '" + leg + "',";
+      } else
+         s+= ",";
+    }
+
+     s+= " '" + files.back() + "' with l ls "
+       + boost::lexical_cast<string>((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor) + " lw "
+       + fig.lw;
+    if (nleg) {
+      string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
+      s+= " t '" + leg + "',";
+    } else
+      s+= ",";
+
+    }
+    s.erase((s.end() - 1));
+    gp << "plot " << s << "\n";
+
+#ifdef GP_SCRIPT_OUTPUT
+  gp.close();
+#endif
+}
 
 void plot(string fig_info, sol::variadic_args va, const line &) {
 #ifdef GP_SCRIPT_OUTPUT

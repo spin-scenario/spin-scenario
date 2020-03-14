@@ -175,12 +175,15 @@ void bindings(sol::state &lua) {
               ssl::utility::plot),
           sol::resolve<void(string, sol::variadic_args, const line &)>(
               ssl::utility::plot),
+          sol::resolve<void(string, sol::variadic_args, const line_series &)>(
+              ssl::utility::plot),
           sol::resolve<void(sol::variadic_args, const utility::map &)>(
               ssl::utility::plot),
           sol::resolve<void(string, sol::variadic_args, const utility::map &)>(
               ssl::utility::plot),
-          sol::resolve<void(const line_series &)>(ssl::utility::plot),
-          sol::resolve<void(string, const line_series &)>(ssl::utility::plot)));
+          sol::resolve<void(const line_series &)>(ssl::utility::plot)
+          //sol::resolve<void(string, const line_series &)>(ssl::utility::plot)
+      ));
 
     lua.set_function("output_terminal", set_output_terminal);
 
