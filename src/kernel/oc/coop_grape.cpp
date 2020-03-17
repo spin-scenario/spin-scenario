@@ -990,7 +990,7 @@ void coop_grape::projection(const sol::table &t) {
       cout << ms << " " << grid.cols() << "\n";
       xval = vec::LinSpaced(grid.cols(), 0, ms);  // transfer trajectories of basis operators
       fig_spec =
-          "title<initial state I_{1x}+I_{1y}> xlabel<pulse "
+          "title<> xlabel<pulse " //initial state I_{1x}+I_{1y}
           "duration "
           "/ ms> ylabel<magnetization>";
       fig_spec +=
@@ -1000,7 +1000,7 @@ void coop_grape::projection(const sol::table &t) {
       int n = superop_.nominal_offset.size();
       xval = vec::LinSpaced(grid.cols(), superop_.nominal_offset[0],
                             superop_.nominal_offset[n - 1]);
-      fig_spec = "xlabel<J / Hz> ylabel<magnetization>";
+      fig_spec = "xlabel<offset / Hz> ylabel<magnetization>";
 	  //xval *= 1e-3;
       //fig_spec = "xlabel<frequency offset / kHz> ylabel<magnetization>";  // transfer
                                                                    // coefficient
