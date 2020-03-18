@@ -29,7 +29,9 @@ class grape {
   void assign_state(const sol::table &t);
   void assign_nlopt(const sol::table &t);
   virtual void assign_pulse(const sol::table &t);
+  virtual void assign_x();
   virtual void assign_aux_var();
+  virtual void print() const;
   virtual void h5write(string file_name = "") const;
   static double objfunc_broadband(const vector<double> &x, vector<double> &grad, void *func);
   static double objfunc_propagator(const vector<double> &x, vector<double> &grad, void *func);
@@ -40,17 +42,28 @@ class grape {
    sp_cx_mat update_rf_ham(const double *x,
                           size_t step,
                           size_t channel,
+                          string ch_str,
                           size_t nchannels,
                           double kx = 1,
-                          double ky = 1) const;
+                          double ky = 1);
   sp_cx_mat propagator_derivative(const sp_cx_mat &L, const sp_cx_mat &Lrf, double dt);
 
-  void opt_amplitude_constraint(nlopt::opt &opt);
+  void assign_constraint(const sol::table &t);
   static double amplitude_constraint(unsigned n, const double *x, double *grad, void *data);
 
   //void cartesian2polar(double amp, double phase, double gx, double gy, double &g_amp, double &g_phase);
 
  protected:
+  nlopt::opt *optimizer_;
+  vector<double> x_;
+  size_t x_dim_;
+
+  limit_axis axis_;
+  double max_val_;
+  vector<double> obj_val_;
+
+
+
   opt_model opt_model_;
   spin_sys_superop superop_;
   shaped_rf *rf_;
@@ -68,10 +81,7 @@ class grape {
 
   vector<op_traj> op_traj_omp_;
 
-  opt_ctrl opt_;
   spin_system *sys_;
-  bool is_coop_;
-  // double alpha0;
   double epsilon_;   // rf scaling factor. [-epsilon_, epsilon_]
   int epsilon_num_;  // rf scaling number.
 };

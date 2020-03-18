@@ -267,6 +267,35 @@ vector<double> rf_pulse::clone_raw_data() const {
     }
   return vals;
 }
+vector<double> rf_pulse::clone_raw_data_ux() const {
+  if (mode_ != _ux_uy)
+    throw std::runtime_error(
+        "clone_raw_data_ux() failed due to raw data not in ux-uy mode.");
+
+  vector<double> vals;
+  for (size_t i = 0; i < nsteps_; i++)
+    for (size_t j = 0; j < channels_; j++) {
+      cd val = raw_data_[j].envelope(i);
+      val *= modulated_gain_;
+      vals.push_back(val.real());
+    }
+  return vals;
+}
+
+vector<double> rf_pulse::clone_raw_data_uy() const {
+  if (mode_ != _ux_uy)
+    throw std::runtime_error(
+        "clone_raw_data_uy() failed due to raw data not in ux-uy mode.");
+
+  vector<double> vals;
+  for (size_t i = 0; i < nsteps_; i++)
+    for (size_t j = 0; j < channels_; j++) {
+      cd val = raw_data_[j].envelope(i);
+      val *= modulated_gain_;
+      vals.push_back(val.imag());
+    }
+  return vals;
+}
 
 // \int_0^tp {u^2(t)dt}
 double rf_pulse::rf_power() const {
@@ -291,7 +320,50 @@ void rf_pulse::set_gain(double g) {
   modulated_gain_ = g;
 }
 
-void rf_pulse::update_raw_data(const double *vals) {
+void rf_pulse::update_raw_data(const limit_axis axis, const double *vals) {
+  if (axis == uxuy_)
+    update_raw_data(vals);
+  else if (axis == ux_)
+    update_raw_data_ux(vals);
+  else if (axis == uy_)
+    update_raw_data_uy(vals);
+}
+
+void rf_pulse::update_raw_data_ux(const double *vals) {
+  if (mode_ != _ux_uy)
+    throw std::runtime_error(
+        "update_raw_data_ux() failed due to raw data not in ux-uy mode.");
+
+  size_t k = 0;
+  for (size_t i = 0; i < nsteps_; i++)
+    for (size_t j = 0; j < channels_; j++) {
+      cd val = raw_data_[j].envelope(i);
+      raw_data_[j].envelope(i) = cd(vals[k], val.imag());
+      k += 1;
+    }
+  // gain.
+  for (size_t j = 0; j < channels_; j++) {
+    raw_data_[j].envelope /= modulated_gain_;
+  }
+}
+void rf_pulse::update_raw_data_uy(const double *vals) {
+  if (mode_ != _ux_uy)
+    throw std::runtime_error(
+        "update_raw_data_uy() failed due to raw data not in ux-uy mode.");
+
+  size_t k = 0;
+  for (size_t i = 0; i < nsteps_; i++)
+    for (size_t j = 0; j < channels_; j++) {
+      cd val = raw_data_[j].envelope(i);
+      raw_data_[j].envelope(i) = cd(val.real(), vals[k]);
+      k += 1;
+    }
+  // gain.
+  for (size_t j = 0; j < channels_; j++) {
+    raw_data_[j].envelope /= modulated_gain_;
+  }
+}
+  void rf_pulse::update_raw_data(const double *vals) {
   size_t k = 0;
   for (size_t i = 0; i < nsteps_; i++)
     for (size_t j = 0; j < channels_; j++) {

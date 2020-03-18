@@ -717,6 +717,11 @@ void ssl_color_text(const string &option, const string &s, ostream &ostr) {
     ostr << "SSL-Warn:" << flush;
     SetConsoleTextAttribute(hConsole, SSL_WARN_COLOR2);
   }
+  if (option == "oc") {
+    SetConsoleTextAttribute(hConsole, SSL_WARN_COLOR1);
+    ostr << "SSL-OC:" << flush;
+    SetConsoleTextAttribute(hConsole, SSL_WARN_COLOR2);
+  }
   if (option == "err") {
     SetConsoleTextAttribute(hConsole, SSL_ERR_COLOR1);
     ostr << "SSL-Err:" << flush;

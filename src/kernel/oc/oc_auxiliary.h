@@ -42,28 +42,6 @@ struct spin_sys_superop {
   rf_ham rf_ctrl; // rf hams.
 };
 
-struct opt_ctrl {
-  int max_eval;
-  double max_amp; // rf max amplitude.
-  double stopval;
-  double max_f;
-  double max_time;
-  double tol_f;
-  size_t iter_count;
-  nlopt::algorithm algo;
-  vector<double> vf;
-  opt_ctrl() {
-    algo = nlopt::LD_LBFGS;
-    iter_count = 0;
-    max_amp = -1;
-    max_eval = -1;
-    max_time = -1;
-    max_f = 0;
-    tol_f = 1e-6;
-    stopval = -1;
-  }
-};
-
 struct state_traj {
   sp_cx_vec *forward;
   sp_cx_vec *backward;

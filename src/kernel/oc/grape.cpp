@@ -30,14 +30,13 @@ typedef struct {
 
 grape::grape(spin_system &sys)
     : rf_(nullptr) {
-  is_coop_ = false;
   sys_ = &sys;
   superop_.rf_ctrl = sys.rf_hamiltonian();
   superop_.L0 = sys.free_hamiltonian();
   superop_.R = sys.relaxation();
   superop_.L0s = sys.free_hamiltonians();
   int bb_size = superop_.L0s.size();
-  cout << bb_size << "\n";
+  //cout << bb_size << "\n";
   if (bb_size) {
     // superop_.profile = vec::Ones(bb_size);
     superop_.nominal_offset = sys.nominal_broadband();
@@ -47,44 +46,31 @@ grape::grape(spin_system &sys)
     superop_.grad_bb = vector<vector<double>>(1);
   }
   opt_model_ = _rho2rho;
+  axis_ = uxuy_;
 }
 
 grape::~grape() {
 }
 
 double grape::maxf() const {
-  return opt_.max_f;
+  return max_val_;
 }
 
 seq_block &grape::optimize(const sol::table &t) {
-  assign_state(t);
-  assign_nlopt(t);
   assign_pulse(t);
+  assign_x();
+  assign_nlopt(t);
+  assign_state(t);
   assign_aux_var();
 
-  rf_->convert2(_ux_uy);
-  vector<double> x = rf_->clone_raw_data();
-
-  // optimization processing.
-  nlopt::opt opt(opt_.algo, rf_->get_dims());
-  opt.set_xtol_rel(opt_.tol_f);
-  if (opt_.max_eval > 0)
-    opt.set_maxeval(opt_.max_eval);
-  if (opt_.max_time > 0)
-    opt.set_maxtime(opt_.max_time);
-  if (opt_.stopval > 0)
-    opt.set_stopval(opt_.stopval);
-
   if (opt_model_ == _rho2rho) 
-      opt.set_max_objective(objfunc_broadband, this);
+      optimizer_->set_max_objective(objfunc_broadband, this);
   if (opt_model_ == _propagator)
-    opt.set_max_objective(objfunc_propagator, this);
-  // boundary limitation.
-  opt_amplitude_constraint(opt);
+    optimizer_->set_max_objective(objfunc_propagator, this);
 
-  // alpha0 = alpha0 / rf_->rf_power();
+  print();
   double max_f;
-  nlopt::result result = opt.optimize(x, max_f);
+  nlopt::result result = optimizer_->optimize(x_, max_f);
   if (result == nlopt::SUCCESS)
     ssl_color_text("info", "pulse optimization succeed.\n");
   if (result == nlopt::FAILURE)
@@ -92,8 +78,8 @@ seq_block &grape::optimize(const sol::table &t) {
   if (result == nlopt::MAXEVAL_REACHED)
     ssl_color_text("warn", "pulse optimization terminated due to maximum iterations limitation.\n");
 
-  opt_.max_f = max_f;
-  rf_->update_raw_data(x.data());
+  max_val_ = max_f;
+  rf_->update_raw_data(axis_, x_.data());
 
   grape::h5write();
   return *rf_;
@@ -150,10 +136,7 @@ void grape::assign_state(const sol::table &t) {
 }
 
 void grape::assign_nlopt(const sol::table &t) {
-  // alpha0 = 0;
-  // if (is_retrievable("alpha", t)) {
-  //  alpha0 = retrieve_table_double("alpha", t);
-  //}
+  // TO BE REMOVE.
   epsilon_ = 0;      // default val.
   epsilon_num_ = 1;  // default val.
   if (is_retrievable("epsilon", t)) {
@@ -163,38 +146,54 @@ void grape::assign_nlopt(const sol::table &t) {
   if (is_retrievable("epsilon_num", t)) {
     epsilon_num_ = retrieve_table_int("epsilon_num", t);
   }
-  // default algorithm for single pulse.
-  opt_.algo = nlopt::LD_LBFGS; // default algorithm.
-
-  // default para for COOP.
-  if (is_coop_) {
-    opt_.algo = nlopt::LD_MMA;
-    opt_.tol_f = 1e-7;
-  }
+  nlopt::algorithm alg = nlopt::LD_LBFGS;
 
   if (is_retrievable("algorithm", t)) {
     string oc = retrieve_table_str("algorithm", t);
     boost::to_upper(oc);
+    if (oc == "MNA") alg = nlopt::LD_MMA;
+  }
+  optimizer_ = new nlopt::opt(alg, x_dim_);
 
-    if (oc == "LBFGS")opt_.algo = nlopt::LD_LBFGS;
-
-    if (oc == "MNA")opt_.algo = nlopt::LD_MMA;
+  if (is_retrievable("max_eval", t)) {
+    int val = retrieve_table_int("max_eval", t);
+    if (val > 0)
+      optimizer_->set_maxeval(val);
+    else
+      throw std::runtime_error("max_eval must > 0.");
   }
 
-  if (is_retrievable("max_eval", t))
-    opt_.max_eval = retrieve_table_int("max_eval", t);
+  if (is_retrievable("xtol_rel", t)) {
+    double val = retrieve_table_double("xtol_rel", t);
+    optimizer_->set_xtol_rel(val);
+  } else
+    optimizer_->set_xtol_rel(1e-8);
 
-  if (is_retrievable("max_time", t))
-    opt_.max_time = retrieve_table_double("max_time", t);
+  assign_constraint(t);
+}
+void grape::print() const {
+  if (optimizer_->get_algorithm() == nlopt::LD_MMA)
+    ssl_color_text("oc", "nlopt algorithm used: LD_MMA.\n");
+  if (optimizer_->get_algorithm() == nlopt::LD_LBFGS)
+    ssl_color_text("oc", "nlopt algorithm used: LD_LBFGS.\n");
+  
+  ssl_color_text("oc", "x dim: " + boost::lexical_cast<string>(x_dim_) +  ".\n");
+  ssl_color_text("oc", "nlopt xtol_rel: " + boost::lexical_cast<string>(optimizer_->get_xtol_rel()) +  ".\n");
 
-  if (is_retrievable("tol_f", t))
-    opt_.tol_f = retrieve_table_double("tol_f", t);
+  
+}
+void grape::assign_x() {
+  x_.clear();
+  rf_->convert2(_ux_uy);  // must do it.
 
-  if (is_retrievable("stopval", t))
-    opt_.stopval = retrieve_table_double("stopval", t);
+  if (axis_ == uxuy_)
+    x_ = rf_->clone_raw_data();
+  else if (axis_ == ux_)
+    x_ = rf_->clone_raw_data_ux();
+  else if (axis_ == uy_)
+    x_ = rf_->clone_raw_data_uy();
 
-  if (is_retrievable("max_amp", t))
-    opt_.max_amp = retrieve_table_double("max_amp", t);
+  x_dim_ = x_.size();
 }
 
 void grape::assign_pulse(const sol::table &t) {
@@ -208,16 +207,20 @@ void grape::assign_pulse(const sol::table &t) {
   if (is_retrievable("max_init_amp", t))
     max_init_amp = retrieve_table_double("max_init_amp", t);
 
+
   double dt = width * 1e-3 / double(nsteps); // into s.
 
-  string str_chs = boost::algorithm::join(superop_.rf_ctrl.chs, " ");
+  string str_chs;
+  if (is_retrievable("limit_channel", t))
+      str_chs = retrieve_table_str("limit_channel", t);
+  else
+  str_chs = boost::algorithm::join(superop_.rf_ctrl.chs, " ");
+
   string code = "user_rf = shapedRF{name = 'opt-rf', width = " +
                 boost::lexical_cast<string>(width) +
                 ",  step = " + boost::lexical_cast<string>(nsteps) +
                 ",  max_amp = " + boost::lexical_cast<string>(max_init_amp) +
-                //",  channel = '" + str_chs + "'," + "pattern = '" + pattern +
-				",  channel = '1H'," + "pattern = '" + pattern + // JUST FOR TEST.
-
+                ",  channel = '" + str_chs + "'," + "pattern = '" + pattern +
                 "'}";
 
   g_lua->script(code);
@@ -231,6 +234,25 @@ void grape::assign_pulse(const sol::table &t) {
   shaped_rf &user_rf = (shaped_rf &) sb; // transfrom into 'shaped_rf'.
 
   rf_ = &user_rf;
+
+  if (is_retrievable("limit_axis", t)) {
+    string s = retrieve_table_str("limit_axis", t);
+    if (s == "x")
+      axis_ = ux_;
+    else if (s == "y")
+      axis_ = uy_;
+  }
+
+  rf_->convert2(_ux_uy);  // must do it.
+
+  if(axis_==ux_) {
+   vector<double>zeros = vector<double>(rf_->get_dims() / 2, 0);
+    rf_->update_raw_data_uy(zeros.data());
+  }
+  if (axis_ == uy_) {
+    vector<double> zeros = vector<double>(rf_->get_dims() / 2, 0);
+    rf_->update_raw_data_ux(zeros.data());
+  }
 }
 
 void grape::h5write(string file_name) const {
@@ -243,7 +265,7 @@ void grape::h5write(string file_name) const {
   rf_->switch_rf_mode("amp/phase");
   rf_->h5write(file, "opt");
 
-  ssl::utility::h5write(file, nullptr, "obj", stl2vec(opt_.vf));
+  ssl::utility::h5write(file, nullptr, "obj", stl2vec(obj_val_));
   file.close();
 }
 
@@ -270,49 +292,46 @@ void grape::assign_aux_var() {
   }
 }
 
-void grape::opt_amplitude_constraint(nlopt::opt &opt) {
- if (opt_.max_amp <= 0)
-    return;
+void grape::assign_constraint(const sol::table &t) {
+  if (is_retrievable("max_amp", t)) {
+    double val = retrieve_table_double("max_amp", t);  // unit in hz.
+    val *= 2 * _pi;
 
-  size_t dim = rf_->get_dims();
-  size_t nsteps = rf_->get_steps();
-  size_t nchannels = rf_->get_channels();
-  vector<double> up_bound(dim);
-  vector<double> low_bound(dim);
+    size_t dim = rf_->get_dims();
+    size_t nsteps = rf_->get_steps();
+    size_t nchannels = rf_->get_channels();
+    vector<double> up_bound(dim);
+    vector<double> low_bound(dim);
 
-  switch (opt_.algo) {
-    case nlopt::LD_MMA:
-    case nlopt::LD_LBFGS: {
-      if (rf_->mode() == _ux_uy)
-        for (size_t i = 0; i < nsteps; i++) {
-          for (size_t j = 0; j < nchannels; j++) {
-            // ux.
-            up_bound[2 * nchannels * i + 2 * j] = opt_.max_amp * 2 * _pi;
-            low_bound[2 * nchannels * i + 2 * j] = -opt_.max_amp * 2 * _pi;
+    // only for ux/uy mode.
+    if (rf_->mode() == _ux_uy)
+      for (size_t i = 0; i < nsteps; i++) {
+        for (size_t j = 0; j < nchannels; j++) {
+          // ux.
+          up_bound[2 * nchannels * i + 2 * j] = val;
+          low_bound[2 * nchannels * i + 2 * j] = -val;
 
-            // uy.
-            up_bound[2 * nchannels * i + 2 * j + 1] = opt_.max_amp * 2 * _pi;
-            low_bound[2 * nchannels * i + 2 * j + 1] = -opt_.max_amp * 2 * _pi;
-          }
+          // uy.
+          up_bound[2 * nchannels * i + 2 * j + 1] = val;
+          low_bound[2 * nchannels * i + 2 * j + 1] = -val;
         }
+      }
 
-      opt.set_upper_bounds(up_bound);
-      opt.set_lower_bounds(low_bound);
-    } break;
-    default:
-      break;
+    optimizer_->set_upper_bounds(up_bound);
+    optimizer_->set_lower_bounds(low_bound);
   }
 }
 
 double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
   auto start = system_clock::now();
-  rf_->update_raw_data(x.data());
+  rf_->update_raw_data(axis_, x.data());
   int N = superop_.L0s.size();
   vec phi = vec::Zero(N);
 
   size_t nsteps = rf_->get_steps();
   size_t nchannels = rf_->get_channels();
   double dt = rf_->get_dt() * 1e-6;  // into s.
+  vector<string> chs = rf_->get_channels_str();
 
   // double alpha = alpha0;
   vec rf_scaling =
@@ -326,7 +345,9 @@ double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
     sp_cx_mat L;
     sp_cx_mat L0 = superop_.L0s[p] + ci * superop_.R;
 
-    superop_.grad_bb[p] = vector<double>(rf_->get_dims(), 0);
+    int dim = rf_->get_dims();
+    if (axis_ != uxuy_) dim /= 2;
+    superop_.grad_bb[p] = vector<double>(dim, 0);
     // start rf inhom.
 
     for (int q = 0; q < rf_scaling.size();
@@ -338,7 +359,7 @@ double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
       for (size_t i = 0; i < nsteps; i++) {
         L = L0;
         for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
+          L += update_rf_ham(x.data(), i, j, chs[j], nchannels, kx, ky);
         traj_omp_[id].forward[i + 1] = ssl::spinsys::step(rho, L, dt);
         rho = traj_omp_[id].forward[i + 1];
       }
@@ -346,7 +367,7 @@ double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
       for (int i = nsteps - 1; i >= 0; i--) {
         L = L0.adjoint();
         for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
+          L += update_rf_ham(x.data(), i, j, chs[j], nchannels, kx, ky);
         traj_omp_[id].backward[i] = ssl::spinsys::step(rho, L, -dt);
         rho = traj_omp_[id].backward[i];
       }
@@ -355,18 +376,32 @@ double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
       for (size_t i = 0; i < nsteps; i++) {
         L = L0;
         for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
+          L += update_rf_ham(x.data(), i, j, chs[j], nchannels, kx, ky);
         tmp = traj_omp_[id].backward[i + 1].adjoint() *
               ssl::spinsys::propagator(L, dt);
         for (size_t j = 0; j < nchannels; j++) {
-          Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
-          Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
+          if (axis_ == uxuy_) {
+            Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
+            Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
 
-          superop_.grad_bb[p][k] +=
-              traced(tmp * Gx * traj_omp_[id].forward[i]).real();
-          superop_.grad_bb[p][k + 1] +=
-              traced(tmp * Gy * traj_omp_[id].forward[i]).real();
-          k += 2;
+            superop_.grad_bb[p][k] +=
+                traced(tmp * Gx * traj_omp_[id].forward[i]).real();
+            superop_.grad_bb[p][k + 1] +=
+                traced(tmp * Gy * traj_omp_[id].forward[i]).real();
+            k += 2;
+          } else if (axis_ == ux_) {
+            Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
+
+            superop_.grad_bb[p][k] +=
+                traced(tmp * Gx * traj_omp_[id].forward[i]).real();
+            k += 1;
+          } else if (axis_ == uy_) {
+            Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
+
+            superop_.grad_bb[p][k] +=
+                traced(tmp * Gy * traj_omp_[id].forward[i]).real();
+            k += 1;
+          }
         }
       }
       phi[p] += transfer_fidelity(traj_omp_[id].forward[nsteps], targ_list_[p]);
@@ -382,35 +417,51 @@ double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
     for (size_t j = 0; j < nchannels; j++) {
       double gx = 0;
       double gy = 0;
-      for (int p = 0; p < N; p++) {
-        gx += superop_.grad_bb[p][k];
-        gy += superop_.grad_bb[p][k + 1];
-      }
-      grad[k] = gx / (double)N / (double)rf_scaling.size();
-      grad[k + 1] = gy / (double)N / (double)rf_scaling.size();
+      if (axis_ == uxuy_) {
+        for (int p = 0; p < N; p++) {
+          gx += superop_.grad_bb[p][k];
+          gy += superop_.grad_bb[p][k + 1];
+        }
+        grad[k] = gx / (double)N / (double)rf_scaling.size();
+        grad[k + 1] = gy / (double)N / (double)rf_scaling.size();
 
-      // rf power reduction.
-      /*if (alpha != 0) {
-        double ux, uy;
-        ux = x[2 * nchannels * i + 2 * j];
-        uy = x[2 * nchannels * i + 2 * j + 1];
-        grad[k] -= 2.0 * alpha * ux * dt;
-        grad[k + 1] -= 2.0 * alpha * uy * dt;
-      }*/
-      k += 2;
+        // rf power reduction.
+        /*if (alpha != 0) {
+          double ux, uy;
+          ux = x[2 * nchannels * i + 2 * j];
+          uy = x[2 * nchannels * i + 2 * j + 1];
+          grad[k] -= 2.0 * alpha * ux * dt;
+          grad[k + 1] -= 2.0 * alpha * uy * dt;
+        }*/
+        k += 2;
+      } else if (axis_ == ux_) {
+        for (int p = 0; p < N; p++) {
+          gx += superop_.grad_bb[p][k];
+        }
+        grad[k] = gx / (double)N / (double)rf_scaling.size();
+
+        k += 1;
+      } else if (axis_ == uy_) {
+        for (int p = 0; p < N; p++) {
+          gy += superop_.grad_bb[p][k];
+        }
+        grad[k] = gy / (double)N / (double)rf_scaling.size();
+
+        k += 1;
+      }
     }
   }
   auto end = system_clock::now();
   auto duration = duration_cast<microseconds>(end - start);
-  double PHI1 = val;
-  double PHI2 = 0;
+  //double PHI1 = val;
+  //double PHI2 = 0;
   // double PHI2 = alpha * rf_->rf_power();
   // std::cout << boost::format("==> %04d  [%.8f] [%.8f]\n") %
   // (++opt_.iter_count) % PHI1 % PHI2;
-  std::cout << boost::format("==> %04d  [%.8f]\n") % (++opt_.iter_count) % PHI1;
-  opt_.vf.push_back(PHI1 - PHI2);
+  std::cout << boost::format("==> %04d  [%.8f]\n") % (optimizer_->get_numevals()) % val;
+ obj_val_.push_back(val);
   //cout << "Use Time:" << double(duration.count()) * microseconds::period::num / microseconds::period::den << " s.\n";
-  return (PHI1 - PHI2);
+  return val;
 }
 
 double grape::objfunc_propagator(const vector<double> &x,
@@ -422,6 +473,7 @@ double grape::objfunc_propagator(const vector<double> &x,
   size_t nsteps = rf_->get_steps();
   size_t nchannels = rf_->get_channels();
   double dt = rf_->get_dt() * 1e-6;  // into s.
+  vector<string> chs = rf_->get_channels_str();
 
   // double alpha = alpha0;
   vec rf_scaling =
@@ -435,7 +487,9 @@ double grape::objfunc_propagator(const vector<double> &x,
     sp_cx_mat L;
     sp_cx_mat L0 = superop_.L0s[p] + ci * superop_.R;
 
-    superop_.grad_bb[p] = vector<double>(rf_->get_dims(), 0);
+     int dim = rf_->get_dims();
+    if (axis_ != uxuy_) dim /= 2;
+    superop_.grad_bb[p] = vector<double>(dim, 0);
     // start rf inhom.
 
     for (int q = 0; q < rf_scaling.size();
@@ -447,7 +501,7 @@ double grape::objfunc_propagator(const vector<double> &x,
       for (size_t i = 0; i < nsteps; i++) {
         L = L0;
         for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
+          L += update_rf_ham(x.data(), i, j, chs[j], nchannels, kx, ky);
         op_traj_omp_[id].forward[i + 1] = ssl::spinsys::propagator(L, dt) * rho;
         rho = op_traj_omp_[id].forward[i + 1];
       }
@@ -455,7 +509,7 @@ double grape::objfunc_propagator(const vector<double> &x,
       for (int i = nsteps - 1; i >= 0; i--) {
         L = L0;
         for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
+          L += update_rf_ham(x.data(), i, j, chs[j], nchannels, kx, ky);
         op_traj_omp_[id].backward[i] =
             ssl::spinsys::propagator(L, dt).adjoint() * rho;
         rho = op_traj_omp_[id].backward[i];
@@ -465,18 +519,31 @@ double grape::objfunc_propagator(const vector<double> &x,
       for (size_t i = 0; i < nsteps; i++) {
         L = L0;
         for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
+          L += update_rf_ham(x.data(), i, j, chs[j], nchannels, kx, ky);
         tmp = op_traj_omp_[id].backward[i + 1].adjoint() *
               ssl::spinsys::propagator(L, dt);
         for (size_t j = 0; j < nchannels; j++) {
-          Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
-          Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
+          if (axis_ == uxuy_) {
+            Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
+            Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
 
-          superop_.grad_bb[p][k] +=
-              traced(tmp * Gx * op_traj_omp_[id].forward[i]).real();
-          superop_.grad_bb[p][k + 1] +=
-              traced(tmp * Gy * op_traj_omp_[id].forward[i]).real();
-          k += 2;
+            superop_.grad_bb[p][k] +=
+                traced(tmp * Gx * op_traj_omp_[id].forward[i]).real();
+            superop_.grad_bb[p][k + 1] +=
+                traced(tmp * Gy * op_traj_omp_[id].forward[i]).real();
+            k += 2;
+          } else if (axis_ == ux_) {
+            Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
+
+            superop_.grad_bb[p][k] +=
+                traced(tmp * Gx * op_traj_omp_[id].forward[i]).real();
+            k += 1;
+          } else if (axis_ == uy_) {
+            Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
+            superop_.grad_bb[p][k] +=
+                traced(tmp * Gy * op_traj_omp_[id].forward[i]).real();
+            k += 2;
+          }
         }
       }
       phi[p] += transfer_fidelity(op_traj_omp_[id].forward[nsteps],
@@ -494,33 +561,49 @@ double grape::objfunc_propagator(const vector<double> &x,
     for (size_t j = 0; j < nchannels; j++) {
       double gx = 0;
       double gy = 0;
-      for (int p = 0; p < N; p++) {
-        gx += superop_.grad_bb[p][k];
-        gy += superop_.grad_bb[p][k + 1];
-      }
-      grad[k] = gx / (double)N / (double)rf_scaling.size();
-      grad[k + 1] = gy / (double)N / (double)rf_scaling.size();
+     if (axis_ == uxuy_) {
+        for (int p = 0; p < N; p++) {
+          gx += superop_.grad_bb[p][k];
+          gy += superop_.grad_bb[p][k + 1];
+        }
+        grad[k] = gx / (double)N / (double)rf_scaling.size();
+        grad[k + 1] = gy / (double)N / (double)rf_scaling.size();
 
-      // rf power reduction.
-      /*if (alpha != 0) {
-        double ux, uy;
-        ux = x[2 * nchannels * i + 2 * j];
-        uy = x[2 * nchannels * i + 2 * j + 1];
-        grad[k] -= 2.0 * alpha * ux * dt;
-        grad[k + 1] -= 2.0 * alpha * uy * dt;
-      }*/
-      k += 2;
+        // rf power reduction.
+        /*if (alpha != 0) {
+          double ux, uy;
+          ux = x[2 * nchannels * i + 2 * j];
+          uy = x[2 * nchannels * i + 2 * j + 1];
+          grad[k] -= 2.0 * alpha * ux * dt;
+          grad[k + 1] -= 2.0 * alpha * uy * dt;
+        }*/
+        k += 2;
+      } else if (axis_ == ux_) {
+        for (int p = 0; p < N; p++) {
+          gx += superop_.grad_bb[p][k];
+        }
+        grad[k] = gx / (double)N / (double)rf_scaling.size();
+
+        k += 1;
+      } else if (axis_ == uy_) {
+        for (int p = 0; p < N; p++) {
+          gy += superop_.grad_bb[p][k];
+        }
+        grad[k] = gy / (double)N / (double)rf_scaling.size();
+
+        k += 1;
+      }
     }
   }
 
-  double PHI1 = val;
-  double PHI2 = 0;
+  //double PHI1 = val;
+  //double PHI2 = 0;
   // double PHI2 = alpha * rf_->rf_power();
   // std::cout << boost::format("==> %04d  [%.8f] [%.8f]\n") %
   // (++opt_.iter_count) % PHI1 % PHI2;
-  std::cout << boost::format("==> %04d  [%.8f]\n") % (++opt_.iter_count) % PHI1;
-  opt_.vf.push_back(PHI1 - PHI2);
-  return (PHI1 - PHI2);
+  std::cout << boost::format("==> %04d  [%.8f]\n") % (optimizer_->get_numevals()) % val;
+  obj_val_.push_back(val);
+  return (val);
 }
 // void grape::cartesian2polar(double amp, double phase, double gx, double gy,
 //                            double &g_amp, double &g_phase) {
@@ -541,14 +624,27 @@ double grape::amplitude_constraint(unsigned n, const double *x, double *grad,
   return ux * ux + uy * uy - d->amp * d->amp;
 }
 
-sp_cx_mat grape::update_rf_ham(const double *x, size_t step, size_t channel,
-                               size_t nchannels, double kx, double ky) const {
-  double ux = x[2 * nchannels * step + 2 * channel];
-  double uy = x[2 * nchannels * step + 2 * channel + 1];
-  // Rf inhom
-  ux *= kx;
-  uy *= ky;
-  return ux * superop_.rf_ctrl.Lx[channel] + uy * superop_.rf_ctrl.Ly[channel];
+sp_cx_mat grape::update_rf_ham(const double *x, size_t step, size_t channel, string ch_str,
+                               size_t nchannels, double kx, double ky) {
+  int ch = superop_.rf_ctrl.channel_index(ch_str);
+  if (axis_ == uxuy_) {
+    double ux = x[2 * nchannels * step + 2 * channel];
+    double uy = x[2 * nchannels * step + 2 * channel + 1];
+    // Rf inhom
+    ux *= kx;
+    uy *= ky;
+    return ux * superop_.rf_ctrl.Lx[ch] + uy * superop_.rf_ctrl.Ly[ch];
+  } else if (axis_ == ux_) {
+    double ux = x[nchannels * step + channel];
+    // Rf inhom
+    ux *= kx;
+    return ux * superop_.rf_ctrl.Lx[ch];
+  } else if (axis_ == uy_) {
+    double uy = x[nchannels * step + channel];
+    // Rf inhom
+    uy *= ky;
+    return uy * superop_.rf_ctrl.Ly[ch];
+  }
 }
 sp_cx_mat grape::propagator_derivative(const sp_cx_mat &L, const sp_cx_mat &Lrf, double dt) {
   sp_cx_mat commu1, commu2, commu3;
@@ -656,6 +752,7 @@ void grape::projection(const sol::table &t) {
   cube comp_dist;
   // for BROADBAND case: states, freq offsets, rf scalings
   // for STEP case: states, steps, rf scalings
+  vector<string> chs = rf_->get_channels_str();
 
   if (str_opt == "step") {
     dim2 = "pulse steps\n";
@@ -675,7 +772,7 @@ void grape::projection(const sol::table &t) {
       for (size_t i = 0; i < nsteps; i++) {
         L = L0;
         for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
+          L += update_rf_ham(x.data(), i, j, chs[j], nchannels, kx, ky);
         forward[i + 1] = ssl::spinsys::step(rho, L, dt);
         rho = forward[i + 1];
 
@@ -719,7 +816,7 @@ void grape::projection(const sol::table &t) {
         for (size_t i = 0; i < nsteps; i++) {
           L = L0;
           for (size_t j = 0; j < nchannels; j++)
-            L += update_rf_ham(x.data(), i, j, nchannels, kx, ky);
+            L += update_rf_ham(x.data(), i, j, chs[j], nchannels, kx, ky);
           forward_trajs_parfor[id][i + 1] = ssl::spinsys::step(rho, L, dt);
           rho = forward_trajs_parfor[id][i + 1];
         }

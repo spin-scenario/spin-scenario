@@ -82,45 +82,52 @@ struct ms_coop_ctrl {
   }
 };
 
-coop_grape::coop_grape(spin_system &sys) : grape(sys) { is_coop_ = true; coop_model_=_ms_coop;}
+coop_grape::coop_grape(spin_system &sys) : grape(sys) {coop_model_=_ms_coop;}
 
 coop_grape::~coop_grape() {}
 
 void coop_grape::assign_pulse(const sol::table &t) {
-  grape::assign_pulse(t);
+  grape::assign_pulse(t);  // must do 1st.
+
   size_t ncoop = retrieve_table_size_t("ncoop", t);
   for (size_t i = 0; i < ncoop; i++) {
     shaped_rf *ptr = rf_->Clone();
     ptr->copy_config_table();
     ptr->set_name("ms-coop " + to_string(i + 1) + "-" + to_string(ncoop));
     ptr->assign();
+
+    ptr->convert2(_ux_uy); 
+    if (axis_ == ux_) {
+      vector<double> zeros = vector<double>(ptr->get_dims() / 2, 0);
+      ptr->update_raw_data_uy(zeros.data());
+    }
+    if (axis_ == uy_) {
+      vector<double> zeros = vector<double>(ptr->get_dims() / 2, 0);
+      ptr->update_raw_data_ux(zeros.data());
+    }
+
     coop_rf_.push_back(ptr);
   }
+}
 
-  coop_model_ = _ms_coop;
-  if (is_retrievable("coop_model", t)) {
-    string s = retrieve_table_str("coop_model", t);
-    if (s == "ss-coop") coop_model_ = _ss_coop;
+void coop_grape::assign_x() {
+  x_.clear();
+
+  for (size_t i = 0; i < coop_rf_.size(); i++) {
+    coop_rf_[i]->convert2(_ux_uy);
+
+    vector<double> raw;
+    if (axis_ == uxuy_)
+      raw = coop_rf_[i]->clone_raw_data();
+    else if (axis_ == ux_)
+      raw = coop_rf_[i]->clone_raw_data_ux();
+    else if (axis_ == uy_)
+      raw = coop_rf_[i]->clone_raw_data_uy();
+
+    x_.insert(x_.end(), raw.begin(), raw.end());
   }
 
-  if (is_retrievable("insert_op", t)) {
-    int sys_dim = superop_.L0.rows();
-    sp_cx_mat Ie = sp_cx_mat(sys_dim, sys_dim);
-    Ie.setIdentity();
-    inserted_ops_ =
-        vector<sp_cx_mat>(coop_rf_.size() - 1, Ie);  // note size ncoop-1.
-
-    sol::object obj = retrieve_table("insert_op", t);
-    sol::table par_table = obj.as<sol::table>();
-
-    sol::object val = par_table[1];  // 1st element: operator.
-    sp_cx_mat op = sys_->smart_op(val.as<string>());
-    op = ssl::spinsys::propagator(op, _pi);
-    val = par_table[2];  // 2nd element: id(1,2,3...)
-    inserted_ops_[val.as<size_t>() - 1] = op;
-
-    coop_model_ = _ss_coop;
-  }
+  x_dim_ = x_.size();
 }
 
 void coop_grape::assign_aux_var() {
@@ -135,46 +142,20 @@ void coop_grape::assign_aux_var() {
 }
 
 sol::object coop_grape::optimize(const sol::table &t, sol::this_state s) {
-  assign_state(t);  // shared with grape.
-  assign_nlopt(t);  // shared with grape.
   assign_pulse(t);
+  assign_x();
+  assign_nlopt(t);  // shared with grape.
+  assign_state(t);  // shared with grape.
+  assign_insert_propagator(t); // for ss-coop.
   assign_aux_var();
 
-  vector<double> x;
-  for (size_t i = 0; i < coop_rf_.size(); i++) {
-    coop_rf_[i]->convert2(_ux_uy);
-    vector<double> raw = coop_rf_[i]->clone_raw_data();
-    // ONLY FOR TEST.
-    vector<double> raw_x;
-    for (int i=0;i<raw.size();i++)
-      if (i % 2 == 0) raw_x.push_back(raw[i]);
-
-    if (i==1) {
-      for (size_t j = 0; j < raw.size(); j++) {
-        raw[i] *= -1;
-      }
-    }
-    x.insert(x.end(), raw_x.begin(), raw_x.end());  // column major.
-    raw_x.clear();
-    //x.insert(x.end(), raw.begin(), raw.end());  // column major.
-    raw.clear();
-  }
-
-  // optimization processing.
-  nlopt::opt opt(opt_.algo, x.size());
-  opt.set_xtol_rel(opt_.tol_f);
-  if (opt_.max_eval > 0) opt.set_maxeval(opt_.max_eval);
-  if (opt_.max_time > 0) opt.set_maxtime(opt_.max_time);
-  if (opt_.stopval > 0) opt.set_stopval(opt_.stopval);
-
+  // for COOP, currently only support state to state transfer.
   if (opt_model_ == _rho2rho) 
-      opt.set_max_objective(objfunc_broadband, this);
+      optimizer_->set_max_objective(objfunc_broadband, this);
 
-  // boundary limitation.
-  opt_amplitude_constraint(opt);
-
+  print();
   double max_f = 0;
-  nlopt::result result = opt.optimize(x, max_f);
+  nlopt::result result = optimizer_->optimize(x_, max_f);
   if (result == nlopt::SUCCESS)
     ssl_color_text("info", "pulse optimization succeed.\n");
   if (result == nlopt::FAILURE)
@@ -184,66 +165,75 @@ sol::object coop_grape::optimize(const sol::table &t, sol::this_state s) {
                    "pulse optimization terminated due to maximum iterations "
                    "limitation.\n");
 
-  opt_.max_f = max_f;
+  max_val_ = max_f;
 
-
-  // ONLY FOR TEST.
-  int dimx = (int)rf_->get_dims()/2;
-  vector<double> xx;
-  for (int i=0;i<dimx;i++)
-  {
-    xx.push_back(x[i]);
-    xx.push_back(0);
-  }
-  for (int i = 0; i < dimx; i++) {
-    xx.push_back(x[i+dimx]);
-     xx.push_back(0);
-  }
-  cout << xx.size() << "\n";
   sol::state_view lua(s);
   sol::table rfs = lua.create_table();
   int dim = (int)rf_->get_dims();
+  if (axis_ != uxuy_) dim /= 2;
   for (size_t i = 0; i < coop_rf_.size(); i++) {
-    coop_rf_[i]->update_raw_data(xx.data() + i * dim);
+    coop_rf_[i]->update_raw_data(axis_, x_.data() + i * dim);
     rfs.add((seq_block *)coop_rf_[i]);
   }
   h5write();
   return rfs;
 }
 
-void coop_grape::opt_amplitude_constraint(nlopt::opt &opt) {
-  if (opt_.max_amp <= 0) return;
+  void coop_grape::print() const {
+  if (coop_model_ == _ms_coop)
+    ssl_color_text("oc", "multi-scan cooperative pulses optimization.\n");
+  if (coop_model_ == _ss_coop)
+    ssl_color_text("oc", "single-scan cooperative pulses optimization.\n");
+  grape::print();
+  }
 
-  switch (opt_.algo) {
-    case nlopt::LD_MMA:
-    case nlopt::LD_LBFGS: {
+void coop_grape::assign_insert_propagator(const sol::table &t) {
+  if (is_retrievable("insert_op", t)) {
+    int sys_dim = superop_.L0.rows();
+    sp_cx_mat Ie = sp_cx_mat(sys_dim, sys_dim);
+    Ie.setIdentity();
+    inserted_ops_ = vector<sp_cx_mat>(coop_rf_.size() - 1, Ie);  // note size ncoop-1.
 
-		size_t ncoop = coop_rf_.size();
-	  size_t dim = rf_->get_dims();
-      size_t nsteps = rf_->get_steps();
-      size_t nchannels = rf_->get_channels();
-      vector<double> up_bound(dim * ncoop);
-      vector<double> low_bound(dim * ncoop);
+    sol::object obj = retrieve_table("insert_op", t);
+    sol::table par_table = obj.as<sol::table>();
 
-      for (size_t k = 0; k < coop_rf_.size(); k++) {
-        if (coop_rf_[k]->mode() == _ux_uy)
-          for (size_t i = 0; i < nsteps; i++) {
-            for (size_t j = 0; j < nchannels; j++) {
-              // ux.
-              up_bound[dim*k + 2 * nchannels * i + 2 * j] = opt_.max_amp * 2 * _pi;
-              low_bound[dim*k + 2 * nchannels * i + 2 * j] = -opt_.max_amp * 2 * _pi;
+    sol::object val = par_table[1];  // 1st element: operator.
+    sp_cx_mat op = sys_->smart_op(val.as<string>());
+    op = ssl::spinsys::propagator(op, _pi);
+    val = par_table[2];  // 2nd element: id(1,2,3...), means this op is inserted after pulse id.
+    inserted_ops_[val.as<size_t>() - 1] = op;
 
-              // uy.
-              up_bound[dim*k + 2 * nchannels * i + 2 * j + 1] = opt_.max_amp * 2 * _pi;
-              low_bound[dim * k + 2 * nchannels * i + 2 * j + 1] = -opt_.max_amp * 2 * _pi;
-            }
+    coop_model_ = _ss_coop;
+  }
+}
+void coop_grape::assign_constraint(const sol::table &t) {
+  if (is_retrievable("max_amp", t)) {
+    double val = retrieve_table_double("max_amp", t);  // unit in hz.
+    val *= 2 * _pi;
+
+    size_t ncoop = coop_rf_.size();
+    size_t dim = rf_->get_dims();
+    size_t nsteps = rf_->get_steps();
+    size_t nchannels = rf_->get_channels();
+    vector<double> up_bound(dim * ncoop);
+    vector<double> low_bound(dim * ncoop);
+
+    for (size_t k = 0; k < coop_rf_.size(); k++) {
+      if (coop_rf_[k]->mode() == _ux_uy)
+        for (size_t i = 0; i < nsteps; i++) {
+          for (size_t j = 0; j < nchannels; j++) {
+            // ux.
+            up_bound[dim * k + 2 * nchannels * i + 2 * j] = val;
+            low_bound[dim * k + 2 * nchannels * i + 2 * j] = -val;
+
+            // uy.
+            up_bound[dim * k + 2 * nchannels * i + 2 * j + 1] = val;
+            low_bound[dim * k + 2 * nchannels * i + 2 * j + 1] = -val;
           }
-      }
-      opt.set_upper_bounds(up_bound);
-      opt.set_lower_bounds(low_bound);
-    } break;
-    default:
-      break;
+        }
+    }
+    optimizer_->set_upper_bounds(up_bound);
+    optimizer_->set_lower_bounds(low_bound);
   }
 }
 void coop_grape::h5write(string file_name) const {
@@ -257,8 +247,7 @@ void coop_grape::h5write(string file_name) const {
     coop_rf_[i]->switch_rf_mode("amp/phase");
     coop_rf_[i]->h5write(file, coop_rf_[i]->name());
   }
-
-  ssl::utility::h5write(file, nullptr, "obj", stl2vec(opt_.vf));
+  ssl::utility::h5write(file, nullptr, "obj", stl2vec(obj_val_));
   file.close();
 }
 
@@ -282,7 +271,8 @@ double coop_grape::objfunc_broadband_ss_coop(const vector<double> &x,
   vector<vec> grads_ss_coop;
   int idx = 0;
   for (int i = 0; i < ncoop; i++) {
-    int dim = (int)coop_rf_[i]->get_dims()/2; // ONLY FOR TEST. /2 ONLY X AXIS.
+    int dim = (int)coop_rf_[i]->get_dims();
+    if (axis_ != uxuy_) dim /= 2;
     Eigen::Map<const vec> shape(x.data() + idx, dim);
     Eigen::Map<vec> grad(g.data() + idx, dim);
     grad.setZero();
@@ -318,13 +308,13 @@ double coop_grape::objfunc_broadband_ss_coop(const vector<double> &x,
       double kx = 1, ky = 1;
       size_t nsteps = coop_rf_[index]->get_steps();
       size_t nchannels = coop_rf_[index]->get_channels();
-      double dt =
-          coop_rf_[index]->width_in_ms() * 1e-3 / double(nsteps);  // into s.
+      vector<string> chs = coop_rf_[index]->get_channels_str();
+      double dt = coop_rf_[index]->width_in_ms() * 1e-3 / double(nsteps);  // into s.
 
       for (size_t i = 0; i < nsteps; i++) {
         L = L0;
         for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(shapes[index], i, j, nchannels, kx, ky);
+          L += update_rf_ham(shapes[index], i, j, chs[j], nchannels, kx, ky);
         co_traj_rho[index].forward[i + 1] =
             ssl::spinsys::step(co_traj_rho[index].forward[i], L, dt);
       }
@@ -341,13 +331,13 @@ double coop_grape::objfunc_broadband_ss_coop(const vector<double> &x,
       double kx = 1, ky = 1;
       size_t nsteps = coop_rf_[index]->get_steps();
       size_t nchannels = coop_rf_[index]->get_channels();
-      double dt =
-          coop_rf_[index]->width_in_ms() * 1e-3 / double(nsteps);  // into s.
+      vector<string> chs = coop_rf_[index]->get_channels_str();
+      double dt = coop_rf_[index]->width_in_ms() * 1e-3 / double(nsteps);  // into s.
 
       for (int i = nsteps - 1; i >= 0; i--) {
         L = L0.adjoint();
         for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(shapes[index], i, j, nchannels, kx, ky);
+          L += update_rf_ham(shapes[index], i, j, chs[j], nchannels, kx, ky);
         co_traj_rho[index].backward[i] =
             ssl::spinsys::step(co_traj_rho[index].backward[i + 1], L, -dt);
       }
@@ -366,27 +356,37 @@ double coop_grape::objfunc_broadband_ss_coop(const vector<double> &x,
       double kx = 1, ky = 1;
       size_t nsteps = coop_rf_[index]->get_steps();
       size_t nchannels = coop_rf_[index]->get_channels();
-      double dt =
-          coop_rf_[index]->width_in_ms() * 1e-3 / double(nsteps);  // into s.
+      vector<string> chs = coop_rf_[index]->get_channels_str();
+      double dt = coop_rf_[index]->width_in_ms() * 1e-3 / double(nsteps);  // into s.
       for (size_t i = 0; i < nsteps; i++) {
         L = L0;
         for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(shapes[index], i, j, nchannels, kx, ky);
+          L += update_rf_ham(shapes[index], i, j, chs[j], nchannels, kx, ky);
         tmp = co_traj_rho[index].backward[i + 1].adjoint() *
               ssl::spinsys::propagator(L, dt);
         for (size_t j = 0; j < nchannels; j++) {
-          Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
-          //Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
-          grad_bb[p][index](k) =
-              traced(tmp * Gx * co_traj_rho[index].forward[i]).real();
-          //grad_bb[p][index](k + 1) =
-          //    traced(tmp * Gy * co_traj_rho[index].forward[i]).real();
-          //k += 2; // ONLY FOR TEST.
-          k += 1;
-        }
+          if (axis_ == uxuy_) {
+            Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
+            Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
+            grad_bb[p][index](k) =
+                traced(tmp * Gx * co_traj_rho[index].forward[i]).real();
+            grad_bb[p][index](k + 1) =
+                traced(tmp * Gy * co_traj_rho[index].forward[i]).real();
+            k += 2;
+          } else if (axis_ == ux_) {
+            Gx = propagator_derivative(L, superop_.rf_ctrl.Lx[j], dt);
+            grad_bb[p][index](k) =
+                traced(tmp * Gx * co_traj_rho[index].forward[i]).real();
+            k += 1;
+          } else if (axis_ == uy_) {
+            Gy = propagator_derivative(L, superop_.rf_ctrl.Ly[j], dt);
+            grad_bb[p][index](k) =
+                traced(tmp * Gy * co_traj_rho[index].forward[i]).real();
+            k += 1;
+          }
+      }
       }
     }
-    //cout << "##4\n";
     phi[p] = transfer_fidelity(
         co_traj_rho[ncoop - 1].forward[coop_rf_[ncoop - 1]->get_steps()],
         targ_list_[p]);
@@ -404,10 +404,10 @@ double coop_grape::objfunc_broadband_ss_coop(const vector<double> &x,
 
   auto end = system_clock::now();
   auto duration = duration_cast<microseconds>(end - start);
-  std::cout << boost::format("==> %04d [%.7f]\n") % (++opt_.iter_count) % val;
+  std::cout << boost::format("==> %04d [%.7f]\n") % (optimizer_->get_numevals()) % val;
   //cout << "Use Time:" << double(duration.count()) * microseconds::period::num / microseconds::period::den << " s.\n";
-  opt_.vf.push_back(val);
-  return val;
+ obj_val_.push_back(val);
+ return val;
 }
 
 double coop_grape::objfunc_broadband_ms_coop(const vector<double> &x,
@@ -444,10 +444,11 @@ double coop_grape::objfunc_broadband_ms_coop(const vector<double> &x,
     for (int index = 0; index < ncoop; index++) {
       sp_cx_mat L;
       double kx = 1, ky = 1;
+      vector<string> chs = coop_rf_[index]->get_channels_str();
       for (size_t i = 0; i < nsteps; i++) {
         L = L0;
         for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(shape, index, i, j, nchannels, kx, ky);
+          L += update_rf_ham(shape, index, i, j, chs[j], nchannels, kx, ky);
         co_traj_rho[index].forward[i + 1] =
             ssl::spinsys::step(co_traj_rho[index].forward[i], L, dt);
       }
@@ -465,10 +466,11 @@ double coop_grape::objfunc_broadband_ms_coop(const vector<double> &x,
 
       sp_cx_mat L;
       double kx = 1, ky = 1;
+      vector<string> chs = coop_rf_[index]->get_channels_str();
       for (int i = nsteps - 1; i >= 0; i--) {
         L = L0.adjoint();
         for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(shape, index, i, j, nchannels, kx, ky);
+          L += update_rf_ham(shape, index, i, j, chs[j], nchannels, kx, ky);
         co_traj_rho[index].backward[i] =
             ssl::spinsys::step(co_traj_rho[index].backward[i + 1], L, -dt);
       }
@@ -480,10 +482,11 @@ double coop_grape::objfunc_broadband_ms_coop(const vector<double> &x,
       sp_cx_mat L;
       int k = 0;
       double kx = 1, ky = 1;
+      vector<string> chs = coop_rf_[index]->get_channels_str();
       for (size_t i = 0; i < nsteps; i++) {
         L = L0;
         for (size_t j = 0; j < nchannels; j++)
-          L += update_rf_ham(shape, index, i, j, nchannels, kx, ky);
+          L += update_rf_ham(shape, index, i, j, chs[j],nchannels, kx, ky);
         tmp = co_traj_rho[index].backward[i + 1].adjoint() *
               ssl::spinsys::propagator(L, dt);
         for (size_t j = 0; j < nchannels; j++) {
@@ -507,8 +510,8 @@ double coop_grape::objfunc_broadband_ms_coop(const vector<double> &x,
   grad /= (double)N;
   double val = phi.sum() / (double)N;
 
-  std::cout << boost::format("==> %04d [%.7f]\n") % (++opt_.iter_count) % val;
-  opt_.vf.push_back(val);
+  std::cout << boost::format("==> %04d [%.7f]\n") % (optimizer_->get_numevals()) % val;
+   obj_val_.push_back(val);
   return val;
 }
 
@@ -530,11 +533,12 @@ double coop_grape::co_objfunc(const vector<double> &x, vector<double> &g) {
 
     sp_cx_mat L;
     double kx = 1, ky = 1;
+    vector<string> chs = coop_rf_[p]->get_channels_str();
     sp_cx_vec rho = coop_traj_[p].forward[0];
     for (size_t i = 0; i < nsteps; i++) {
       L = L0;
       for (size_t j = 0; j < nchannels; j++)
-        L += update_rf_ham(shape, p, i, j, nchannels, kx, ky);
+        L += update_rf_ham(shape, p, i, j, chs[j], nchannels, kx, ky);
       coop_traj_[p].forward[i + 1] = ssl::spinsys::step(rho, L, dt);
       rho = coop_traj_[p].forward[i + 1];
     }
@@ -549,11 +553,12 @@ double coop_grape::co_objfunc(const vector<double> &x, vector<double> &g) {
 
     sp_cx_mat L;
     double kx = 1, ky = 1;
+    vector<string> chs = coop_rf_[p]->get_channels_str();
     sp_cx_vec rho = coop_traj_[p].backward[nsteps];
     for (int i = nsteps - 1; i >= 0; i--) {
       L = L0.adjoint();
       for (size_t j = 0; j < nchannels; j++)
-        L += update_rf_ham(shape, p, i, j, nchannels, kx, ky);
+        L += update_rf_ham(shape, p, i, j, chs[j], nchannels, kx, ky);
       coop_traj_[p].backward[i] = ssl::spinsys::step(rho, L, -dt);
       rho = coop_traj_[p].backward[i];
     }
@@ -565,10 +570,11 @@ double coop_grape::co_objfunc(const vector<double> &x, vector<double> &g) {
     sp_cx_mat L;
     int k = 0;
     double kx = 1, ky = 1;
+    vector<string> chs = coop_rf_[p]->get_channels_str();
     for (size_t i = 0; i < nsteps; i++) {
       L = L0;
       for (size_t j = 0; j < nchannels; j++)
-        L += update_rf_ham(shape, p, i, j, nchannels, kx, ky);
+        L += update_rf_ham(shape, p, i, j, chs[j], nchannels, kx, ky);
       tmp = coop_traj_[p].backward[i + 1].adjoint() *
             ssl::spinsys::propagator(L, dt);
       for (size_t j = 0; j < nchannels; j++) {
@@ -582,8 +588,7 @@ double coop_grape::co_objfunc(const vector<double> &x, vector<double> &g) {
   }
 
   double val = coop_par_->calc_obj();
-  std::cout << boost::format("==> %04d [%.7f]\n") % (++opt_.iter_count) % val;
-  opt_.vf.push_back(val);
+  std::cout << boost::format("==> %04d [%.7f]\n") % (optimizer_->get_numevals()) % val;
   return val;
 }
 
@@ -878,11 +883,11 @@ void coop_grape::projection(const sol::table &t) {
 
           for (int p = 0; p < ncoop; p++) {
             L = L0;
-
+            vector<string> chs = coop_rf_[p]->get_channels_str();
             sp_cx_vec rho = co_traj_rho[p].forward[i];
 
             for (size_t j = 0; j < nchannels; j++)
-              L += update_rf_ham(shape, p, i, j, nchannels, kx, ky);
+              L += update_rf_ham(shape, p, i, j,chs[j], nchannels, kx, ky);
 
             co_traj_rho[p].forward[i + 1] = ssl::spinsys::step(rho, L, dt);
           }
@@ -932,9 +937,10 @@ void coop_grape::projection(const sol::table &t) {
           for (size_t i = 0; i < nsteps; i++) {
             for (int index = 0; index < ncoop; index++) {
               sp_cx_mat L = L0;
+              vector<string> chs = coop_rf_[p]->get_channels_str();
               sp_cx_vec rho = co_traj_rho[index].forward[i];
               for (size_t j = 0; j < nchannels; j++)
-                L += update_rf_ham(shape, index, i, j, nchannels, kx, ky);
+                L += update_rf_ham(shape, index, i, j, chs[j], nchannels, kx, ky);
 
             co_traj_rho[index].forward[i + 1] = ssl::spinsys::step(rho, L, dt);
             }
@@ -1027,31 +1033,35 @@ void coop_grape::projection(const sol::table &t) {
   }
 }
 
-sp_cx_mat coop_grape::update_rf_ham(Eigen::Map<const mat> &m, int index,
-                                    size_t step, size_t channel,
-                                    size_t nchannels, double kx,
-                                    double ky) const {
-  double ux = m(2 * nchannels * step + 2 * channel, index);
+sp_cx_mat coop_grape::update_rf_ham(Eigen::Map<const mat> &m, int index, size_t step, size_t channel, string ch_str, size_t nchannels, double kx, double ky) {
+  int ch = superop_.rf_ctrl.channel_index(ch_str);
+   double ux = m(2 * nchannels * step + 2 * channel, index);
   double uy = m(2 * nchannels * step + 2 * channel + 1, index);
   // Rf inhom
   ux *= kx;
   uy *= ky;
-  return ux * superop_.rf_ctrl.Lx[channel] + uy * superop_.rf_ctrl.Ly[channel];
+  return ux * superop_.rf_ctrl.Lx[ch] + uy * superop_.rf_ctrl.Ly[ch];
 }
 
-sp_cx_mat coop_grape::update_rf_ham(Eigen::Map<const vec> &v, size_t step,
-                                    size_t channel, size_t nchannels, double kx,
-                                    double ky) const {
-  //double ux = v(2 * nchannels * step + 2 * channel);
-  //double uy = v(2 * nchannels * step + 2 * channel + 1);
-  //// Rf inhom
-  //ux *= kx;
-  //uy *= ky;
-  //return ux * superop_.rf_ctrl.Lx[channel] + uy * superop_.rf_ctrl.Ly[channel];
-  double ux = v(step);
-  //// Rf inhom
-  ux *= kx;
-  return ux * superop_.rf_ctrl.Lx[channel];
+sp_cx_mat coop_grape::update_rf_ham(Eigen::Map<const vec> &v, size_t step, size_t channel, string ch_str, size_t nchannels, double kx, double ky) {
+  int ch = superop_.rf_ctrl.channel_index(ch_str);
+  if (axis_ == uxuy_) {
+    double ux = v(2 * nchannels * step + 2 * channel);
+    double uy = v(2 * nchannels * step + 2 * channel + 1);
+    //// Rf inhom
+    ux *= kx;
+    uy *= ky;
+    return ux * superop_.rf_ctrl.Lx[ch] + uy * superop_.rf_ctrl.Ly[ch];
+
+  } else if (axis_ == ux_) {
+    double ux = v(nchannels * step + channel);
+    ux *= kx;
+    return ux * superop_.rf_ctrl.Lx[ch];
+  } else if (axis_ == uy_) {
+    double uy = v(nchannels * step + channel);
+    uy *= ky;
+    return uy * superop_.rf_ctrl.Ly[ch];
+  }
 }
 sp_cx_mat coop_grape::update_rf_ham_test(Eigen::Map<const vec> &v, size_t step,
                                     size_t channel, size_t nchannels, double kx,

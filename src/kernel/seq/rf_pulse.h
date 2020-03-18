@@ -20,6 +20,7 @@ enum envelope_style {
   _amp_phase = 0,
   _ux_uy  // used in kernel calculations.
 };
+enum limit_axis { ux_, uy_, uxuy_ };
 // RF characterization.
 // RF carrier freq is tipically set equal to Larmor freq f(B0), +/- a specified freq offset delta_f.
 // Here we use RF reference frame, that is using Larmor freq f(B0) minus the laboratory frequency of RF.
@@ -76,7 +77,12 @@ class rf_pulse : public seq_block {
 
   // ONLY USED FOR GRAPE OPTIMIZATION.
   vector<double> clone_raw_data() const;
+  vector<double> clone_raw_data_ux() const;
+  vector<double> clone_raw_data_uy() const;
   void update_raw_data(const double *vals);
+  void update_raw_data_ux(const double *vals);
+  void update_raw_data_uy(const double *vals);
+  void update_raw_data(const limit_axis axis, const double *vals);
 
   vector<cx_vec> export_signal() const;
   double sampling_freq() const;
