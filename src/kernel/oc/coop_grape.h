@@ -45,9 +45,6 @@ class coop_grape : public grape {
   virtual void print() const;
   sp_cx_mat update_rf_ham(Eigen::Map<const mat> &m, int scan, size_t step, size_t channel, string ch_str, size_t nchannels, double kx = 1, double ky = 1);
   sp_cx_mat update_rf_ham(Eigen::Map<const vec> &v, size_t step, size_t channel, string ch_str, size_t nchannels, double kx = 1, double ky = 1);
-  sp_cx_mat update_rf_ham_test(Eigen::Map<const vec> &v, size_t step,
-                          size_t channel, size_t nchannels, double kx = 1,
-                          double ky = 1) const;
  private:
   vector<shaped_rf*> coop_rf_;
   vector<state_traj> coop_traj_;

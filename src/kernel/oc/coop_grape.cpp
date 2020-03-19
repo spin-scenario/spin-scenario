@@ -746,7 +746,7 @@ void coop_grape::projection(const sol::table &t) {
       comp_dist = cube(obsrv_state.size(), ss_nsteps,
                        rf_scaling.size());  // states, steps, rf scalings
 
-	  cout << ss_nsteps << "\n";
+	  //cout << ss_nsteps << "\n";
       sp_cx_mat L0 = superop_.L0 + ci * superop_.R;
 
       for (int q = 0; q < rf_scaling.size();
@@ -768,11 +768,11 @@ void coop_grape::projection(const sol::table &t) {
           size_t nchannels = co_rfs[index]->get_channels();
           double dt = co_rfs[index]->width_in_ms() * 1e-3 /
                       double(nsteps);  // into s.
-
+		 vector<string> chs = co_rfs[index]->get_channels_str();
           for (size_t i = 0; i < nsteps; i++) {
             L = L0;
             for (size_t j = 0; j < nchannels; j++)
-              L += update_rf_ham_test(shapes[index], i, j, nchannels, kx, ky);
+              L += update_rf_ham(shapes[index], i, j, chs[j], nchannels, kx, ky);
             co_traj_rho[index].forward[i + 1] =
                 ssl::spinsys::step(co_traj_rho[index].forward[i], L, dt);
 
@@ -825,11 +825,12 @@ void coop_grape::projection(const sol::table &t) {
             size_t nchannels = co_rfs[index]->get_channels();
             double dt = co_rfs[index]->width_in_ms() * 1e-3 /
                         double(nsteps);  // into s.
-
+			
+			vector<string> chs = co_rfs[index]->get_channels_str();
             for (size_t i = 0; i < nsteps; i++) {
               L = L0;
               for (size_t j = 0; j < nchannels; j++)
-                L += update_rf_ham_test(shapes[index], i, j, nchannels, kx, ky);
+                L += update_rf_ham(shapes[index], i, j, chs[j], nchannels, kx, ky);
               co_traj_rho[index].forward[i + 1] =
                   ssl::spinsys::step(co_traj_rho[index].forward[i], L, dt);
             }
@@ -1062,16 +1063,6 @@ sp_cx_mat coop_grape::update_rf_ham(Eigen::Map<const vec> &v, size_t step, size_
     uy *= ky;
     return uy * superop_.rf_ctrl.Ly[ch];
   }
-}
-sp_cx_mat coop_grape::update_rf_ham_test(Eigen::Map<const vec> &v, size_t step,
-                                    size_t channel, size_t nchannels, double kx,
-                                    double ky) const {
-  double ux = v(2 * nchannels * step + 2 * channel);
-  double uy = v(2 * nchannels * step + 2 * channel + 1);
-  // Rf inhom
-  ux *= kx;
-  uy *= ky;
-  return ux * superop_.rf_ctrl.Lx[channel] + uy * superop_.rf_ctrl.Ly[channel];
 }
 vec spec_avg(const sol::table &t) {
   vec v_avg;
