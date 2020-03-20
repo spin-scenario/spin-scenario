@@ -176,6 +176,7 @@ sol::object coop_grape::optimize(const sol::table &t, sol::this_state s) {
     rfs.add((seq_block *)coop_rf_[i]);
   }
   h5write();
+  axis_ = uxuy_; // note the pulse always has x/y comp, this line is needed if you wish to continue use the 'projection' visualization.
   return rfs;
 }
 
@@ -884,7 +885,7 @@ void coop_grape::projection(const sol::table &t) {
 
           for (int p = 0; p < ncoop; p++) {
             L = L0;
-            vector<string> chs = coop_rf_[p]->get_channels_str();
+            vector<string> chs = co_rfs[p]->get_channels_str();
             sp_cx_vec rho = co_traj_rho[p].forward[i];
 
             for (size_t j = 0; j < nchannels; j++)
@@ -938,7 +939,7 @@ void coop_grape::projection(const sol::table &t) {
           for (size_t i = 0; i < nsteps; i++) {
             for (int index = 0; index < ncoop; index++) {
               sp_cx_mat L = L0;
-              vector<string> chs = coop_rf_[p]->get_channels_str();
+              vector<string> chs = co_rfs[p]->get_channels_str();
               sp_cx_vec rho = co_traj_rho[index].forward[i];
               for (size_t j = 0; j < nchannels; j++)
                 L += update_rf_ham(shape, index, i, j, chs[j], nchannels, kx, ky);
@@ -994,7 +995,7 @@ void coop_grape::projection(const sol::table &t) {
           ms += co_rfs[index]->width_in_ms();  // may be not suit for variable
                                                // dt of different pulses.
       }
-      cout << ms << " " << grid.cols() << "\n";
+      //cout << ms << " " << grid.cols() << "\n";
       xval = vec::LinSpaced(grid.cols(), 0, ms);  // transfer trajectories of basis operators
       fig_spec =
           "title<> xlabel<pulse " //initial state I_{1x}+I_{1y}
