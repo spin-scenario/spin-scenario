@@ -6,10 +6,10 @@ Tutorial
    :name: tutorialtoc
    :maxdepth: 2
 
-starting the spin-scenario environment
+starting the Spin-Scenario environment
 ----------------------------------------
 * Open the terminal and start the environment with ``spin-scenario``.
-* To run a scenario script, simply use the command like ``load('fid.lua')``.
+* To run a scenario script, simply use the command like ``load("fid.lua")``.
 * To switch to old script, just use ``up`` and ``down`` key.
 * To quit the program, use ``q``.
 

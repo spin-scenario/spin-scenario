@@ -9,58 +9,32 @@ Optimal Control
 
 Shaped pulse optimization
 ==========================
-how to optimize a single pulse
-------------------------------
-   .. code-block:: lua 
+For single pulse optimization, we can use **rf_optimizer**.  The follow example script for an off-resonance 90 degree pulse optimization is self-explanatory.
+ .. literalinclude:: ../media/oc/oc1.lua
+	  :linenos:
 
-        -- set up spin system.
-        B0{"500 MHz"}
-        local config = {
-        spin = '1H 1H',
-        zeeman = '2 scalar 91 Hz', 
-        jcoupling ='1 2 scalar 3.2 Hz'}
- 
-        local sys = spin_system(config) 
-        local oc = rf_optimizer(sys)
-        local opt_pulse = oc:optimize{width = 200, step = 4000, init_state = 'I1z+I2z', targ_state = 'I1xI2x+I1yI2y', max_eval = 100}
-        print('maximum fidelity: '.. oc.maxf)
+|1spin_opt_pulse|
 
-.. image:: ../media/oc/2spin_opt_pulse.png
-	:align: center
-
-evolution trajectories for selected states
-------------------------------------------
+We provides a ``projection`` function to observe the evolution trajectory components of the interested state:
     .. code-block:: lua
 
-        oc:projection{init_state = 'I1z+I2z', rf = opt_pulse, observ_states = {'I1z', 'I2z', 'I1xI2x', 'I1yI2y'}}
+        oc:projection{init_state = "I1z", rf = rf90, observ_states = {"I1z", "I1x", "I1y"}}
 
-|2spin_traj1| |2spin_traj2|
+|1spin_opt_pulse_traj1|
 
-evolution trajectories for all states
--------------------------------------
+If you wish to observe all components state of the spin system, just keep the ``observ_states`` to be empty. 
     .. code-block:: lua
 
-        oc:projection{init_state = 'I1z+I2z', rf = opt_pulse, observ_states = {}}
-    
-|2spin_traj3| |2spin_traj4|
-
+        oc:projection{init_state = "I1z", rf = rf90, observ_states = {}}
 Cooperative pulses optimization
 ===============================
 Coming Soon.
 
 
-.. |2spin_traj1| image:: ../media/oc/2spin_opt_pulse_traj1_map.png
+.. |1spin_opt_pulse| image:: ../media/oc/1spin_opt_pulse.png
 	:height: 320
 	:align: middle
 
-.. |2spin_traj2| image:: ../media/oc/2spin_opt_pulse_traj1.png
-	:height: 320
-	:align: middle
-
-.. |2spin_traj3| image:: ../media/oc/2spin_opt_pulse_traj2_map.png
-	:height: 320
-	:align: middle
-
-.. |2spin_traj4| image:: ../media/oc/2spin_opt_pulse_traj2.png
+.. |1spin_opt_pulse_traj1| image:: ../media/oc/1spin_opt_pulse_traj1.png
 	:height: 320
 	:align: middle
