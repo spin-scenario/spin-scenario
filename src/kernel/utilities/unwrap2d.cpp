@@ -1,4 +1,4 @@
-#include "unwrap2D.h"
+#include "unwrap2d.h"
 
 yes_no find_pivot(EDGE *left, EDGE *right, float *pivot_ptr) {
   EDGE a, b, c, *p;

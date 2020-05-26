@@ -28,13 +28,16 @@ void completionHook(char const *prefix, linenoiseCompletions *lc) {
   }
 }
 int main(int argc, char *argv[]) {
-  char s[256];
 #ifdef WIN32
+  char s[256];
   GetCurrentDirectoryA(256, s);
-#else
-  s = get_current_dir_name();
-#endif
   set_ssl_usr_dir(s);
+#else
+  char *s;
+  s = get_current_dir_name();
+  set_ssl_usr_dir(s);
+#endif
+
 
   int flag = 0;
   sol::state lua;;

@@ -9,7 +9,12 @@ message(STATUS "configuring spin-scenario ${ssl_version}")
 message(STATUS "GCC version: ${CMAKE_CXX_COMPILER_VERSION}") 
 
 set(CMAKE_BUILD_TYPE "Release") # Debug Release
+if (WIN32)
 set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -std=c++17 -O3 -Wall -openmp")
+elseif (UNIX)
+set(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -std=c++17 -O3 -Wall -fopenmp")
+ENDIF (WIN32)
+set(tensorflow OFF)
 if (WIN32)
 add_compile_options(-bigobj)
 add_definitions(-DH5_BUILT_AS_DYNAMIC_LIB)
@@ -50,10 +55,12 @@ ENDIF (WIN32)
 
 # tensorflow
 if (UNIX)
+if(tensorflow)
 set(TENSORFLOW_ROOT ${EXTERN_LIB_ROOT}/tensorflow)
 set(TF_INCLUDE_DIRS "${TENSORFLOW_ROOT}" "${TENSORFLOW_ROOT}/bazel-genfiles" "${TENSORFLOW_ROOT}/bazel-tensorflow/external/protobuf_archive/src")
 set(NEW_OP_ROOT ${PROJECT_SOURCE_DIR}/share/spin-scenario/tf_files)
 set(TF_LIBRARIES ${TENSORFLOW_ROOT}/bazel-bin/tensorflow/libtensorflow_cc.so ${TENSORFLOW_ROOT}/bazel-bin/tensorflow/libtensorflow_framework.so)
+endif()
 endif()
 
 #-------------ssl headers-------------
@@ -152,7 +159,7 @@ set(CPACK_DEBIAN_PACKAGE_DESCRIPTION " Spin-Scenario library, a flexible scripti
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Yan Chang")
 set(CPACK_DEBIAN_PACKAGE_VERSION "${ssl_version}")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libboost-filesystem-dev, libboost-system-dev, libboost-iostreams-dev, libboost-regex-dev, libfftw3-dev, libnlopt-dev, libhdf5-dev, libpython3-dev, gnuplot")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libboost-filesystem-dev, libboost-system-dev, libboost-iostreams-dev, libboost-regex-dev, libfftw3-dev, libnlopt-dev, libnlopt-cxx-dev, libhdf5-dev, libpython3-dev, gnuplot")
 set(CPACK_GENERATOR "DEB")
 
 # RPM package

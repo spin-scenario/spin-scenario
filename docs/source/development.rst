@@ -37,7 +37,7 @@ Development
 
         .. code-block:: sh
 
-         sudo apt-get install libboost-all-dev libfftw3-dev libhdf5-dev libnlopt-dev libpython3-dev gnuplot
+         sudo apt-get install cmake libboost-all-dev libfftw3-dev libhdf5-dev libnlopt-dev libnlopt-cxx-dev libpython3-dev gnuplot
          sh ./dep.sh
         
         Using the following commands to complie and install spin-scenario.   
@@ -48,6 +48,7 @@ Development
          cd build
          cmake ..
          make
+         make package
          make install
 
 

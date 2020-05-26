@@ -48,8 +48,8 @@ cd ../../../../../
 #make
 #cd ../../../../
 
-cd ./3rd-party/tensorflow
-git checkout r1.10 # http://releases.bazel.build/0.15.0/release/index.html
-./configure
-bazel build -c opt --jobs=24 -k //tensorflow:libtensorflow_cc.so
-cd ../../
+#cd ./3rd-party/tensorflow
+#git checkout r1.10 # http://releases.bazel.build/0.15.0/release/index.html
+#./configure
+#bazel build -c opt --jobs=24 -k //tensorflow:libtensorflow_cc.so
+#cd ../../
