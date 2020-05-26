@@ -18,6 +18,9 @@ Installation
 
         To run ``spin-scenario`` from any folder，you need to add ``C:\Program Files\spin-scenario-1.0.0\bin`` to system PATH.
 
+        .. note::
+            You may need to install `Visual C++ Redistributable Package <https://aka.ms/vs/16/release/vc_redist.x64.exe>`_ in case of encountering missing dll file such as **vcruntime140_1.dll** when start the Spin-Scenario.
+
     * For Ubuntu 16.04, 18.04:     
     
         .. code-block:: sh
