@@ -207,9 +207,9 @@ void plot(const sol::table &t) {
 
 void write(string file, sol::variadic_args va, const seq_block & /*sb*/) {
   ofstream ofstr(file.c_str());
-  ofstr << "# " << sys_time();
+  ofstr << "# " << sys_time()<<"\n";
   string sep = "#----------------------------------------";
-  ofstr.precision(4);
+  //ofstr.precision(4);
   for (auto v : va) {
     seq_block &val = v;
     val.write(ofstr);

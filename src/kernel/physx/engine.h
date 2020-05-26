@@ -18,7 +18,7 @@ using namespace ssl::spinsys;
 using namespace ssl::sample;
 
 //#define DENSE_MATRIX_COMPUTE 1
-#define ARRAYFIRE_USE 1
+//#define ARRAYFIRE_USE 1
 
 #ifdef ARRAYFIRE_USE
 #include <af/util.h>

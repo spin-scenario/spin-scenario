@@ -15,6 +15,14 @@ For single pulse optimization, we can use **rf_optimizer**.  The follow example 
 
 |1spin_opt_pulse|
 
+There are also some advance options as bellow for the optimization.
+ 
+ * **limit_channel** to specify the desired channel considered for the optimization. E.g. ``limit_channel ="1H"``.
+ * **limit_axis** to specify the desired component of the involved channels. E.g. ``limit_axis = "x"``, valid parameters are ``"x"`` or ``"y"``.
+ * **max_eval** to specify the maximum iteration steps for the optimization.
+ * **xtol_rel** to specify a a fractional tolerance on the pulse shape parameters.
+
+
 We provides a ``projection`` function to observe the evolution trajectory components of the interested state:
     .. code-block:: lua
 

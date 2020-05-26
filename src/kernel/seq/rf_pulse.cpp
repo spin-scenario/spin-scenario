@@ -411,6 +411,16 @@ string rf_pulse::get_header() const {
   for (size_t j = 0; j < channels_; j++) {
     s += raw_data_[j].channel + " ";
   }
+  s += "\n";
+  if (mode_ == _amp_phase) {
+for (size_t j = 0; j < channels_; j++) {
+      s += "# CH "+ to_string(j+1)+ " MAX amplitude: "+ to_string(raw_data_[j].envelope.real().maxCoeff()/(2 * _pi))+" Hz\n";
+      s += "# CH "+ to_string(j+1)+ " MIN amplitude: "+ to_string(raw_data_[j].envelope.real().minCoeff()/(2 * _pi))+" Hz\n";
+	  s += "# CH "+ to_string(j+1)+ " AVG amplitude: "+ to_string(raw_data_[j].envelope.real().sum()/(2 * _pi)/nsteps_)+" Hz\n";
+	  s += "# CH "+ to_string(j+1)+ " MAX phase: "+ to_string(raw_data_[j].envelope.imag().maxCoeff()*180 / _pi)+" deg\n";
+      s += "# CH "+ to_string(j+1)+ " MIN phase: "+ to_string(raw_data_[j].envelope.imag().minCoeff()*180 / _pi)+" deg";
+    }
+  }
   return s;
 }
 
@@ -441,8 +451,8 @@ void rf_pulse::h5write(H5File &file, string abbr) const {
 }
 
 void rf_pulse::write(ostream &ostr) const {
-  seq_block::write(ostr);
-  //ostr << get_header() << "\n";
+  //seq_block::write(ostr);
+  ostr << get_header() << "\n";
   ostr << get_shape();
 }
 

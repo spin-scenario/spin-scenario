@@ -126,25 +126,30 @@ struct line_series {
   bool is_y_only = false;
   bool is_file = false;
 
-  line_series(string file_list) {
-    boost::cmatch what;
-    boost::regex reg("([^\"]*)([^\\d]*)(\\d+):(\\d+)([^\\d]*)([^\"]*)");
-    string s1, s2, s3, s4;
-    int n0 = 0, n1 = 0;
-    if (boost::regex_search(file_list.c_str(), what, reg)) {
-      //cout << what[0] << "\n" << what[1] << "\n" << what[2] << "\n" << what[3] << "\n" << what[4] << "\n" << what[5] << "\n" << what[6] << "\n";
-      s1 = what[1];
-      s2 = what[2];
-      n0 = boost::lexical_cast<int>(what[3]);
-      n1 = boost::lexical_cast<int>(what[4]);
-      s3 = what[5];
-      s4 = what[6];
-    }
+  line_series(string file/*file_list*/) {
+    //boost::cmatch what;
+    //boost::regex reg("([^\"]*)([^\\d]*)(\\d+):(\\d+)([^\\d]*)([^\"]*)");
+    //string s1, s2, s3, s4;
+    //int n0 = 0, n1 = 0;
+    //if (boost::regex_search(file_list.c_str(), what, reg)) {
+    //  //cout << what[0] << "\n" << what[1] << "\n" << what[2] << "\n" << what[3] << "\n" << what[4] << "\n" << what[5] << "\n" << what[6] << "\n";
+    //  s1 = what[1];
+    //  s2 = what[2];
+    //  n0 = boost::lexical_cast<int>(what[3]);
+    //  n1 = boost::lexical_cast<int>(what[4]);
+    //  s3 = what[5];
+    //  s4 = what[6];
+    //}
 
-    for (int i = 0; i < (n1 - n0 + 1); i++)
-      files.push_back(s1 + s2 + boost::lexical_cast<string>(n0 + i) + s3 + s4);
+    //for (int i = 0; i < (n1 - n0 + 1); i++)
+    //  files.push_back(s1 + s2 + boost::lexical_cast<string>(n0 + i) + s3 + s4);
 
-    is_file = true;
+    //is_file = true;
+	  mat data = eigen_read(file);
+    for (size_t i = 0; i < data.cols(); i++) 
+		y.push_back(data.col(i));
+    
+	is_y_only = true;
   }
 
   line_series(const sol::table &t) {
