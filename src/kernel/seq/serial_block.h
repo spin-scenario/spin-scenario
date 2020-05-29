@@ -25,14 +25,14 @@ class serial_block :
     return (new serial_block(*this));
   }
   virtual void evolution(int index = -1);
-  virtual void write(ostream &ostr = cout) const;
+  virtual void write(std::ostream &ostr = std::cout) const;
  protected:
   virtual void assign();
  private:
-  vector<const seq_block *> retrieve_cycle_seq_blocks(int prior) const;
+  std::vector<const seq_block *> retrieve_cycle_seq_blocks(int prior) const;
   int max_cycle_count(int prior) const;
   imat descending_cycle_matrix() const;
-  vector<vector<int>> cycle_index_list(const vector<vector<int>> &old, int count) const;
+  std::vector<std::vector<int>> cycle_index_list(const std::vector<std::vector<int>> &old, int count) const;
 };
 
 }

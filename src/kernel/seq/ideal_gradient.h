@@ -25,7 +25,7 @@ class ideal_gradient : public gradient {
     return (new ideal_gradient(*this));
   }
   virtual void get_ctrl(const timeline key0, const timeline key1, seq_const &ctrl) const;
-  virtual void write(ostream &ostr = cout) const;
+  virtual void write(std::ostream &ostr = std::cout) const;
   virtual void plot() const;
   virtual double grad_area() const;
   virtual int switch2loop(int index);

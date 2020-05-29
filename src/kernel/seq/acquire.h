@@ -17,7 +17,7 @@ namespace ssl {
 namespace seq {
 
 struct phase_acq {
-  vector<double> deg; // unit in degree.
+  std::vector<double> deg; // unit in degree.
 };
 
 class acquire : public seq_block {

@@ -23,7 +23,7 @@ void set_ham_Jcoupl(const sp_cx_mat& m) {
 	g_ham_coupl = m;
 }
   engine::engine(const sol::table &t) {
-  string acc_str = "cpu";  // default option.
+  std::string acc_str = "cpu";  // default option.
   if (is_retrievable("acc", t)) {
     acc_str = retrieve_table_str("acc", t);
   }
@@ -76,7 +76,7 @@ void set_ham_Jcoupl(const sp_cx_mat& m) {
 
   p_phantom_ = nullptr;
   if (is_retrievable("phantom", t)) {
-    string par = retrieve_table_str("phantom", t);
+    std::string par = retrieve_table_str("phantom", t);
     p_phantom_ = new phantom(par.c_str());
   }
   init_ensemble(p_phantom_);
@@ -93,7 +93,7 @@ void engine::init_ensemble(const phantom *p_phantom) {
                      "no phantom specified, ONLY one spin system used.\n");
       if (ensemble_.size() == 0) { // because for multi-spin sys already init.
         each_spinsys each;
-        ensemble_ = vector<each_spinsys>(1, each);
+        ensemble_ = std::vector<each_spinsys>(1, each);
 #ifdef DENSE_MATRIX_COMPUTE
         ensemble_[0].pos = vec3::Zero();
         ensemble_[0].rho = unified_spinsys_.rho0.toDense();
@@ -119,7 +119,7 @@ void engine::init_ensemble(const phantom *p_phantom) {
 
     int num = p_phantom->isochromats_.size();
     each_spinsys each;
-    ensemble_ = vector<each_spinsys>(num, each);
+    ensemble_ = std::vector<each_spinsys>(num, each);
     omp_set_num_threads(omp_core_num);
 #pragma omp parallel for
     for (int i = 0; i < num; i++) {
@@ -135,7 +135,7 @@ void engine::init_ensemble(const phantom *p_phantom) {
       ensemble_[i].R(1, 1) = -ci * p_phantom->isochromats_[i].data[r2];
       ensemble_[i].R(2, 2) = -ci * p_phantom->isochromats_[i].data[r1];
       ensemble_[i].R(3, 3) = -ci * p_phantom->isochromats_[i].data[r2];
-      //      cout<<ensemble_[i].R<<"\n";
+      //      std::cout<<ensemble_[i].R<<"\n";
       //      int a;
       //      cin>>a;
       ensemble_[i].dB = p_phantom->isochromats_[i].data[dB0] * ppm *
@@ -169,7 +169,7 @@ void engine::init_ensemble(const phantom *p_phantom) {
       raw_r2_.push_back(iso.data[r2]);
       raw_rho_.push_back(iso.data[pd]);
 
-      vector<double> pos(3, 0);
+      std::vector<double> pos(3, 0);
       pos[0] = iso.data[cx];
       pos[1] = iso.data[cy];
       pos[2] = iso.data[cz];
@@ -223,21 +223,21 @@ void engine::init_ensemble(const phantom *p_phantom) {
 }
 
 // void engine::set_observer(const sp_cx_vec &rho) {
-//  cout << "~~~~\n";
+//  std::cout << "~~~~\n";
 //#ifdef DENSE_MATRIX_COMPUTE
 //  unified_spinsys_.det = rho.toDense(); // temporarily used.
 //#else
 //  unified_spinsys_.det = rho;
 //#endif
 //  levante_ernst_correction(unified_spinsys_.det);
-//  cout << unified_spinsys_.det << "\n";
+//  std::cout << unified_spinsys_.det << "\n";
 //}
 //
-// void engine::set_observer(const string expr) {
+// void engine::set_observer(const std::string expr) {
 //  if (unified_spinsys_.p_sys != nullptr)
-//    cout << "###\n";
+//    std::cout << "###\n";
 //  else
-//    cout << "@@@@\n";
+//    std::cout << "@@@@\n";
 //  set_observer(unified_spinsys_.p_sys->smart_state(expr));
 //}
 
@@ -287,12 +287,12 @@ void engine::evolution(timeline dt, const seq_const &ctrl) {
       delete[] host_y;
     }
      //if (ctrl.acq.adc) {
-    //cout << ctrl.acq.index << "\n";
+    //std::cout << ctrl.acq.index << "\n";
     //}
 
     af::array deltaB = gdB0s_;
     // if (norm(ctrl) == 0) {
-    // allocate grad ctrl vector [x/y/z] on device.
+    // allocate grad ctrl std::vector [x/y/z] on device.
     af::array grad(3, 1, ctrl.grad.v.data());
     // calculate total magnetic field variation due to gradient field, unit in
     // mT.
@@ -454,7 +454,7 @@ void engine::evolution_for_each(double dt, const seq_const &ctrl,
                 ctrl.rf[i].u[cy] * unified_spinsys_.rf_ctrl.Ly[ch];
 #endif
       double df = ctrl.rf[i].df;
-      // cout << df << "####\n";
+      // std::cout << df << "####\n";
       if (df != 0) each.L += df * 2 * _pi * each.Lz0;
     }
 
@@ -466,12 +466,12 @@ void engine::evolution_for_each(double dt, const seq_const &ctrl,
   // acquisition evolution (other points, acquire after the step evolution).
   if (ctrl.acq.adc) {
     each.sig[ctrl.acq.index] = projection(each.rho, unified_spinsys_.det);
-    // cout << ctrl.acq.index << "###\n";
+    // std::cout << ctrl.acq.index << "###\n";
   }
 
   if (ctrl.acq.adc && ctrl.acq.last) {
     // each.rho = unified_spinsys_.rho0.toDense();
-    // cout<< each.rho<<"\n\n";
+    // std::cout<< each.rho<<"\n\n";
   }
 }
 
@@ -492,7 +492,7 @@ cx_vec engine::accu_signal() {
   cx_vec sig = cx_vec::Zero(npts);
   cx_vec ones = cx_vec::Ones(npts);
 
-  vector<cx_vec> omp_sig(omp_core_num, sig);
+  std::vector<cx_vec> omp_sig(omp_core_num, sig);
 #pragma omp parallel for
   for (int i = 0; i < (int)ensemble_.size(); i++) {
     int id = omp_get_thread_num();
@@ -545,8 +545,8 @@ sol::object engine::process_signal() {
 
   int cols = raw_signal_[0].size();
   int rows = raw_signal_.size();
-  ssl_color_text("info", "raw data size: " + to_string(rows) + "*" +
-                             to_string(cols) + "\n");
+  ssl_color_text("info", "raw data size: " + std::to_string(rows) + "*" +
+                             std::to_string(cols) + "\n");
 
   // lua table for raw data (fid, spec).
   sol::table t_raw = g_lua->create_table();
@@ -600,8 +600,8 @@ sol::object engine::process_signal() {
   t_raw.set("spec:abs", t_spec_abs);
 
   // for image.
-  string time_s = sys_time();
-  string folder = "raw_data_" + time_s;
+  std::string time_s = sys_time();
+  std::string folder = "raw_data_" + time_s;
   g_lua->script("os.execute('mkdir " + folder + "')");
   H5File file(folder + "/raw.h5", H5F_ACC_TRUNC);
   Group group1(file.createGroup("FID"));
@@ -663,7 +663,7 @@ sol::object engine::process_signal() {
   h5write(file, &group2, "IMG:re", img_re);
   h5write(file, &group2, "IMG:im", img_im);
   h5write(file, &group2, "IMG:abs", img_abs);
-  h5write(file, &group2, "phase cycle steps", boost::lexical_cast<string>(g_phase_cycle_steps));
+  h5write(file, &group2, "phase cycle steps", boost::lexical_cast<std::string>(g_phase_cycle_steps));
 
   Group group3(file.createGroup("SPEC"));
   // raw data files.

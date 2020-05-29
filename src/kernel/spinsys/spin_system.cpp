@@ -18,7 +18,7 @@ limitations under the License.
 
 namespace ssl {
 namespace spinsys {
-spin_system::spin_system(const string &filename) : inter_(comp_) {
+spin_system::spin_system(const std::string &filename) : inter_(comp_) {
 
   sol::state lua;
   lua.script_file(filename);
@@ -35,9 +35,9 @@ void spin_system::set_sys(const sol::table &t) {
     throw std::runtime_error("invalid 'spin_system' table parameters (nil or empty).");
 
   //try {
-//  std::string str = retrieve_table("B0", t).as<string>();
+//  std::string str = retrieve_table("B0", t).as<std::string>();
 //  boost::to_lower(str);
-//  vector<string> str_vec;
+//  std::vector<std::string> str_vec;
 //  boost::split(str_vec, str, boost::is_any_of(", "), boost::token_compress_on);
 //  double val_B0 = boost::lexical_cast<double>(str_vec[0]);
 //  if (str_vec[1] == "tesla" || str_vec[1] == "t")
@@ -51,37 +51,37 @@ void spin_system::set_sys(const sol::table &t) {
 
   comp_.B0_ = g_B0_;
 
-  set_isotopes(retrieve_table("spin", t).as<string>());
+  set_isotopes(retrieve_table("spin", t).as<std::string>());
   //setBasis();
   inter_.alloc();
 
   if (is_retrievable("zeeman", t))
-    inter_.set_zeeman(retrieve_table("zeeman", t).as<string>());
+    inter_.set_zeeman(retrieve_table("zeeman", t).as<std::string>());
 
   if (is_retrievable("jcoupling", t))
-    inter_.set_Jcoupling(retrieve_table("jcoupling", t).as<string>());
+    inter_.set_Jcoupling(retrieve_table("jcoupling", t).as<std::string>());
 
   if (is_retrievable("coord", t))
     inter_.set_Jcoupling_coords(retrieve_table("coord", t).as<sol::table>());
 
   if (is_retrievable("relaxation", t))
-    inter_.set_relaxation(retrieve_table("relaxation", t).as<string>());
+    inter_.set_relaxation(retrieve_table("relaxation", t).as<std::string>());
 
   inter_.init();
   inter_.set_assumption("nmr");
   /*} catch (const std::runtime_error& e) {
-      string s = str(boost::format("%s\n") % string(e.what()));
+      std::string s = str(boost::format("%s\n") % std::string(e.what()));
       ssl_color_text("err", s);
   }*/
 }
 
-void spin_system::set_isotopes(const string list) {
-  vector<string> symbol_vec;
+void spin_system::set_isotopes(const std::string list) {
+  std::vector<std::string> symbol_vec;
   boost::split(symbol_vec, list, boost::is_any_of("\t, "), boost::token_compress_on);
   for (size_t i = 0; i < symbol_vec.size(); i++)
     comp_.add_spin(isotope(symbol_vec[i]));
 #ifdef SSL_OUTPUT_ENABLE
-  string s = str(boost::format("%s %s.\n") % "isotopes set to be" % list);
+  std::string s = str(boost::format("%s %s.\n") % "isotopes set to be" % list);
   ssl_color_text("info", s);
 #endif
   comp_.init();
@@ -90,7 +90,7 @@ void spin_system::set_isotopes(const string list) {
 void spin_system::set_magnet_field(double tesla) {
   comp_.B0_ = tesla;
 #ifdef SSL_OUTPUT_ENABLE
-  string s = str(boost::format("%s %.3f Tesla.\n") % "magnet field set to be" % tesla);
+  std::string s = str(boost::format("%s %.3f Tesla.\n") % "magnet field set to be" % tesla);
   ssl_color_text("info", s);
 #endif
 }
@@ -99,7 +99,7 @@ void spin_system::set_proton_freq(double MHz) {
   isotope proton("1H");
   double tesla = MHz * 2 * _pi / proton.gamma() * 1e6;
 #ifdef SSL_OUTPUT_ENABLE
-  string s = str(boost::format("%s %.3f MHz.\n") % "proton resonance frequency set to be" % MHz);
+  std::string s = str(boost::format("%s %.3f MHz.\n") % "proton resonance frequency set to be" % MHz);
   ssl_color_text("info", s);
 #endif
   set_magnet_field(tesla);
@@ -107,33 +107,33 @@ void spin_system::set_proton_freq(double MHz) {
 double spin_system::get_proton_freq() const {
   return comp_.get_proton_freq();
 }
-sp_mat spin_system::op(const string &list) const {
+sp_mat spin_system::op(const std::string &list) const {
   return op(list, kComm);
 }
 sp_mat spin_system::op(const sol::table &t) const {
   return op(t, kComm);
 }
-sp_mat spin_system::op(const string &list, op_side type) const {
+sp_mat spin_system::op(const std::string &list, op_side type) const {
   return comp_.op(list, type);
 }
 sp_mat spin_system::op(const sol::table &t, op_side type) const {
   if (!t.valid() || t.empty())
     throw std::runtime_error("invalid 'op' table parameters (nil or empty).");
 
-  vector<string> s;
+  std::vector<std::string> s;
   for (size_t i = 0; i < t.size(); i++) {
     sol::object val = t[i + 1];
-    string item;
+    std::string item;
     switch (val.get_type()) {
-      case sol::type::number:item = boost::lexical_cast<string>(val.as<int>());
+      case sol::type::number:item = boost::lexical_cast<std::string>(val.as<int>());
         break;
-      case sol::type::string:item = val.as<string>();
+      case sol::type::string:item = val.as<std::string>();
         break;
       default:break;
     }
     s.push_back(item);
   }
-  string list = boost::algorithm::join(s, " ");
+  std::string list = boost::algorithm::join(s, " ");
   return comp_.op(list, type);
 }
 
@@ -141,7 +141,7 @@ sp_cx_vec spin_system::equilibrium_state() const {
   return inter_.equilibrium_state();
   }
 
-sp_cx_mat spin_system::smart_op(const string expr) const {
+sp_cx_mat spin_system::smart_op(const std::string expr) const {
   state_par s = state_evaluate(expr);
   int num = s.coeff.size();
   sp_cx_mat result = s.coeff[0] * op(s.expr[0]);
@@ -150,7 +150,7 @@ sp_cx_mat spin_system::smart_op(const string expr) const {
   return result;
 }
 
-sp_cx_vec spin_system::smart_state(const string expr) const {
+sp_cx_vec spin_system::smart_state(const std::string expr) const {
   state_par s = state_evaluate(expr);
   int num = s.coeff.size();
   sp_cx_vec result = s.coeff[0] * state(s.expr[0]);
@@ -159,19 +159,19 @@ sp_cx_vec spin_system::smart_state(const string expr) const {
   return result;
 }
 
-map<string, sp_cx_vec> spin_system::cartesian_basis_states() const {
-  string base_expr = "(1+Ix+Iy+Iz)";
+std::map<std::string, sp_cx_vec> spin_system::cartesian_basis_states() const {
+  std::string base_expr = "(1+Ix+Iy+Iz)";
   int nspins = comp_.nspins();
-  string expr_in;
+  std::string expr_in;
   boost::regex reg("I(\\w)");
-  vector<string> exprs(nspins);
+  std::vector<std::string> exprs(nspins);
   for (int i = 0; i < nspins; i++) {
     exprs[i] = base_expr;
-    string id = boost::lexical_cast<string>(i + 1);
-    string rep = "I" + id + "$1";
-    string s = boost::regex_replace(exprs[i], reg, rep);
+    std::string id = boost::lexical_cast<std::string>(i + 1);
+    std::string rep = "I" + id + "$1";
+    std::string s = boost::regex_replace(exprs[i], reg, rep);
     exprs[i] = s;
-    //cout << rep<<" "<<exprs[i] << "\n";
+    //std::cout << rep<<" "<<exprs[i] << "\n";
   }
 
   expr_in = exprs[0];
@@ -179,50 +179,50 @@ map<string, sp_cx_vec> spin_system::cartesian_basis_states() const {
     expr_in += "*" + exprs[i];
 
   expr_in = "Simplify(" + expr_in + ")";
-  //cout << expr_in<<"\n";
-  string expr_out = yacas_evaluate(expr_in);
+  //std::cout << expr_in<<"\n";
+  std::string expr_out = yacas_evaluate(expr_in);
   boost::erase_all(expr_out, ";");
-  //cout << expr_out << "\n";
+  //std::cout << expr_out << "\n";
   //boost::replace_all(expr_out, "J", "I");
-  //vector<string> expr_vec;
-  vector<string> expr;
+  //std::vector<std::string> expr_vec;
+  std::vector<std::string> expr;
   boost::algorithm::split(expr, expr_out, boost::is_any_of("+"));
   expr.pop_back(); // !!! remove 1.
-  map<string, sp_cx_vec> basis;
+  std::map<std::string, sp_cx_vec> basis;
   for (size_t i = 0; i < expr.size(); i++) {
     boost::erase_all(expr[i], "*");
-    //cout << i + 1 << " " << expr[i] << "\n";
-    basis.insert(pair<string, sp_cx_vec>(expr[i], smart_state(expr[i])));
+    //std::cout << i + 1 << " " << expr[i] << "\n";
+    basis.insert(std::pair<std::string, sp_cx_vec>(expr[i], smart_state(expr[i])));
   }
-  /*map<string, sp_cx_vec>::iterator iter;
+  /*std::map<std::string, sp_cx_vec>::iterator iter;
   for (iter = basis.begin(); iter != basis.end(); iter++) {
-      string label = iter->first;
+      std::string label = iter->first;
       sp_cx_vec val = iter->second;
-      cout << label << "\n" << val << "\n";
+      std::cout << label << "\n" << val << "\n";
   }*/
   return basis;
 }
 
-sp_cx_vec spin_system::state(const string &list) const {
+sp_cx_vec spin_system::state(const std::string &list) const {
   return comp_.state(list);
 }
 sp_cx_vec spin_system::state(const sol::table &t) const {
   if (!t.valid() || t.empty())
     throw std::runtime_error("invalid 'op' table parameters (nil or empty).");
-  vector<string> s;
+  std::vector<std::string> s;
   for (size_t i = 0; i < t.size(); i++) {
     sol::object val = t[i + 1];
-    string item;
+    std::string item;
     switch (val.get_type()) {
-      case sol::type::number:item = boost::lexical_cast<string>(val.as<int>());
+      case sol::type::number:item = boost::lexical_cast<std::string>(val.as<int>());
         break;
-      case sol::type::string:item = val.as<string>();
+      case sol::type::string:item = val.as<std::string>();
         break;
       default:break;
     }
     s.push_back(item);
   }
-  string list = boost::algorithm::join(s, " ");
+  std::string list = boost::algorithm::join(s, " ");
   return comp_.state(list);
 }
 
@@ -234,26 +234,26 @@ sp_cx_mat spin_system::free_hamiltonian() const {
   return hamiltonian(kComm, 0).isotropic;
 }
 
-vector<sp_cx_mat> spin_system::free_hamiltonians() {
-  vector<sp_cx_mat> L0s;
-  vector<vector<cs_par>> result_cs = inter_.parsing_zeeman_broadband();
-  vector<vector<jcoup_par>> result_jcoup = inter_.parsing_Jcoupling_broadband();
+std::vector<sp_cx_mat> spin_system::free_hamiltonians() {
+  std::vector<sp_cx_mat> L0s;
+  std::vector<std::vector<cs_par>> result_cs = inter_.parsing_zeeman_broadband();
+  std::vector<std::vector<jcoup_par>> result_jcoup = inter_.parsing_Jcoupling_broadband();
   if (result_cs.size())
-    cout << "chemical shifts num: " << result_cs.size() << "\n";
+    std::cout << "chemical shifts num: " << result_cs.size() << "\n";
   if (result_jcoup.size())
-    cout << "j-coupling num: " << result_jcoup.size() << "\n";
+    std::cout << "j-coupling num: " << result_jcoup.size() << "\n";
   // zeeman case.
-  vector<double> scalars = inter_.zeeman_.scalars; // backup.
+  std::vector<double> scalars = inter_.zeeman_.scalars; // backup.
   mat scalar = inter_.coupling_.scalar;
   if (result_cs.size()&&result_jcoup.size()==0)
   for (size_t i = 0; i < result_cs.size(); i++) {
     for (size_t j = 0; j < result_cs[i].size(); j++) {
       const cs_par &cur = result_cs[i][j];
-      //cout << (cur.id + 1) << " " << inter_.zeeman_.scalars[cur.id] << " ";
+      //std::cout << (cur.id + 1) << " " << inter_.zeeman_.scalars[cur.id] << " ";
       inter_.zeeman_.scalars[cur.id] += cur.val;
-      //cout << (cur.id + 1) << " " << inter_.zeeman_.scalars[cur.id] << " ";
+      //std::cout << (cur.id + 1) << " " << inter_.zeeman_.scalars[cur.id] << " ";
     }
-    //cout << "\n";
+    //std::cout << "\n";
     inter_.init_broadband();
     L0s.push_back(free_hamiltonian());
     inter_.zeeman_.scalars = scalars; // recover to original pars for the next L0 calculation.
@@ -268,9 +268,9 @@ vector<sp_cx_mat> spin_system::free_hamiltonians() {
       inter_.coupling_.scalar(id1, id2) += cur.val;
       if (id1 != id2)
         inter_.coupling_.scalar(id2, id1) += cur.val;
-      //cout << (cur.id1 + 1) << " " << (cur.id2 + 1) << " " << inter_.coupling_.scalar(id1, id2) << " ";
+      //std::cout << (cur.id1 + 1) << " " << (cur.id2 + 1) << " " << inter_.coupling_.scalar(id1, id2) << " ";
     }
-    //cout << "\n";
+    //std::cout << "\n";
     inter_.init_broadband();
     L0s.push_back(free_hamiltonian());
     inter_.coupling_.scalar = scalar;
@@ -279,7 +279,7 @@ vector<sp_cx_mat> spin_system::free_hamiltonians() {
 	if(result_cs.size()&&result_jcoup.size()) {
     //#pragma omp parallel for    
     for (size_t i = 0; i < result_cs.size(); i++) {
-      if (i % 100 == 0) cout << i << "==>\n";
+      if (i % 100 == 0) std::cout << i << "==>\n";
 
       for (size_t j = 0; j < result_cs[i].size(); j++) {
         const cs_par &cur = result_cs[i][j];
@@ -310,7 +310,7 @@ vector<sp_cx_mat> spin_system::free_hamiltonians() {
 sol::object spin_system::free_hamiltonians(sol::this_state s) {
   sol::state_view lua(s);
   sol::table t = lua.create_table();
-  vector<sp_cx_mat> L0s = free_hamiltonians();
+  std::vector<sp_cx_mat> L0s = free_hamiltonians();
   for (size_t i = 0; i < L0s.size(); i++)
     t.add(L0s[i]);
   return t;
@@ -327,8 +327,8 @@ rf_ham spin_system::rf_hamiltonian() const {
   rf_ctrl.init(channels());
   for (size_t i = 0; i < rf_ctrl.channels; i++) {
     // Get the control operators
-    string list_plus = rf_ctrl.chs[i] + " I+";
-    string list_minus = rf_ctrl.chs[i] + " I-";
+    std::string list_plus = rf_ctrl.chs[i] + " I+";
+    std::string list_minus = rf_ctrl.chs[i] + " I-";
     sp_mat Lp = op(list_plus);
     sp_mat Lm = op(list_minus);
     rf_ctrl.Lx[i] = 0.5 * (Lp + Lm).cast<cd>();  // cx

@@ -89,13 +89,13 @@ int main(int argc, char *argv[]) {
       linenoiseHistoryAdd(result);
       linenoiseHistorySave(file);
 
-      string line = string(result);
-      string s = boost::to_lower_copy(line);
+      std::string line = std::string(result);
+      std::string s = boost::to_lower_copy(line);
       if (s == "q" || s == "quit" || s == "exit")
         break;
       // in case of running lua code from file.
       if (boost::regex_search(line.c_str(), what, reg_load)) {
-        lua.script("script_transform ('" + string(what[1]) + "')"); // transform the script file into 'temp.lua'.
+        lua.script("script_transform ('" + std::string(what[1]) + "')"); // transform the script file into 'temp.lua'.
         //lua.script("os.execute('rm -rf gnuplot')"); // delete tmp files of gnuplot
         //lua.script("os.remove('shape.RF')"); 
         //lua.script("os.remove('gnu_grad')");
@@ -105,7 +105,7 @@ int main(int argc, char *argv[]) {
       free(result);
     }
   } catch (const std::exception &e) {
-    string s = boost::str(boost::format("%s\n") % string(e.what()));
+    std::string s = boost::str(boost::format("%s\n") % std::string(e.what()));
     ssl_color_text("err", s);
     flag = std::system("pause");
     goto label;

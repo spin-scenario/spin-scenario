@@ -33,7 +33,7 @@ void trapezoid_gradient::assign() {
   pattern_ = _trapezoid;
 
   if (is_retrievable("func")) {
-    string str_func = retrieve_config_table_str("func");
+    std::string str_func = retrieve_config_table_str("func");
     if (str_func == "phase_encode")
       func_ = _phase_encoding;
     if (str_func == "read_out")
@@ -55,17 +55,17 @@ void trapezoid_gradient::assign() {
          if (is_retrievable("width")) {
           duration = retrieve_config_table_double("width"); // unit in ms.
           if (duration < min_duration) {
-            string s = "invalid gradient width for phase encoding, minimum width: "
-                + boost::lexical_cast<string>(min_duration);
+            std::string s = "invalid gradient width for phase encoding, minimum width: "
+                + boost::lexical_cast<std::string>(min_duration);
             throw std::runtime_error(s.c_str());
           }
         } else
           config_table_.set("width", min_duration);
 
           double all_area = delta_area * g_seq_param->matrix[_cy];
-                  string par = boost::lexical_cast<string>(-all_area / 2) + ":" + boost::lexical_cast<string>(all_area / 2) + ":"
-            + boost::lexical_cast<string>(g_seq_param->matrix[_cy]);
-        //string par = "0:" + boost::lexical_cast<string>(delta_area*g_seq_param->matrix[_cy]) + ":" + boost::lexical_cast<string>(g_seq_param->matrix[_cy]);
+                  std::string par = boost::lexical_cast<std::string>(-all_area / 2) + ":" + boost::lexical_cast<std::string>(all_area / 2) + ":"
+            + boost::lexical_cast<std::string>(g_seq_param->matrix[_cy]);
+        //std::string par = "0:" + boost::lexical_cast<std::string>(delta_area*g_seq_param->matrix[_cy]) + ":" + boost::lexical_cast<std::string>(g_seq_param->matrix[_cy]);
           config_table_.set("areas", par);
           loop_ctrl_.loop_count = g_seq_param->matrix[_cy];
       }
@@ -99,30 +99,30 @@ void trapezoid_gradient::get_ctrl(const timeline key0, const timeline key1, seq_
     return;
 
   double grad_amp = 0;
-  vector<grad_interval> slected_sub_intervals;
+  std::vector<grad_interval> slected_sub_intervals;
   tree.findOverlapping(t0, t1, slected_sub_intervals);
   if (slected_sub_intervals.size() == 1) {
-    string s = "N(" + slected_sub_intervals[0].value.header + "(" + std::to_string((t1)) + ") -"
+    std::string s = "N(" + slected_sub_intervals[0].value.header + "(" + std::to_string((t1)) + ") -"
         + slected_sub_intervals[0].value.header + "(" + std::to_string((t0)) + "))";
     grad_amp = std::stod(yacas_evaluate(s)) / double(t1 - t0);
   } else if (slected_sub_intervals.size() == 2) {
     timeline tk = tps[slected_sub_intervals[1].value.pos];
-    string s1 = "N(" + slected_sub_intervals[0].value.header + "(" + std::to_string((tk)) + ") -"
+    std::string s1 = "N(" + slected_sub_intervals[0].value.header + "(" + std::to_string((tk)) + ") -"
         + slected_sub_intervals[0].value.header + "(" + std::to_string((t0)) + "))";
-    string s2 = "N(" + slected_sub_intervals[1].value.header + "(" + std::to_string((t1)) + ") -"
+    std::string s2 = "N(" + slected_sub_intervals[1].value.header + "(" + std::to_string((t1)) + ") -"
         + slected_sub_intervals[1].value.header + "(" + std::to_string((tk)) + "))";
     grad_amp = (std::stod(yacas_evaluate(s1)) + std::stod(yacas_evaluate(s2))) / double(t1 - t0);
   } else if (slected_sub_intervals.size() == 3) {
-    string s1 = "N(" + slected_sub_intervals[0].value.header + "(" + std::to_string((tps[1])) + ") -"
+    std::string s1 = "N(" + slected_sub_intervals[0].value.header + "(" + std::to_string((tps[1])) + ") -"
         + slected_sub_intervals[0].value.header + "(" + std::to_string((t0)) + "))";
-    string s2 = "N(" + slected_sub_intervals[1].value.header + "(" + std::to_string((tps[2])) + ") -"
+    std::string s2 = "N(" + slected_sub_intervals[1].value.header + "(" + std::to_string((tps[2])) + ") -"
         + slected_sub_intervals[1].value.header + "(" + std::to_string((tps[1])) + "))";
-    string s3 = "N(" + slected_sub_intervals[2].value.header + "(" + std::to_string((t1)) + ") -"
+    std::string s3 = "N(" + slected_sub_intervals[2].value.header + "(" + std::to_string((t1)) + ") -"
         + slected_sub_intervals[2].value.header + "(" + std::to_string((tps[2])) + "))";
     grad_amp = (std::stod(yacas_evaluate(s1)) + std::stod(yacas_evaluate(s2)) + std::stod(yacas_evaluate(s3)))
         / double(t1 - t0);
   }
-  //cout << "[" << t0 << " " << t1 << "]" << "  " << grad_amp << "\n";
+  //std::cout << "[" << t0 << " " << t1 << "]" << "  " << grad_amp << "\n";
   ctrl.grad.v[channel_] = grad_amp;
 }
 
@@ -133,7 +133,7 @@ void trapezoid_gradient::load_shape() {
     amp = retrieve_config_table_double("amp"); // unit in mT/m.
     if_amp = true;
     if (fabs(amp) > g_seq_param->max_grad) {
-      string s = "the given amplitude is beyond limit for this gradient: " + name();
+      std::string s = "the given amplitude is beyond limit for this gradient: " + name();
       throw std::runtime_error(s.c_str());
     }
   }
@@ -144,7 +144,7 @@ void trapezoid_gradient::load_shape() {
   }
 
   if (is_retrievable("areas")) {
-    string par = retrieve_config_table_str("areas"); // unit in mT/m*ms.
+    std::string par = retrieve_config_table_str("areas"); // unit in mT/m*ms.
     colon_sep val;
     if (parse(par, val)) {
 
@@ -156,7 +156,7 @@ void trapezoid_gradient::load_shape() {
         //areas[i]=-delta_s*(double)val.num/2.0+delta_s*(double)i;
        //areas[i] = delta_s * (i - val.num / 2);
 
-      //cout<<areas<<"\n";
+      //std::cout<<areas<<"\n";
       if_areas = true;
       area = areas[0]; // set 1st phase-encoding area.
       loop_ctrl_.loop_count = val.num;
@@ -183,7 +183,7 @@ void trapezoid_gradient::load_shape() {
     if (!if_amp)
       amp = flat_area / flat_time;
     if (fabs(amp) > g_seq_param->max_grad) {
-        string s = "the given amplitude is beyond limit for this gradient: " + name();
+        std::string s = "the given amplitude is beyond limit for this gradient: " + name();
         throw std::runtime_error(s.c_str());
     }
 
@@ -207,7 +207,7 @@ void trapezoid_gradient::load_shape() {
         possible = fabs(amp) <= g_seq_param->max_grad && (duration * duration > 4 * abs(area) * dC);
       }
       if (!possible) {
-        string s = "the given area is too large for this gradient: " + name();
+        std::string s = "the given area is too large for this gradient: " + name();
         throw std::runtime_error(s.c_str());
       }
     }
@@ -216,17 +216,17 @@ void trapezoid_gradient::load_shape() {
 
     rise_time = timeline2ms(ms2timeline(rise_time));
     flat_time = timeline2ms(ms2timeline((duration - 2 * rise_time)));
-    //cout << rise_time<<" " << flat_time << "\n";
+    //std::cout << rise_time<<" " << flat_time << "\n";
     // adjust amplitude (after rounding) to achieve given area.
     if(!if_amp)
     amp = area / (flat_time + rise_time);
   } else {
-    string s = "must set duration for this gradient: " + name();
+    std::string s = "must set duration for this gradient: " + name();
     throw std::runtime_error(s.c_str());
   }
 
   timer_.width = ms2timeline((rise_time * 2 + flat_time));
-  //cout << timer_.width << "\n";
+  //std::cout << timer_.width << "\n";
 
   tps = tlvec(4);
   tps[0] = 0;
@@ -253,7 +253,7 @@ void trapezoid_gradient::load_shape() {
   tree = grad_interval_tree(sub_intervals);
 }
 
-void trapezoid_gradient::write(ostream &ostr) const {
+void trapezoid_gradient::write(std::ostream &ostr) const {
   seq_block::write(ostr);
   ostr << "# channel: " << grad_channel_str[channel_] << ".\n";
   ostr << 0 << " " << 0 << "\n";
@@ -281,7 +281,7 @@ trap_data trapezoid_gradient::switch2loop(int index) const {
         possible = fabs(amp) <= g_seq_param->max_grad && (duration * duration > 4 * abs(new_area) * dC);
       }
       if (!possible) {
-        string s = "the given area is too large for this gradient: " + name();
+        std::string s = "the given area is too large for this gradient: " + name();
         throw std::runtime_error(s.c_str());
       }
     }
@@ -302,7 +302,7 @@ void trapezoid_gradient::plot() const {
     g_lua->script("os.execute('mkdir gnuplot')");
     for (int i = 0; i < areas.size(); i++) {
       trap_data data = switch2loop(i);
-      ofstream ofstr("gnuplot/phase-" + std::to_string(i + 1));
+      std::ofstream ofstr("gnuplot/phase-" + std::to_string(i + 1));
       ofstr.precision(4);
       ofstr << 0 << " " << 0 << "\n";
       ofstr << data.rise_time << " " << data.amp << "\n";
@@ -310,7 +310,7 @@ void trapezoid_gradient::plot() const {
       ofstr << data.rise_time * 2 + data.flat_time << " " << 0 << "\n";
       ofstr.close();
     }
-    string gp =
+    std::string gp =
         "plot(\"xlabel<time / ms> ylabel<amplitude / mT/s> color<YiZhang16,16> gnuplot<unset key> title<" + grad_func_str[func_] + ">"
             + "xrange<0:" + std::to_string(width_in_ms()) + ">\", lines('phase-1:"
             + std::to_string(areas.size()) + "'))";

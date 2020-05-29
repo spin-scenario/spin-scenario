@@ -71,7 +71,7 @@ void phantom::init_ensemble() {
     z1 = g_phantom_space.z1;
 
   omp_set_num_threads(omp_core_num);
-  vector<isochromat> *omp_isochromats = new vector<isochromat>[omp_core_num];
+  std::vector<isochromat> *omp_isochromats = new std::vector<isochromat>[omp_core_num];
   switch (model_) {
     case usr_phantom:
     case mni_brain: {
@@ -152,12 +152,12 @@ void phantom::init_ensemble() {
     omp_isochromats[id].clear();
   }
   #ifdef SSL_OUTPUT_ENABLE
-  string model;
+  std::string model;
 
   if (model_ == mida_brain) model = "MIDA";
   if (model_ == mni_brain) model = "MNI";
   if (model_ == usr_phantom) model = "USR PHANTOM";
-  string s = str(boost::format("%s %s (%s).\n") % "total isochromats:" % isochromats_.size() % model);
+  std::string s = str(boost::format("%s %s (%s).\n") % "total isochromats:" % isochromats_.size() % model);
   ssl_color_text("info", s);
 #endif
 
@@ -165,18 +165,18 @@ void phantom::init_ensemble() {
 void phantom::view(const sol::table &t) const {
   if (!t.valid() || t.empty())
     throw std::runtime_error("invalid phantom 'view' table parameters (nil or empty).");
-  string axis;
+  std::string axis;
   int slice = -1;
   for (auto &kv : t) {
-    axis = kv.first.as<string>();
+    axis = kv.first.as<std::string>();
     slice = kv.second.as<int>();
     view(axis, slice);
   }
 }
-void phantom::view(const string &axis, int slice) const {
+void phantom::view(const std::string &axis, int slice) const {
   int dim = -1; //z
   int max_dim = 0;
-  string row, col;
+  std::string row, col;
   if (axis == "x" || axis == "X") {
     dim = 0;
     max_dim = dim_[_cx];
@@ -196,7 +196,7 @@ void phantom::view(const string &axis, int slice) const {
     col = "x";
   }
   if (dim == -1) {
-    string s = "unkown axis: " + axis + "!\n";
+    std::string s = "unkown axis: " + axis + "!\n";
     throw std::runtime_error(s.c_str());
   }
 
@@ -204,7 +204,7 @@ void phantom::view(const string &axis, int slice) const {
   Eigen::Map<mat> m(sub.data(), sub.dimension(0), sub.dimension(1));
   utility::map transfer_map(m.matrix().cast<double>());
   (*g_lua)["_map"] = transfer_map;
-  string title = row + col + " plane view (" + axis + "=" + std::to_string(slice) + "/" + std::to_string(max_dim) + ")";
+  std::string title = row + col + " plane view (" + axis + "=" + std::to_string(slice) + "/" + std::to_string(max_dim) + ")";
   g_lua->script("plot('title<" + title + "> xlabel<" + row + "> ylabel<" + col + ">', _map)");
 }
 void phantom::load(const char *filename) {
@@ -248,9 +248,9 @@ void phantom::load(const char *filename) {
       tissue_dist_ = h5read_icube(file, "/phantom/tissue_dist");
 
       // load T1/T2 parameters.
-      string path = utility::g_project_path + "/share/spin-scenario/config/mida_1.5t_relaxation.dat";
+      std::string path = utility::g_project_path + "/share/spin-scenario/config/mida_1.5t_relaxation.dat";
       mat par = mat::Zero(59, 3);
-      ifstream fin(path.c_str());
+      std::ifstream fin(path.c_str());
 
       if (fin.is_open()) {
         for (size_t row = 0; row < 59; row++)
@@ -292,7 +292,7 @@ void phantom::load(const char *filename) {
       }
 
 #ifdef SSL_OUTPUT_ENABLE
-      string s = str(boost::format("%s%s %s %s).\n") % "MIDA brain loaded, cube dimension x/y/z(" % dim_[cx] % dim_[cy]
+      std::string s = str(boost::format("%s%s %s %s).\n") % "MIDA brain loaded, cube dimension x/y/z(" % dim_[cx] % dim_[cy]
                          % dim_[cz]);
       ssl_color_text("info", s);
 #endif
@@ -306,7 +306,7 @@ void phantom::load(const char *filename) {
       T2s_ = h5read_cube(file, "/phantom/T2*");
       pd_ = h5read_cube(file, "/phantom/spin density");
 #ifdef SSL_OUTPUT_ENABLE
-      string s = str(boost::format("%s%s %s %s).\n") % "MNI brain loaded, cube dimension x/y/z(" % dim_[cx] % dim_[cy]
+      std::string s = str(boost::format("%s%s %s %s).\n") % "MNI brain loaded, cube dimension x/y/z(" % dim_[cx] % dim_[cy]
                          % dim_[cz]);
       ssl_color_text("info", s);
 #endif
@@ -317,7 +317,7 @@ void phantom::load(const char *filename) {
       T1_ = h5read_cube(file, "/phantom/T1");
       T2_ = h5read_cube(file, "/phantom/T2");
 #ifdef SSL_OUTPUT_ENABLE
-      string s = str(boost::format("%s%s %s %s).\n") %
+      std::string s = str(boost::format("%s%s %s %s).\n") %
                      "usr phantom loaded, cube dimension x/y/z(" % dim_[cx] %
                      dim_[cy] % dim_[cz]);
       ssl_color_text("info", s);
@@ -336,9 +336,9 @@ void phantom::load(const char *filename) {
   //	//std::fill_n(dB0_.data(), dB0_.num_elements(), 0);
   //	for (auto a : dB0_) for (auto b : a) for (auto&c : b) c = zeroone();
 
-  //	/*cout << dB0_[3][5][8] << "\n";
-  //	cout << dB0_[3][2][6] << "\n";
-  //	cout << dB0_[3][78][8] << "\n";*/
+  //	/*std::cout << dB0_[3][5][8] << "\n";
+  //	std::cout << dB0_[3][2][6] << "\n";
+  //	std::cout << dB0_[3][78][8] << "\n";*/
 }
 }
 }

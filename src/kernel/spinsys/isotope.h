@@ -14,7 +14,6 @@ limitations under the License.
 
 #include <string>
 #include <vector>
-using namespace std;
 
 namespace ssl {
 namespace spinsys {
@@ -22,20 +21,20 @@ namespace spinsys {
 struct nuclear_isotope {
   int protons;
   int nucleons; // atomic mass in atomic mass unit (protons + neutrons)
-  string symbol; // 1H, 13C, ...
-  string name; // hydrogen, carbon, ..
+  std::string symbol; // 1H, 13C, ...
+  std::string name; // hydrogen, carbon, ..
   double qn; // spin quantum number
   double gn; // gyromagnetic ratio divided by nuclear magneton
-  bool operator==(const string s) {
+  bool operator==(const std::string s) {
     return symbol == s;
   }
 };
 class isotope {
  public:
-  isotope(const string symbol = "1H");
+  isotope(const std::string symbol = "1H");
   ~isotope();
 
-  inline string symbol() const {
+  inline std::string symbol() const {
     return isotope_->symbol;
   }
   inline float qn() const {
@@ -60,10 +59,10 @@ class isotope {
   }
  private:
   void load_nuclear_isotope_database();
-  void bind_isotope(const string symbol);
+  void bind_isotope(const std::string symbol);
  private:
   nuclear_isotope *isotope_;
-  static vector<nuclear_isotope> s_isotopes_;
+  static std::vector<nuclear_isotope> s_isotopes_;
 };
 
 }

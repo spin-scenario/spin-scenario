@@ -34,20 +34,20 @@ class tf_opt {
 
  protected:
 
-  void create_graph(string graph_type);
+  void create_graph(std::string graph_type);
   bool call_system(int size, int n_channels, double dt, std::string graph_definition, std::string graph_type);
   void initialize_placeholder();
   void create_tf_variables_list();
   void update_tf_variables(const double *x);
 
-  static double objfunc(const vector<double> &x, vector<double> &grad, void *func);
-  double objfunc(const vector<double> &x, vector<double> &grad);
+  static double objfunc(const std::vector<double> &x, std::vector<double> &grad, void *func);
+  double objfunc(const std::vector<double> &x, std::vector<double> &grad);
 
   void assign_state(const sol::table &t);
   void assign_nlopt(const sol::table &t);
   virtual void assign_pulse(const sol::table &t);
   virtual void assign_aux_var();
-  virtual void h5write(string file_name = "") const;
+  virtual void h5write(std::string file_name = "") const;
 //            void opt_amplitude_constraint(nlopt::opt &opt);
 //            static double amplitude_constraint(unsigned n, const double *x, double *grad, void *data);
   void cartesian2polar(double amp, double phase, double gx, double gy, double &g_amp, double &g_phase);
@@ -68,10 +68,10 @@ class tf_opt {
 
   sp_cx_vec init_state_;
   sp_cx_vec targ_state_;
-  vector<sp_cx_vec> targ_list_;
+  std::vector<sp_cx_vec> targ_list_;
 
   state_traj traj_;
-  vector<state_traj> traj_omp_;
+  std::vector<state_traj> traj_omp_;
 
   opt_ctrl opt_;
   spin_system *sys_;
@@ -83,7 +83,7 @@ class tf_opt {
 
   std::vector<std::pair<std::string, Tensor> > variables_list;
   std::vector<std::pair<std::string, Tensor> > placeholder_list;
-  std::vector<string> gradient_names;
+  std::vector<std::string> gradient_names;
 };
 #endif  // TENSORFLOW_ENABLED
 

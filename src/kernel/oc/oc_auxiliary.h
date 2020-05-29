@@ -33,10 +33,10 @@ namespace ssl {
 namespace oc {
 struct spin_sys_superop {
   sp_cx_mat L0; // free ham.
-  vector<sp_cx_mat> L0s; // broadband free hams.
+  std::vector<sp_cx_mat> L0s; // broadband free hams.
   vec nominal_offset; // corresponding broadband offsets.
   vec profile; // corresponding broadband coefficients.
-  vector<vector<double>> grad_bb;
+  std::vector<std::vector<double>> grad_bb;
   vec phi_dist;
   sp_cx_mat R; // relaxation op.
   rf_ham rf_ctrl; // rf hams.

@@ -30,27 +30,27 @@ class coop_grape : public grape {
   sol::object optimize(const sol::table &t, sol::this_state s);
   virtual void projection(const sol::table &t);
  protected:
-  virtual void h5write(string file_name = "") const;
+  virtual void h5write(std::string file_name = "") const;
   void assign_constraint(const sol::table &t);
   virtual void assign_pulse(const sol::table &t);
   virtual void assign_x();
   virtual void assign_aux_var();
-  static double objfunc_broadband(const vector<double> &x, vector<double> &g, void *func);
-  //static double objfunc_propagator(const vector<double> &x, vector<double> &grad, void *func); // reserved for propagator optimization case.
-  double objfunc_broadband_ms_coop(const vector<double> &x, vector<double> &g);
-  double objfunc_broadband_ss_coop(const vector<double> &x, vector<double> &g);
-  double co_objfunc(const vector<double> &x, vector<double> &g); // this is for superposition state preparation, should be merged with objfunc_broadband.
+  static double objfunc_broadband(const std::vector<double> &x, std::vector<double> &g, void *func);
+  //static double objfunc_propagator(const std::vector<double> &x, std::vector<double> &grad, void *func); // reserved for propagator optimization case.
+  double objfunc_broadband_ms_coop(const std::vector<double> &x, std::vector<double> &g);
+  double objfunc_broadband_ss_coop(const std::vector<double> &x, std::vector<double> &g);
+  double co_objfunc(const std::vector<double> &x, std::vector<double> &g); // this is for superposition state preparation, should be merged with objfunc_broadband.
 
   void assign_insert_propagator(const sol::table &t);
   virtual void print() const;
-  sp_cx_mat update_rf_ham(Eigen::Map<const mat> &m, int scan, size_t step, size_t channel, string ch_str, size_t nchannels, double kx = 1, double ky = 1);
-  sp_cx_mat update_rf_ham(Eigen::Map<const vec> &v, size_t step, size_t channel, string ch_str, size_t nchannels, double kx = 1, double ky = 1);
+  sp_cx_mat update_rf_ham(Eigen::Map<const mat> &m, int scan, size_t step, size_t channel, std::string ch_str, size_t nchannels, double kx = 1, double ky = 1);
+  sp_cx_mat update_rf_ham(Eigen::Map<const vec> &v, size_t step, size_t channel, std::string ch_str, size_t nchannels, double kx = 1, double ky = 1);
  private:
-  vector<shaped_rf*> coop_rf_;
-  vector<state_traj> coop_traj_;
+  std::vector<shaped_rf*> coop_rf_;
+  std::vector<state_traj> coop_traj_;
 
 
-  vector<sp_cx_mat> inserted_ops_; // only for ss-coop.
+  std::vector<sp_cx_mat> inserted_ops_; // only for ss-coop.
 
   ms_coop_ctrl* coop_par_;
   static coop_model coop_model_;

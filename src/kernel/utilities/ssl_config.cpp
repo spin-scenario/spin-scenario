@@ -20,7 +20,7 @@ namespace utility {
 sol::state *g_lua = nullptr;
 CYacas *g_yacas = nullptr;
 int omp_core_num = omp_get_num_procs();
-vector<string> g_h5_string;
+std::vector<std::string> g_h5_string;
 
 vec g_expmv_theta;
 int g_openmp_core;
@@ -42,7 +42,7 @@ void init_global_lua(sol::state &lua) {
 }
 
 void load_expmv_theta() {
- string path = utility::g_project_path + "/share/spin-scenario/config/expmv_theta.txt";
+ std::string path = utility::g_project_path + "/share/spin-scenario/config/expmv_theta.txt";
   mat m = eigen_read(path);
   g_expmv_theta=m.col(0);
 }
@@ -105,21 +105,21 @@ void set_grad(double max_amp, double max_slew_rate) {
 double g_B0_ = -1; // tesla.
 void set_B0_api(const sol::table &t) {
   for (auto &kv : t) {
-    string s = kv.second.as<string>();
+    std::string s = kv.second.as<std::string>();
     set_B0(s);
     break;
   }
 }
 
-void set_B0(string mag) {
+void set_B0(std::string mag) {
   boost::to_lower(mag);
-  vector<string> str_vec;
+  std::vector<std::string> str_vec;
   boost::split(str_vec, mag, boost::is_any_of(", "), boost::token_compress_on);
   double val_B0 = boost::lexical_cast<double>(str_vec[0]);
   if (str_vec[1] == "tesla" || str_vec[1] == "t") {
     g_B0_ = val_B0;
 #ifdef SSL_OUTPUT_ENABLE
-    string s = str(boost::format("%s %.3f Tesla.\n") % "magnet field set to be" % g_B0_);
+    std::string s = str(boost::format("%s %.3f Tesla.\n") % "magnet field set to be" % g_B0_);
     ssl_color_text("info", s);
 #endif
     return;
@@ -129,7 +129,7 @@ void set_B0(string mag) {
     ssl::spinsys::isotope proton("1H");
     double tesla = val_B0 * 2 * _pi / proton.gamma() * 1e6;
 #ifdef SSL_OUTPUT_ENABLE
-      string s = str(boost::format("%s %.3f MHz.\n") % "proton resonance frequency set to be" % val_B0);
+      std::string s = str(boost::format("%s %.3f MHz.\n") % "proton resonance frequency set to be" % val_B0);
     ssl_color_text("info", s);
 #endif
     g_B0_ = tesla;
@@ -149,7 +149,7 @@ void reduce_phantom(const sol::table &t) {
     sol::object key = kv.first;
     sol::object val = kv.second;
 
-    string axis = key.as<string>();
+    std::string axis = key.as<std::string>();
     int index = val.as<int>();
 
       if (axis == "x0")
@@ -194,7 +194,7 @@ herr_t op_func(hid_t loc_id, const char *name, const H5L_info_t *info, void *ope
    */
   status = H5Oget_info_by_name(loc_id, name, &infobuf, H5P_DEFAULT);
   switch (infobuf.type) {
-       case H5O_TYPE_GROUP:g_h5_string.push_back(string(name));
+       case H5O_TYPE_GROUP:g_h5_string.push_back(std::string(name));
       //printf("  Group: %s\n", name);
       break;
     case H5O_TYPE_DATASET:
@@ -208,12 +208,12 @@ herr_t op_func(hid_t loc_id, const char *name, const H5L_info_t *info, void *ope
   return status;
 }
 
-cube h5read_cube(const H5File &file, string dataset_name) {
+cube h5read_cube(const H5File &file, std::string dataset_name) {
   DataSet dataset = file.openDataSet(dataset_name);
   DataSpace dataspace = dataset.getSpace();
   int Ndims = dataspace.getSimpleExtentNdims();
   if (Ndims != 3) {
-      string s = "dims should be 3 for cube matrix, " + to_string(Ndims) + " in this dataset: " + dataset_name;
+      std::string s = "dims should be 3 for cube matrix, " + std::to_string(Ndims) + " in this dataset: " + dataset_name;
     throw std::runtime_error(s.c_str());
   }
 
@@ -224,12 +224,12 @@ cube h5read_cube(const H5File &file, string dataset_name) {
   dataset.read(m.data(), PredType::NATIVE_DOUBLE);
   return m;
 }
-icube h5read_icube(const H5File &file, string dataset_name) {
+icube h5read_icube(const H5File &file, std::string dataset_name) {
   DataSet dataset = file.openDataSet(dataset_name);
   DataSpace dataspace = dataset.getSpace();
   int Ndims = dataspace.getSimpleExtentNdims();
   if (Ndims != 3) {
-    string s = "dims should be 3 for cube matrix, " + to_string(Ndims) + " in this dataset: " + dataset_name;
+    std::string s = "dims should be 3 for cube matrix, " + std::to_string(Ndims) + " in this dataset: " + dataset_name;
     throw std::runtime_error(s.c_str());
   }
 
@@ -240,17 +240,17 @@ icube h5read_icube(const H5File &file, string dataset_name) {
   dataset.read(m.data(), PredType::NATIVE_INT);
   return m;
 }
-mat h5read_mat(string file, string dataset_name) {
+mat h5read_mat(std::string file, std::string dataset_name) {
   H5File h5file;
   h5file.openFile(file, H5F_ACC_RDWR);
   return h5read_mat(h5file, dataset_name);
 }
-  mat h5read_mat(const H5File &file, string dataset_name) {
+  mat h5read_mat(const H5File &file, std::string dataset_name) {
   DataSet dataset = file.openDataSet(dataset_name);
   DataSpace dataspace = dataset.getSpace();
   int Ndims = dataspace.getSimpleExtentNdims();
   if (Ndims != 2) {
-   string s = "dims should be 2 for 2d matrix, " + to_string(Ndims) + " in this dataset: " + dataset_name;
+   std::string s = "dims should be 2 for 2d matrix, " + std::to_string(Ndims) + " in this dataset: " + dataset_name;
     throw std::runtime_error(s.c_str());
   }
 
@@ -261,12 +261,12 @@ mat h5read_mat(string file, string dataset_name) {
   dataset.read(m.data(), PredType::NATIVE_DOUBLE);
   return m;
 }
-imat h5read_imat(const H5File &file, string dataset_name) {
+imat h5read_imat(const H5File &file, std::string dataset_name) {
   DataSet dataset = file.openDataSet(dataset_name);
   DataSpace dataspace = dataset.getSpace();
   int Ndims = dataspace.getSimpleExtentNdims();
   if (Ndims != 2) {
-    string s = "dims should be 2 for 2d matrix, " + to_string(Ndims) + " in this dataset: " + dataset_name;
+    std::string s = "dims should be 2 for 2d matrix, " + std::to_string(Ndims) + " in this dataset: " + dataset_name;
     throw std::runtime_error(s.c_str());
   }
 
@@ -278,7 +278,7 @@ imat h5read_imat(const H5File &file, string dataset_name) {
   return m;
 }
 
-void h5write(H5File &file, Group *group, string dataset_name, const string s) {
+void h5write(H5File &file, Group *group, std::string dataset_name, const std::string s) {
   try {
     StrType datatype(0, H5T_VARIABLE);
     DataSpace dataspace(H5S_SCALAR);
@@ -291,10 +291,10 @@ void h5write(H5File &file, Group *group, string dataset_name, const string s) {
     dataspace.close();
     dataset.close();
 
-    string group_name;
+    std::string group_name;
     if (group != nullptr)
       group_name = group->getObjnameByIdx(0);
-    string s = "write string to h5 file [" + file.getFileName()
+    std::string s = "write std::string to h5 file [" + file.getFileName()
         + "] dataset [" + group_name + "/" + dataset_name + "]\n";
 
     ssl_color_text("info", s);
@@ -310,7 +310,7 @@ void h5write(H5File &file, Group *group, string dataset_name, const string s) {
   }
 }
 
-void h5write(H5File &file, Group *group, string dataset_name, const mat &m) {
+void h5write(H5File &file, Group *group, std::string dataset_name, const mat &m) {
   try {
     hsize_t dims[2];
     dims[0] = m.cols(); // ColMajor
@@ -324,10 +324,10 @@ void h5write(H5File &file, Group *group, string dataset_name, const mat &m) {
     dataset.write(m.data(), PredType::NATIVE_DOUBLE);
     dataspace.close();
     dataset.close();
-    string group_name;
+    std::string group_name;
     if (group != nullptr)
       group_name = group->getObjnameByIdx(0);
-    string s = "write mat [" + to_string(m.rows()) + "*" + to_string(m.cols()) + "] to h5 file [" + file.getFileName()
+    std::string s = "write mat [" + std::to_string(m.rows()) + "*" + std::to_string(m.cols()) + "] to h5 file [" + file.getFileName()
         + "] dataset [" + group_name + "/" + dataset_name + "]\n";
 
     ssl_color_text("info", s);
@@ -343,7 +343,7 @@ void h5write(H5File &file, Group *group, string dataset_name, const mat &m) {
   }
 }
 
-void h5write(H5File &file, Group *group, string dataset_name, const vec &v) {
+void h5write(H5File &file, Group *group, std::string dataset_name, const vec &v) {
   try {
     hsize_t dims[1];
     dims[0] = v.size();
@@ -356,10 +356,10 @@ void h5write(H5File &file, Group *group, string dataset_name, const vec &v) {
     dataset.write(v.data(), PredType::NATIVE_DOUBLE);
     dataspace.close();
     dataset.close();
-    string group_name;
+    std::string group_name;
     if (group != nullptr)
       group_name = group->getObjnameByIdx(0);
-    string s = "write vec [" + to_string(v.size()) + "*1] to h5 file [" + file.getFileName()
+    std::string s = "write vec [" + std::to_string(v.size()) + "*1] to h5 file [" + file.getFileName()
         + "] dataset [" + group_name + "/" + dataset_name + "]\n";
 
     ssl_color_text("info", s);
@@ -375,7 +375,7 @@ void h5write(H5File &file, Group *group, string dataset_name, const vec &v) {
   }
 }
 
-void h5write(H5File &file, Group *group, string dataset_name, const ivec &iv) {
+void h5write(H5File &file, Group *group, std::string dataset_name, const ivec &iv) {
   try {
     hsize_t dims[1];
     dims[0] = iv.size();
@@ -388,10 +388,10 @@ void h5write(H5File &file, Group *group, string dataset_name, const ivec &iv) {
     dataset.write(iv.data(), PredType::NATIVE_INT);
     dataspace.close();
     dataset.close();
-    string group_name;
+    std::string group_name;
     if (group != nullptr)
       group_name = group->getObjnameByIdx(0);
-    string s = "write ivec [" + to_string(iv.size()) + "*1] to h5 file [" + file.getFileName()
+    std::string s = "write ivec [" + std::to_string(iv.size()) + "*1] to h5 file [" + file.getFileName()
         + "] dataset [" + group_name + "/" + dataset_name + "]\n";
 
     ssl_color_text("info", s);
@@ -406,7 +406,7 @@ void h5write(H5File &file, Group *group, string dataset_name, const ivec &iv) {
     error.printErrorStack();
   }
 }
-void h5write(H5File &file, Group *group, string dataset_name, const cube & m)
+void h5write(H5File &file, Group *group, std::string dataset_name, const cube & m)
 {
   try {
     hsize_t dims[3];
@@ -424,10 +424,10 @@ void h5write(H5File &file, Group *group, string dataset_name, const cube & m)
     dataset.write(m.data(), PredType::NATIVE_DOUBLE);
     dataspace.close();
     dataset.close();
-    string group_name;
+    std::string group_name;
     if (group != nullptr) group_name = group->getObjnameByIdx(0);
-    string s = "write cube [" + to_string(dims[2]) + "*" + to_string(dims[1]) +
-               "*" + to_string(dims[0]) + "] to h5 file [" +
+    std::string s = "write cube [" + std::to_string(dims[2]) + "*" + std::to_string(dims[1]) +
+               "*" + std::to_string(dims[0]) + "] to h5 file [" +
                file.getFileName() + "] dataset [" + group_name + "/" +
                dataset_name + "]\n";
 
@@ -443,7 +443,7 @@ void h5write(H5File &file, Group *group, string dataset_name, const cube & m)
     error.printErrorStack();
   }
 }
-void h5write(H5File &file, Group *group, string dataset_name,
+void h5write(H5File &file, Group *group, std::string dataset_name,
              const icube &cube) {
   try {
     hsize_t dims[3];
@@ -459,11 +459,11 @@ void h5write(H5File &file, Group *group, string dataset_name,
     dataset.write(cube.data(), PredType::NATIVE_INT);
     dataspace.close();
     dataset.close();
-    string group_name;
+    std::string group_name;
     if (group != nullptr)
       group_name = group->getObjnameByIdx(0);
-    string s =
-        "write icube [" + to_string(dims[2]) + "*" + to_string(dims[1]) + "*" + to_string(dims[0]) + "] to h5 file ["
+    std::string s =
+        "write icube [" + std::to_string(dims[2]) + "*" + std::to_string(dims[1]) + "*" + std::to_string(dims[0]) + "] to h5 file ["
             + file.getFileName()
             + "] dataset [" + group_name + "/" + dataset_name + "]\n";
 
@@ -493,7 +493,7 @@ void declare_path(const char *ptr2) {
     std::cout << "Failed to set default directory: " << g_yacas->Error() << "\n";
 }
 void load_yacas() {
-  string root_dir = g_project_path + "/share/spin-scenario/config/yacas/scripts";
+  std::string root_dir = g_project_path + "/share/spin-scenario/config/yacas/scripts";
   g_yacas = new CYacas(std::cout);
   /* Split up root_dir in pieces separated by colons, and run
   DefaultDirectory on each of them. */
@@ -520,21 +520,21 @@ void load_yacas() {
 
 void yacas_global_vars() {
   ssl::spinsys::isotope H1("1H");
-  //cout<<H1.gamma()<<"\n";
-  g_yacas->Evaluate("gamma1H :=" + to_string(H1.gamma() / 2 / _pi)); // unit in Hz/T.
+  //std::cout<<H1.gamma()<<"\n";
+  g_yacas->Evaluate("gamma1H :=" + std::to_string(H1.gamma() / 2 / _pi)); // unit in Hz/T.
 }
 
-string yacas_evaluate(const string expr) {
+std::string yacas_evaluate(const std::string expr) {
   g_yacas->Evaluate(expr);
-  string s = g_yacas->Result();
+  std::string s = g_yacas->Result();
   if (boost::ends_with(s, ";"))
     boost::erase_last(s, ";");
   return s;
 }
 
-state_par state_evaluate(const string expr) {
+state_par state_evaluate(const std::string expr) {
   state_par s;
-  vector<int> spin_id;
+  std::vector<int> spin_id;
   boost::smatch swhat;
   boost::regex reg_nspin("I(\\d+)");
   std::string::const_iterator start = expr.begin();
@@ -547,28 +547,28 @@ state_par state_evaluate(const string expr) {
 
   auto max_id = std::max_element(std::begin(spin_id), std::end(spin_id));
 
-  vector<string> par1;
-  vector<string> par2;
+  std::vector<std::string> par1;
+  std::vector<std::string> par2;
   for (int i = 0; i < *max_id; i++) {
-    string id = boost::lexical_cast<string>(i + 1);
-    string Iix = "I" + id + "x";
-    string Iiy = "I" + id + "y";
-    string Iiz = "I" + id + "z";
+    std::string id = boost::lexical_cast<std::string>(i + 1);
+    std::string Iix = "I" + id + "x";
+    std::string Iiy = "I" + id + "y";
+    std::string Iiz = "I" + id + "z";
 
     par1.push_back(Iix);
     par1.push_back(Iiy);
     par1.push_back(Iiz);
 
-    string Iip = "I" + id + "p";
-    string Iim = "I" + id + "m";
+    std::string Iip = "I" + id + "p";
+    std::string Iim = "I" + id + "m";
 
-    string Ix = Iix + ":= 0.5*(" + Iip + "+" + Iim + ")";
-    string Iy = Iiy + ":= -0.5*I*(" + Iip + "-" + Iim + ")";
+    std::string Ix = Iix + ":= 0.5*(" + Iip + "+" + Iim + ")";
+    std::string Iy = Iiy + ":= -0.5*I*(" + Iip + "-" + Iim + ")";
     par2.push_back(Ix);
     par2.push_back(Iy);
   }
 
-  string expr_def = "[Local(";
+  std::string expr_def = "[Local(";
   for (size_t i = 0; i < par1.size() - 1; i++)
     expr_def += par1[i] + ",";
   expr_def += par1.back() + ");";
@@ -576,7 +576,7 @@ state_par state_evaluate(const string expr) {
   for (size_t i = 0; i < par2.size(); i++)
     expr_def += par2[i] + ";";
 
-  string expr_in = expr, expr_out;
+  std::string expr_in = expr, expr_out;
   boost::replace_all(expr_in, "xI", "x*I");
   boost::replace_all(expr_in, "yI", "y*I");
   boost::replace_all(expr_in, "zI", "z*I");
@@ -584,17 +584,17 @@ state_par state_evaluate(const string expr) {
   expr_in = "Simplify(" + expr_in + ");]";
   expr_def += expr_in;
   expr_out = yacas_evaluate(expr_def);
-  //cout << "expr:" << expr_def << endl;
-  //cout << "expr in:" << expr_in << endl;
-  //cout << "expr out:" << expr_out << endl;
+  //std::cout << "expr:" << expr_def << std::endl;
+  //std::cout << "expr in:" << expr_in << std::endl;
+  //std::cout << "expr out:" << expr_out << std::endl;
 
   boost::cmatch what;
   boost::regex reg_plus("([^\\,|^\\(])(\\-)");
   if (boost::regex_search(expr_out.c_str(), what, reg_plus)) {
-    //cout << string(what[1]) << "\n" << string(what[2]) << "\n";
-    string s = boost::regex_replace(expr_out, reg_plus, "$1+$2");
+    //std::cout << std::string(what[1]) << "\n" << std::string(what[2]) << "\n";
+    std::string s = boost::regex_replace(expr_out, reg_plus, "$1+$2");
     expr_out = s;
-    //cout << expr_out << "\n";
+    //std::cout << expr_out << "\n";
   }
 
   if (boost::starts_with(expr_out, "-"))
@@ -602,36 +602,36 @@ state_par state_evaluate(const string expr) {
 
   boost::regex reg_unity("(\\+)(\\-)(I)");
   if (boost::regex_search(expr_out.c_str(), what, reg_unity)) {
-    //cout << string(what[1]) << "\n" << string(what[2]) << "\n";
-    string s = boost::regex_replace(expr_out, reg_unity, "$1-1*$3");
+    //std::cout << std::string(what[1]) << "\n" << std::string(what[2]) << "\n";
+    std::string s = boost::regex_replace(expr_out, reg_unity, "$1-1*$3");
     expr_out = s;
-    //cout << expr_out << "\n";
+    //std::cout << expr_out << "\n";
   }
 
   boost::erase_all(expr_out, ";");
   if (boost::starts_with(expr_out, "+"))
     boost::erase_first(expr_out, "+");
-  vector<string> expr_vec;
+  std::vector<std::string> expr_vec;
   boost::algorithm::split(expr_vec, expr_out, boost::is_any_of("+"));
 
-  vector<cd> coeff(expr_vec.size());
+  std::vector<cd> coeff(expr_vec.size());
   for (size_t i = 0; i < expr_vec.size(); i++) {
 
     if (expr_vec[i] == "1")
       expr_vec[i] = "I1e";
 
-    //cout << expr_vec[i] << "\n";
+    //std::cout << expr_vec[i] << "\n";
     boost::regex reg_complex("(\\*Complex\\()(\\-?\\d+\\.?\\d*)(\\,)(\\-?\\d+\\.?\\d*)(\\))");
     if (boost::regex_search(expr_vec[i].c_str(), what, reg_complex)) {
       coeff[i] = cd(stod(what[2]), stod(what[4]));
-      string s = boost::regex_replace(expr_vec[i], reg_complex, "");
+      std::string s = boost::regex_replace(expr_vec[i], reg_complex, "");
       expr_vec[i] = s;
     } else {
       boost::regex reg_double("\\(?(\\-?\\d+\\.?\\d*)\\)?\\*");
       if (boost::regex_search(expr_vec[i].c_str(), what, reg_double)) {
         coeff[i] = cd(stod(what[1]), 0);
-        //cout << coeff.back() << "\n";
-        string s = boost::regex_replace(expr_vec[i], reg_double, "");
+        //std::cout << coeff.back() << "\n";
+        std::string s = boost::regex_replace(expr_vec[i], reg_double, "");
         expr_vec[i] = s;
       } else {
         coeff[i] = cd(1, 0);
@@ -640,32 +640,32 @@ state_par state_evaluate(const string expr) {
 
     boost::erase_all(expr_vec[i], "*");
     boost::regex reg("I(\\d)(\\w)");
-    string s = boost::regex_replace(expr_vec[i], reg, "$1 I$2 ");
+    std::string s = boost::regex_replace(expr_vec[i], reg, "$1 I$2 ");
     expr_vec[i] = s;
-    //cout << coeff[i] << "\n";
-    //cout << expr_vec[i] << "\n";
+    //std::cout << coeff[i] << "\n";
+    //std::cout << expr_vec[i] << "\n";
   }
   s.coeff = coeff;
   s.expr = expr_vec;
   return s;
 }
 
-double yacas_integral(double from, double to, string func, string var, int precision) {
-  string expr = "N(Integrate(" + var + "," + std::to_string(from) + "," + std::to_string(to) + ") (" + func + "),"
+double yacas_integral(double from, double to, std::string func, std::string var, int precision) {
+  std::string expr = "N(Integrate(" + var + "," + std::to_string(from) + "," + std::to_string(to) + ") (" + func + "),"
       + std::to_string(precision) + ")";
-  cout << expr << "\n";
-  string s = yacas_evaluate(expr);
-  cout << s << "\n";
+  std::cout << expr << "\n";
+  std::string s = yacas_evaluate(expr);
+  std::cout << s << "\n";
   return std::stod(s);
 }
 
-string yacas_integral(string func, string var) {
-  string expr = "Integrate(" + var + ") (" + func + ")";
+std::string yacas_integral(std::string func, std::string var) {
+  std::string expr = "Integrate(" + var + ") (" + func + ")";
   return yacas_evaluate(expr);
 }
 
-double yacas_func(double pos, string func, string var, int precision) {
-  string expr = "N(f(" + var + "):=" + func + ")";
+double yacas_func(double pos, std::string func, std::string var, int precision) {
+  std::string expr = "N(f(" + var + "):=" + func + ")";
   return std::stod(yacas_evaluate(expr));
 }
 
@@ -684,15 +684,15 @@ void ssl_version_output() {
   char arr_time[20];                
   sprintf(arr_date, "%s", __DATE__);  
   sprintf(arr_time, "%s", __TIME__);  
-  cout << endl;
-  cout << boost::format("%10tS P I N  S C E N A R I O") << endl;
-  cout << boost::format("%10t%s") % "version 1.0   last modified " << arr_time <<" "<< arr_date << endl;
+  std::cout << std::endl;
+  std::cout << boost::format("%10tS P I N  S C E N A R I O") << std::endl;
+  std::cout << boost::format("%10t%s") % "version 1.0   last modified " << arr_time <<" "<< arr_date << std::endl;
 
-  cout << endl;
-  cout << boost::format("%10t%s") % "Copyright(C) 2019-2020" << endl;
-  cout << boost::format("%10t%s") % "Yan Chang (changy@sibet.ac.cn)" << endl;
-  cout << endl;
-  cout << boost::format("%10t%s") % "https://github.com/spin-scenario" << endl;
+  std::cout << std::endl;
+  std::cout << boost::format("%10t%s") % "Copyright(C) 2019-2020" << std::endl;
+  std::cout << boost::format("%10t%s") % "Yan Chang (changy@sibet.ac.cn)" << std::endl;
+  std::cout << std::endl;
+  std::cout << boost::format("%10t%s") % "https://github.com/spin-scenario" << std::endl;
 }
 
 #ifdef WIN32
@@ -705,44 +705,44 @@ WORD get_old_color_attrs() {
 }
 #endif
 
-void ssl_color_text(const string &option, const string &s, ostream &ostr) {
+void ssl_color_text(const std::string &option, const std::string &s, std::ostream &ostr) {
 #ifdef WIN32
   if (option == "info") {
     SetConsoleTextAttribute(hConsole, SSL_INFO_COLOR1);
-    ostr << "SSL-Info:" << flush;
+    ostr << "SSL-Info:" << std::flush;
     SetConsoleTextAttribute(hConsole, SSL_INFO_COLOR2);
   }
   if (option == "warn") {
     SetConsoleTextAttribute(hConsole, SSL_WARN_COLOR1);
-    ostr << "SSL-Warn:" << flush;
+    ostr << "SSL-Warn:" << std::flush;
     SetConsoleTextAttribute(hConsole, SSL_WARN_COLOR2);
   }
   if (option == "oc") {
     SetConsoleTextAttribute(hConsole, SSL_WARN_COLOR1);
-    ostr << "SSL-OC:" << flush;
+    ostr << "SSL-OC:" << std::flush;
     SetConsoleTextAttribute(hConsole, SSL_WARN_COLOR2);
   }
   if (option == "err") {
     SetConsoleTextAttribute(hConsole, SSL_ERR_COLOR1);
-    ostr << "SSL-Err:" << flush;
+    ostr << "SSL-Err:" << std::flush;
     SetConsoleTextAttribute(hConsole, SSL_ERR_COLOR2);
   }
   if (option == "seq_phase") {
     SetConsoleTextAttribute(hConsole, SSL_PHASE_COLOR1);
-    ostr << "          " << flush;
+    ostr << "          " << std::flush;
     SetConsoleTextAttribute(hConsole, SSL_PHASE_COLOR2);
   }
   ostr << " " << s;
   SetConsoleTextAttribute(hConsole, wOldColorAttrs);
 #else
   if (option == "info") {
-    ostr << "\x1b[1;32mSSL-Info:" << flush;
+    ostr << "\x1b[1;32mSSL-Info:" << std::flush;
   }
   if (option == "warn") {
-    ostr << "\x1b[1;33mSSL-Warn:" << flush;
+    ostr << "\x1b[1;33mSSL-Warn:" << std::flush;
   }
   if (option == "err") {
-    ostr << "\x1b[1;31mSSL-Err:" << flush;
+    ostr << "\x1b[1;31mSSL-Err:" << std::flush;
   }
   ostr << " " << s << "\x1b[0m";
 #endif
@@ -804,7 +804,7 @@ stft_out stft(const cx_vec &signal, win_shape wshape, int win_length, int hop,
   freq *= delta_freq;
 
 #ifdef SSL_OUTPUT_ENABLE
-  string s = str(boost::format("%s %s * %s; ") % "specgram matrix size:" %
+  std::string s = str(boost::format("%s %s * %s; ") % "specgram matrix size:" %
                  specgram.rows() % specgram.cols());
   s += str(boost::format("%s %s Hz / %s ms.\n") % "resolution:" % delta_freq %
            (delta_time * 1e3));
@@ -826,8 +826,8 @@ stft_out stft(const cx_vec &signal, win_shape wshape, int win_length, int hop,
   // // quite different!
 
   mat unwrap_phase = unwrap2d(phase);
-  string time_s = sys_time();
-  // string folder = "raw_data_" + time_s;
+  std::string time_s = sys_time();
+  // std::string folder = "raw_data_" + time_s;
   // g_lua->script("os.execute('mkdir " + folder + "')");
   // H5File file(folder + "/specgram.h5", H5F_ACC_TRUNC);
   H5File file("specgram_" + time_s + ".h5", H5F_ACC_TRUNC);
@@ -847,14 +847,14 @@ stft_out stft(const cx_vec &signal, win_shape wshape, int win_length, int hop,
   return val;
 }
 
-extern const std::map<string, double> g_phase_map = phase_map();
+extern const std::map<std::string, double> g_phase_map = phase_map();
 
-std::map<string, double> phase_map() {
-  std::map<string, double> phase;
-  phase.insert(pair<string, double>("x", 0));
-  phase.insert(pair<string, double>("y", 90));
-  phase.insert(pair<string, double>("-x", 180));
-  phase.insert(pair<string, double>("-y", 270));
+std::map<std::string, double> phase_map() {
+  std::map<std::string, double> phase;
+  phase.insert(std::pair<std::string, double>("x", 0));
+  phase.insert(std::pair<std::string, double>("y", 90));
+  phase.insert(std::pair<std::string, double>("-x", 180));
+  phase.insert(std::pair<std::string, double>("-y", 270));
   return phase;
 }
 
@@ -907,23 +907,23 @@ double phase_in_degree(cd val) {
   return phase_in_rad(val) * 180.0 / _pi;
 }
 
-std::map<string, win_shape> win_shape_map() {
-  std::map<string, win_shape> map;
-  map.insert(pair<string, win_shape>("gauss", _gauss));
-  map.insert(pair<string, win_shape>("hamming", _hamming));
-  map.insert(pair<string, win_shape>("rect", _rect));
+std::map<std::string, win_shape> win_shape_map() {
+  std::map<std::string, win_shape> map;
+  map.insert(std::pair<std::string, win_shape>("gauss", _gauss));
+  map.insert(std::pair<std::string, win_shape>("hamming", _hamming));
+  map.insert(std::pair<std::string, win_shape>("rect", _rect));
   return map;
 }
 
-win_shape window_interpreter(string win_name) {
+win_shape window_interpreter(std::string win_name) {
   boost::to_lower(win_name);
-  std::map<string, win_shape>::const_iterator iter;
+  std::map<std::string, win_shape>::const_iterator iter;
   for (size_t i = 0; i < g_win_shape.size(); i++) {
     iter = g_win_shape.find(win_name);
     if (iter != g_win_shape.end())
       return iter->second;
   }
-  string s = "unknown window name: " + win_name;
+  std::string s = "unknown window name: " + win_name;
   throw std::runtime_error(s.c_str());
   return _unknown_window;
 }
@@ -1051,22 +1051,22 @@ cx_mat fft_2d(const cx_mat &src) {
   fftw_free(out);
   return des;
 }
-mat eigen_read(string file_name) {
-  ifstream file;
-  file.open(file_name.c_str(), ios::in);
+mat eigen_read(std::string file_name) {
+  std::ifstream file;
+  file.open(file_name.c_str(), std::ios::in);
   if (!file) {
-    string s = "failed to read file " + file_name;
+    std::string s = "failed to read file " + file_name;
     throw std::runtime_error(s.c_str());
   }
-  vector<vector<string>> doc_str;
-  string line;
+  std::vector<std::vector<std::string>> doc_str;
+  std::string line;
   while (!file.eof()) {
     getline(file, line);
     if (!boost::starts_with(line, "#")) {
       boost::trim(line); // trim the spaces on both left and right sides.
       if (strlen(line.c_str()) == 0)
         continue;
-      vector<string> line_vec_str;
+      std::vector<std::string> line_vec_str;
       boost::split(line_vec_str, line, boost::is_any_of(" , "), boost::token_compress_on);
       doc_str.push_back(line_vec_str);
     }
@@ -1151,9 +1151,9 @@ sol::table vec2table(const vec &v) {
     return t;
 }
 
-void write(string file, sol::variadic_args va, const mat & /*m*/) {
-  string sep = "\n#----------------------------------------\n";
-  ofstream ofstr(file.c_str());
+void write(std::string file, sol::variadic_args va, const mat & /*m*/) {
+  std::string sep = "\n#----------------------------------------\n";
+  std::ofstream ofstr(file.c_str());
   // ofstr << sys_time() << sep;
   ofstr.precision(3);
   int i = 0;
@@ -1168,9 +1168,9 @@ void write(string file, sol::variadic_args va, const mat & /*m*/) {
   ofstr.close();
 
 }
-void write(string file, sol::variadic_args va, const cx_mat & /*m*/) {
-  string sep = "\n#----------------------------------------\n";
-  ofstream ofstr(file.c_str());
+void write(std::string file, sol::variadic_args va, const cx_mat & /*m*/) {
+  std::string sep = "\n#----------------------------------------\n";
+  std::ofstream ofstr(file.c_str());
   ofstr << sys_time() << sep;
   ofstr.precision(3);
   for (auto v : va) {
@@ -1182,9 +1182,9 @@ void write(string file, sol::variadic_args va, const cx_mat & /*m*/) {
   ofstr.close();
 
 }
-void write(string file, sol::variadic_args va, const vec & /*v*/) {
-  string sep = "\n#----------------------------------------\n";
-  ofstream ofstr(file.c_str());
+void write(std::string file, sol::variadic_args va, const vec & /*v*/) {
+  std::string sep = "\n#----------------------------------------\n";
+  std::ofstream ofstr(file.c_str());
   // ofstr << sys_time() << sep;
   ofstr.precision(3);
   int i = 0;
@@ -1197,9 +1197,9 @@ void write(string file, sol::variadic_args va, const vec & /*v*/) {
   }
   ofstr.close();
 }
-void write(string file, sol::variadic_args va, const cx_vec & /*v*/) {
-  string sep = "\n#----------------------------------------\n";
-  ofstream ofstr(file.c_str());
+void write(std::string file, sol::variadic_args va, const cx_vec & /*v*/) {
+  std::string sep = "\n#----------------------------------------\n";
+  std::ofstream ofstr(file.c_str());
   ofstr << sys_time() << sep;
   ofstr.precision(3);
   for (auto v : va) {
@@ -1210,9 +1210,9 @@ void write(string file, sol::variadic_args va, const cx_vec & /*v*/) {
   }
   ofstr.close();
 }
-void write(string file, sol::variadic_args va, const sp_mat & /*m*/) {
-  string sep = "\n#----------------------------------------\n";
-  ofstream ofstr(file.c_str());
+void write(std::string file, sol::variadic_args va, const sp_mat & /*m*/) {
+  std::string sep = "\n#----------------------------------------\n";
+  std::ofstream ofstr(file.c_str());
   ofstr << sys_time() << sep;
   ofstr.precision(3);
   for (auto v : va) {
@@ -1223,9 +1223,9 @@ void write(string file, sol::variadic_args va, const sp_mat & /*m*/) {
   }
   ofstr.close();
 }
-void write(string file, sol::variadic_args va, const sp_cx_mat & /*m*/) {
-  string sep = "\n#----------------------------------------\n";
-  ofstream ofstr(file.c_str());
+void write(std::string file, sol::variadic_args va, const sp_cx_mat & /*m*/) {
+  std::string sep = "\n#----------------------------------------\n";
+  std::ofstream ofstr(file.c_str());
   ofstr << sys_time() << sep;
   ofstr.precision(3);
   for (auto v : va) {
@@ -1236,9 +1236,9 @@ void write(string file, sol::variadic_args va, const sp_cx_mat & /*m*/) {
   }
   ofstr.close();
 }
-void write(string file, sol::variadic_args va, const sp_vec & /*v*/) {
-  string sep = "\n#----------------------------------------\n";
-  ofstream ofstr(file.c_str());
+void write(std::string file, sol::variadic_args va, const sp_vec & /*v*/) {
+  std::string sep = "\n#----------------------------------------\n";
+  std::ofstream ofstr(file.c_str());
   ofstr << sys_time() << sep;
   ofstr.precision(3);
   for (auto v : va) {
@@ -1249,9 +1249,9 @@ void write(string file, sol::variadic_args va, const sp_vec & /*v*/) {
   }
   ofstr.close();
 }
-void write(string file, sol::variadic_args va, const sp_cx_vec & /*v*/) {
-  string sep = "\n#----------------------------------------\n";
-  ofstream ofstr(file.c_str());
+void write(std::string file, sol::variadic_args va, const sp_cx_vec & /*v*/) {
+  std::string sep = "\n#----------------------------------------\n";
+  std::ofstream ofstr(file.c_str());
   ofstr << sys_time() << sep;
   ofstr.precision(3);
   for (auto v : va) {
@@ -1263,14 +1263,14 @@ void write(string file, sol::variadic_args va, const sp_cx_vec & /*v*/) {
   ofstr.close();
 }
 
-bool is_retrievable(string key, const sol::table &t) {
+bool is_retrievable(std::string key, const sol::table &t) {
   sol::object val = t[key];
   return val.valid();
 }
-sol::object retrieve_table(string key, const sol::table &t, string supp) {
+sol::object retrieve_table(std::string key, const sol::table &t, std::string supp) {
   sol::object val = t[key];
   if (!val.valid()) {
-    string s = "no '" + key + "' key inside the this table.";
+    std::string s = "no '" + key + "' key inside the this table.";
     if (!supp.empty())
       s += " (" + supp + ")";
     throw std::runtime_error(s.c_str());
@@ -1278,25 +1278,25 @@ sol::object retrieve_table(string key, const sol::table &t, string supp) {
   return val;
 }
 
-string retrieve_table_str(string key, const sol::table &t, string supp) {
+std::string retrieve_table_str(std::string key, const sol::table &t, std::string supp) {
   sol::object val = retrieve_table(key, t, supp);
-  return val.as<string>();
+  return val.as<std::string>();
 }
-int retrieve_table_int(string key, const sol::table &t, string supp) {
+int retrieve_table_int(std::string key, const sol::table &t, std::string supp) {
   sol::object val = retrieve_table(key, t, supp);
   return val.as<int>();
 }
-size_t retrieve_table_size_t(string key, const sol::table &t, string supp) {
+size_t retrieve_table_size_t(std::string key, const sol::table &t, std::string supp) {
   sol::object val = retrieve_table(key, t, supp);
   return val.as<size_t>();
 }
 
-double retrieve_table_double(string key, const sol::table &t, string supp) {
+double retrieve_table_double(std::string key, const sol::table &t, std::string supp) {
   sol::object val = retrieve_table(key, t, supp);
   return val.as<double>();
 }
 
-bool parse(string exp, colon_sep &val) {
+bool parse(std::string exp, colon_sep &val) {
   boost::cmatch what;
   boost::regex reg("\\s*(\\-?\\d+\\.?\\d*)\\s*:\\s*(\\-?\\d+\\.?\\d*)\\s*:\\s*(\\-?\\d+\\.?\\d*)\\s*");
   if (boost::regex_search(exp.c_str(), what, reg)) {
@@ -1306,12 +1306,12 @@ bool parse(string exp, colon_sep &val) {
     return true;
   } else {
     return false;
-    //string s = "parse a:b:c failed: " + exp;
+    //std::string s = "parse a:b:c failed: " + exp;
     //throw std::runtime_error(s.c_str());
   }
 }
 
-vec stl2vec(const vector<double> &data) {
+vec stl2vec(const std::vector<double> &data) {
   vec v(data.size());
   for (size_t i = 0; i < data.size(); i++)
     v[i] = data[i];

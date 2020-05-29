@@ -42,17 +42,17 @@ void bindings(sol::state &lua) {
   ssl.set_function(
       "write",
       sol::overload(
-          sol::resolve<void(string, sol::variadic_args, const sp_mat &)>(write),
-          sol::resolve<void(string, sol::variadic_args, const sp_cx_mat &)>(
+          sol::resolve<void(std::string, sol::variadic_args, const sp_mat &)>(write),
+          sol::resolve<void(std::string, sol::variadic_args, const sp_cx_mat &)>(
               write),
-          sol::resolve<void(string, sol::variadic_args, const sp_vec &)>(write),
-          sol::resolve<void(string, sol::variadic_args, const sp_cx_vec &)>(
+          sol::resolve<void(std::string, sol::variadic_args, const sp_vec &)>(write),
+          sol::resolve<void(std::string, sol::variadic_args, const sp_cx_vec &)>(
               write),
-          sol::resolve<void(string, sol::variadic_args, const mat &)>(write),
-          sol::resolve<void(string, sol::variadic_args, const cx_mat &)>(write),
-          sol::resolve<void(string, sol::variadic_args, const vec &)>(write),
-          sol::resolve<void(string, sol::variadic_args, const cx_vec &)>(write),
-          sol::resolve<void(string, sol::variadic_args, const seq_block &)>(
+          sol::resolve<void(std::string, sol::variadic_args, const mat &)>(write),
+          sol::resolve<void(std::string, sol::variadic_args, const cx_mat &)>(write),
+          sol::resolve<void(std::string, sol::variadic_args, const vec &)>(write),
+          sol::resolve<void(std::string, sol::variadic_args, const cx_vec &)>(write),
+          sol::resolve<void(std::string, sol::variadic_args, const seq_block &)>(
               ssl::seq::write)));
 
   ssl.set_function(
@@ -60,11 +60,11 @@ void bindings(sol::state &lua) {
       sol::overload(
           sol::resolve<void(const seq_block &, const sol::table &)>(
               &ssl::seq::specgram),
-          sol::resolve<void(string, const sol::table &)>(&ssl::seq::specgram)));
+          sol::resolve<void(std::string, const sol::table &)>(&ssl::seq::specgram)));
 
   lua.set("ci", ci);
 
-  lua.set_function("h5read_mat",  sol::overload(sol::resolve<mat(string, string)>(h5read_mat)));
+  lua.set_function("h5read_mat",  sol::overload(sol::resolve<mat(std::string, std::string)>(h5read_mat)));
 
   lua.set_function("table2mat", table2mat);
   lua.set_function("table2vec", table2vec);
@@ -148,22 +148,22 @@ void bindings(sol::state &lua) {
 
   ssl.new_usertype<line>(
       "line", sol::constructors<
-                  line(string), line(string, string), line(const vec &),
-                  line(const vec &, string), line(const vec &, const vec &),
-                  line(const vec &, const vec &, string),
-                  line(const sol::table &), line(const sol::table &, string),
+                  line(std::string), line(std::string, std::string), line(const vec &),
+                  line(const vec &, std::string), line(const vec &, const vec &),
+                  line(const vec &, const vec &, std::string),
+                  line(const sol::table &), line(const sol::table &, std::string),
                   line(const sol::table &, const sol::table &),
-                  line(const sol::table &, const sol::table &, string),
-                  line(const sol::table &, const sol::table &, string)>());
+                  line(const sol::table &, const sol::table &, std::string),
+                  line(const sol::table &, const sol::table &, std::string)>());
   ssl.new_usertype<line_series>(
       "line_series",
-      sol::constructors<line_series(string), line_series(const sol::table &),
+      sol::constructors<line_series(std::string), line_series(const sol::table &),
                         line_series(const vec &, const sol::table &)>());
   ssl.new_usertype<utility::map>(
       "map",
-      sol::constructors<utility::map(string), utility::map(string, string),
+      sol::constructors<utility::map(std::string), utility::map(std::string, std::string),
                         utility::map(const mat &),
-                        utility::map(const mat &, string)>());
+                        utility::map(const mat &, std::string)>());
 
   ssl.set_function(
       "plot",
@@ -173,16 +173,16 @@ void bindings(sol::state &lua) {
               ssl::seq::plot),
           sol::resolve<void(sol::variadic_args, const line &)>(
               ssl::utility::plot),
-          sol::resolve<void(string, sol::variadic_args, const line &)>(
+          sol::resolve<void(std::string, sol::variadic_args, const line &)>(
               ssl::utility::plot),
-          sol::resolve<void(string, sol::variadic_args, const line_series &)>(
+          sol::resolve<void(std::string, sol::variadic_args, const line_series &)>(
               ssl::utility::plot),
           sol::resolve<void(sol::variadic_args, const utility::map &)>(
               ssl::utility::plot),
-          sol::resolve<void(string, sol::variadic_args, const utility::map &)>(
+          sol::resolve<void(std::string, sol::variadic_args, const utility::map &)>(
               ssl::utility::plot),
           sol::resolve<void(const line_series &)>(ssl::utility::plot)
-          //sol::resolve<void(string, const line_series &)>(ssl::utility::plot)
+          //sol::resolve<void(std::string, const line_series &)>(ssl::utility::plot)
       ));
 
     lua.set_function("output_terminal", set_output_terminal);
@@ -234,7 +234,7 @@ void bindings(sol::state &lua) {
       &ssl::seq::set_loop_array, sol::meta_function::modulus,
       sol::overload(
           sol::resolve<seq_block &(seq_block &, double)>(&ssl::seq::set_align),
-          sol::resolve<seq_block &(seq_block &, string)>(
+          sol::resolve<seq_block &(seq_block &, std::string)>(
               &ssl::seq::set_align)));
 
   lua.set_function("area", &ssl::seq::area);
@@ -268,7 +268,7 @@ void bindings(sol::state &lua) {
   // spin_system bindings.
   ssl.new_usertype<spin_system>(
       "spin_system",
-      sol::constructors<sol::types<const string &>,
+      sol::constructors<sol::types<const std::string &>,
                         sol::types<const sol::table &>>(),
       "isotopes", sol::property(&spin_system::isotopes), "hamiltonian",
       &spin_system::hamiltonian, "freq",
@@ -285,14 +285,14 @@ void bindings(sol::state &lua) {
           sol::resolve<sp_mat(const sol::table &) const>(&spin_system::op),
           sol::resolve<sp_mat(const sol::table &, op_side) const>(
               &spin_system::op),
-          sol::resolve<sp_mat(const string &) const>(&spin_system::op),
-          sol::resolve<sp_mat(const string &, op_side) const>(
+          sol::resolve<sp_mat(const std::string &) const>(&spin_system::op),
+          sol::resolve<sp_mat(const std::string &, op_side) const>(
               &spin_system::op)),
       "expr_state", &spin_system::smart_state, "state",
       sol::overload(
           sol::resolve<sp_cx_vec(const sol::table &) const>(
               &spin_system::state),
-          sol::resolve<sp_cx_vec(const string &) const>(&spin_system::state)));
+          sol::resolve<sp_cx_vec(const std::string &) const>(&spin_system::state)));
 
   // lua.set_function("seq", &ssl::seq::seq);
 

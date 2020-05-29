@@ -24,7 +24,7 @@ class CoilFactory {
   CoilFactory();
   virtual ~CoilFactory();
   /// \brief get the coil pointer by key from this factory.
-  Coil *get_coil(string key) const;
+  Coil *get_coil(std::string key) const;
 
   /// \brief clone a coil object through a xml node.
   ///\warning It will clone a default coil from the factory,
@@ -33,9 +33,9 @@ class CoilFactory {
 
   /// \brief clone a coil object simply by key name.
   ///\warning It will clone a default coil from the factory.
-  Coil *clone_coil(string key) const;
+  Coil *clone_coil(std::string key) const;
  private:
-  map<string, Coil *> coils_;
+  std::map<std::string, Coil *> coils_;
 };
 } /* namespace equip */
 } /* namespace ssl */

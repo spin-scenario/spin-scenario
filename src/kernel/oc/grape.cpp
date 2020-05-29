@@ -17,7 +17,6 @@ using namespace ssl::utility;
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 #include <chrono>
-using namespace chrono;
 namespace ssl {
 namespace oc {
 
@@ -36,14 +35,14 @@ grape::grape(spin_system &sys)
   superop_.R = sys.relaxation();
   superop_.L0s = sys.free_hamiltonians();
   int bb_size = superop_.L0s.size();
-  //cout << bb_size << "\n";
+  //std::cout << bb_size << "\n";
   if (bb_size) {
     // superop_.profile = vec::Ones(bb_size);
     superop_.nominal_offset = sys.nominal_broadband();
-    superop_.grad_bb = vector<vector<double>>(bb_size);
+    superop_.grad_bb = std::vector<std::vector<double>>(bb_size);
   } else {  // no offset case.
     superop_.L0s.push_back(superop_.L0);
-    superop_.grad_bb = vector<vector<double>>(1);
+    superop_.grad_bb = std::vector<std::vector<double>>(1);
   }
   opt_model_ = _rho2rho;
   axis_ = uxuy_;
@@ -85,11 +84,11 @@ seq_block &grape::optimize(const sol::table &t) {
   return *rf_;
 }
 
-double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad,
+double grape::objfunc_broadband(const std::vector<double> &x, std::vector<double> &grad,
                                 void *func) {
   return ((grape *)func)->objfunc_broadband(x, grad);
 }
-double grape::objfunc_propagator(const vector<double> &x, vector<double> &grad,
+double grape::objfunc_propagator(const std::vector<double> &x, std::vector<double> &grad,
                                  void *func) {
   return ((grape *)func)->objfunc_propagator(x, grad);
 }
@@ -105,7 +104,7 @@ void grape::assign_state(const sol::table &t) {
 
     // in case of unified targ for diff freq offsets.
     if (superop_.L0s.size())
-      targ_op_list_ = vector<sp_cx_mat>(superop_.L0s.size(), targ_op_);
+      targ_op_list_ = std::vector<sp_cx_mat>(superop_.L0s.size(), targ_op_);
     return;
   }
 
@@ -120,7 +119,7 @@ void grape::assign_state(const sol::table &t) {
 
     // in case of unified targ for diff freq offsets.
     if (superop_.L0s.size())
-      targ_list_ = vector<sp_cx_vec>(superop_.L0s.size(), targ_state_);
+      targ_list_ = std::vector<sp_cx_vec>(superop_.L0s.size(), targ_state_);
   }
 
   if (obj.get_type() == sol::type::table) {
@@ -149,7 +148,7 @@ void grape::assign_nlopt(const sol::table &t) {
   nlopt::algorithm alg = nlopt::LD_LBFGS;
 
   if (is_retrievable("algorithm", t)) {
-    string oc = retrieve_table_str("algorithm", t);
+    std::string oc = retrieve_table_str("algorithm", t);
     boost::to_upper(oc);
     if (oc == "MNA") alg = nlopt::LD_MMA;
   }
@@ -177,8 +176,8 @@ void grape::print() const {
   if (optimizer_->get_algorithm() == nlopt::LD_LBFGS)
     ssl_color_text("oc", "nlopt algorithm used: LD_LBFGS.\n");
   
-  ssl_color_text("oc", "x dim: " + boost::lexical_cast<string>(x_dim_) +  ".\n");
-  ssl_color_text("oc", "nlopt xtol_rel: " + boost::lexical_cast<string>(optimizer_->get_xtol_rel()) +  ".\n");
+  ssl_color_text("oc", "x dim: " + boost::lexical_cast<std::string>(x_dim_) +  ".\n");
+  ssl_color_text("oc", "nlopt xtol_rel: " + boost::lexical_cast<std::string>(optimizer_->get_xtol_rel()) +  ".\n");
 
   
 }
@@ -199,7 +198,7 @@ void grape::assign_x() {
 void grape::assign_pulse(const sol::table &t) {
   double width = retrieve_table_double("width", t); // unit in ms.
   size_t nsteps = (size_t) (retrieve_table_int("step", t));
-  string pattern = "rand_spline";
+  std::string pattern = "rand_spline";
   if (is_retrievable("init_pattern", t))
     pattern = retrieve_table_str("init_pattern", t);
 
@@ -210,22 +209,22 @@ void grape::assign_pulse(const sol::table &t) {
 
   double dt = width * 1e-3 / double(nsteps); // into s.
 
-  string str_chs;
+  std::string str_chs;
   if (is_retrievable("limit_channel", t))
       str_chs = retrieve_table_str("limit_channel", t);
   else
   str_chs = boost::algorithm::join(superop_.rf_ctrl.chs, " ");
 
-  string code = "user_rf = shapedRF{name = 'opt-rf', width = " +
-                boost::lexical_cast<string>(width) +
-                ",  step = " + boost::lexical_cast<string>(nsteps) +
-                ",  max_amp = " + boost::lexical_cast<string>(max_init_amp) +
+  std::string code = "user_rf = shapedRF{name = 'opt-rf', width = " +
+                boost::lexical_cast<std::string>(width) +
+                ",  step = " + boost::lexical_cast<std::string>(nsteps) +
+                ",  max_amp = " + boost::lexical_cast<std::string>(max_init_amp) +
                 ",  channel = '" + str_chs + "'," + "pattern = '" + pattern +
                 "'}";
 
   g_lua->script(code);
 
-   string s = str(boost::format("pulse width - [%.3f] ms, steps - [%d], step width - [%.3f] us.\n") % width % nsteps
+   std::string s = str(boost::format("pulse width - [%.3f] ms, steps - [%d], step width - [%.3f] us.\n") % width % nsteps
                      % (dt * 1e6));
   ssl_color_text("info", s);
 
@@ -236,7 +235,7 @@ void grape::assign_pulse(const sol::table &t) {
   rf_ = &user_rf;
 
   if (is_retrievable("limit_axis", t)) {
-    string s = retrieve_table_str("limit_axis", t);
+    std::string s = retrieve_table_str("limit_axis", t);
     if (s == "x")
       axis_ = ux_;
     else if (s == "y")
@@ -246,18 +245,18 @@ void grape::assign_pulse(const sol::table &t) {
   rf_->convert2(_ux_uy);  // must do it.
 
   if(axis_==ux_) {
-   vector<double>zeros = vector<double>(rf_->get_dims() / 2, 0);
+   std::vector<double>zeros = std::vector<double>(rf_->get_dims() / 2, 0);
     rf_->update_raw_data_uy(zeros.data());
   }
   if (axis_ == uy_) {
-    vector<double> zeros = vector<double>(rf_->get_dims() / 2, 0);
+    std::vector<double> zeros = std::vector<double>(rf_->get_dims() / 2, 0);
     rf_->update_raw_data_ux(zeros.data());
   }
 }
 
-void grape::h5write(string file_name) const {
+void grape::h5write(std::string file_name) const {
   if (file_name.empty()) {
-    string time_s = sys_time();
+    std::string time_s = sys_time();
     file_name = "oc_" + time_s + ".h5";
   }
   H5File file(file_name, H5F_ACC_TRUNC);
@@ -275,16 +274,16 @@ void grape::assign_aux_var() {
   if (nbb >= 1) {
     omp_set_num_threads(omp_core_num);
     for (size_t i = 0; i < superop_.grad_bb.size(); i++)
-      superop_.grad_bb[i] = vector<double>(rf_->get_dims(), 0);
+      superop_.grad_bb[i] = std::vector<double>(rf_->get_dims(), 0);
 
     if (opt_model_ == _rho2rho) {
-      traj_omp_ = vector<state_traj>(omp_core_num);
+      traj_omp_ = std::vector<state_traj>(omp_core_num);
       for (int i = 0; i < omp_core_num; i++) {
         traj_omp_[i] = state_traj(rf_->get_steps());
       }
     }
     if (opt_model_ == _propagator) {
-      op_traj_omp_ = vector<op_traj>(omp_core_num);
+      op_traj_omp_ = std::vector<op_traj>(omp_core_num);
       for (int i = 0; i < omp_core_num; i++) {
         op_traj_omp_[i] = op_traj(rf_->get_steps());
       }
@@ -300,8 +299,8 @@ void grape::assign_constraint(const sol::table &t) {
     size_t dim = rf_->get_dims();
     size_t nsteps = rf_->get_steps();
     size_t nchannels = rf_->get_channels();
-    vector<double> up_bound(dim);
-    vector<double> low_bound(dim);
+    std::vector<double> up_bound(dim);
+    std::vector<double> low_bound(dim);
 
     // only for ux/uy mode.
     if (rf_->mode() == _ux_uy)
@@ -322,8 +321,8 @@ void grape::assign_constraint(const sol::table &t) {
   }
 }
 
-double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
-  auto start = system_clock::now();
+double grape::objfunc_broadband(const std::vector<double> &x, std::vector<double> &grad) {
+  auto start = std::chrono::system_clock::now();
   rf_->update_raw_data(axis_, x.data());
   int N = superop_.L0s.size();
   vec phi = vec::Zero(N);
@@ -331,7 +330,7 @@ double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
   size_t nsteps = rf_->get_steps();
   size_t nchannels = rf_->get_channels();
   double dt = rf_->get_dt() * 1e-6;  // into s.
-  vector<string> chs = rf_->get_channels_str();
+  std::vector<std::string> chs = rf_->get_channels_str();
 
   // double alpha = alpha0;
   vec rf_scaling =
@@ -347,7 +346,7 @@ double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
 
     int dim = rf_->get_dims();
     if (axis_ != uxuy_) dim /= 2;
-    superop_.grad_bb[p] = vector<double>(dim, 0);
+    superop_.grad_bb[p] = std::vector<double>(dim, 0);
     // start rf inhom.
 
     for (int q = 0; q < rf_scaling.size();
@@ -451,8 +450,8 @@ double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
       }
     }
   }
-  auto end = system_clock::now();
-  auto duration = duration_cast<microseconds>(end - start);
+  auto end = std::chrono::system_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
   //double PHI1 = val;
   //double PHI2 = 0;
   // double PHI2 = alpha * rf_->rf_power();
@@ -460,12 +459,12 @@ double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
   // (++opt_.iter_count) % PHI1 % PHI2;
   std::cout << boost::format("==> %04d  [%.8f]\n") % (optimizer_->get_numevals()) % val;
  obj_val_.push_back(val);
-  //cout << "Use Time:" << double(duration.count()) * microseconds::period::num / microseconds::period::den << " s.\n";
+  //std::cout << "Use Time:" << double(duration.count()) * microseconds::period::num / microseconds::period::den << " s.\n";
   return val;
 }
 
-double grape::objfunc_propagator(const vector<double> &x,
-                                 vector<double> &grad) {
+double grape::objfunc_propagator(const std::vector<double> &x,
+                                 std::vector<double> &grad) {
   rf_->update_raw_data(x.data());
   int N = superop_.L0s.size();
   vec phi = vec::Zero(N);
@@ -473,7 +472,7 @@ double grape::objfunc_propagator(const vector<double> &x,
   size_t nsteps = rf_->get_steps();
   size_t nchannels = rf_->get_channels();
   double dt = rf_->get_dt() * 1e-6;  // into s.
-  vector<string> chs = rf_->get_channels_str();
+  std::vector<std::string> chs = rf_->get_channels_str();
 
   // double alpha = alpha0;
   vec rf_scaling =
@@ -489,7 +488,7 @@ double grape::objfunc_propagator(const vector<double> &x,
 
      int dim = rf_->get_dims();
     if (axis_ != uxuy_) dim /= 2;
-    superop_.grad_bb[p] = vector<double>(dim, 0);
+    superop_.grad_bb[p] = std::vector<double>(dim, 0);
     // start rf inhom.
 
     for (int q = 0; q < rf_scaling.size();
@@ -624,7 +623,7 @@ double grape::amplitude_constraint(unsigned n, const double *x, double *grad,
   return ux * ux + uy * uy - d->amp * d->amp;
 }
 
-sp_cx_mat grape::update_rf_ham(const double *x, size_t step, size_t channel, string ch_str,
+sp_cx_mat grape::update_rf_ham(const double *x, size_t step, size_t channel, std::string ch_str,
                                size_t nchannels, double kx, double ky) {
   int ch = superop_.rf_ctrl.channel_index(ch_str);
   if (axis_ == uxuy_) {
@@ -665,7 +664,7 @@ void grape::projection(const sol::table &t) {
     epsilon_num_ = retrieve_table_int("epsilon_num", t);
   }
   sol::object val = retrieve_table("init_state", t);
-  sp_cx_vec init_state = sys_->smart_state(val.as<string>());
+  sp_cx_vec init_state = sys_->smart_state(val.as<std::string>());
   init_state = norm_state(init_state);
   //init_state = levante_ernst(init_state);
 
@@ -678,9 +677,9 @@ void grape::projection(const sol::table &t) {
   size_t nchannels = user_rf.get_channels();
   double dt = user_rf.width_in_ms() * 1e-3 / double(nsteps); // into s.
 
-  std::map<string, sp_cx_vec> obsrv_state_map;
-  vector<string> expr;
-  vector<sp_cx_vec> obsrv_state;
+  std::map<std::string, sp_cx_vec> obsrv_state_map;
+  std::vector<std::string> expr;
+  std::vector<sp_cx_vec> obsrv_state;
   if (is_retrievable("observ_states", t)) {
     val = retrieve_table("observ_states", t);
     sol::table expr_table = val.as<sol::table>();
@@ -689,9 +688,9 @@ void grape::projection(const sol::table &t) {
     } else {
       for (size_t i = 0; i < expr_table.size(); i++) {
         sol::object val = expr_table[i + 1];
-        string exp = val.as<string>();
+        std::string exp = val.as<std::string>();
         sp_cx_vec rho = sys_->smart_state(exp);
-        obsrv_state_map.insert(pair<string, sp_cx_vec>(exp, rho));
+        obsrv_state_map.insert(std::pair<std::string, sp_cx_vec>(exp, rho));
       }
     }
 
@@ -705,8 +704,8 @@ void grape::projection(const sol::table &t) {
 
       for (size_t i = 0; i < expr_table.size(); i++) {
         sol::object val = expr_table[i + 1];
-        string exp = val.as<string>();
-        std::map<string, sp_cx_vec>::iterator key = obsrv_state_map.find(exp);
+        std::string exp = val.as<std::string>();
+        std::map<std::string, sp_cx_vec>::iterator key = obsrv_state_map.find(exp);
         if (key != obsrv_state_map.end()) obsrv_state_map.erase(key);
       }
     }
@@ -714,30 +713,30 @@ void grape::projection(const sol::table &t) {
     obsrv_state_map = sys_->cartesian_basis_states();
   }
 
-  std::map<string, sp_cx_vec>::iterator iter;
+  std::map<std::string, sp_cx_vec>::iterator iter;
   for (iter = obsrv_state_map.begin(); iter != obsrv_state_map.end(); iter++) {
     obsrv_state.push_back(norm_state(iter->second));
     // obsrv_state.push_back(levante_ernst(iter->second));
     expr.push_back(iter->first);
   }
-  string dim1 = "observed states\n";
-  string dim2 = "";
-  string dim3 = "rf scaling\n";
-  string s;
+  std::string dim1 = "observed states\n";
+  std::string dim2 = "";
+  std::string dim3 = "rf scaling\n";
+  std::string s;
   for (size_t p = 0; p < expr.size(); p++)
-    s += to_string(p + 1) + "-" + expr[p] + "\n";
+    s += std::to_string(p + 1) + "-" + expr[p] + "\n";
   dim1 += s;
 
-  string str_opt = "step";
+  std::string str_opt = "step";
   if (is_retrievable("option", t)) str_opt = retrieve_table_str("option", t);
 
   if (str_opt != "step" && str_opt != "broadband") {
-    string s = "unknown projection option ** " + str_opt +
+    std::string s = "unknown projection option ** " + str_opt +
                " ** using 'step' or 'broadband' instead.";
     throw std::runtime_error(s.c_str());
   }
 
-  vector<double> x = user_rf.clone_raw_data();
+  std::vector<double> x = user_rf.clone_raw_data();
   vec rf_scaling =
       vec::LinSpaced(epsilon_num_, -epsilon_, epsilon_);  // e.g. -10% - 10%
 
@@ -745,18 +744,18 @@ void grape::projection(const sol::table &t) {
   if (n == 1)
     dim3 += "no rf inhomogeneity";
   else
-    dim3 += boost::lexical_cast<string>(rf_scaling[0] * 100) + ":" +
-            boost::lexical_cast<string>(rf_scaling[n - 1] * 100) + " " +
-            boost::lexical_cast<string>(n) + " %\n";
+    dim3 += boost::lexical_cast<std::string>(rf_scaling[0] * 100) + ":" +
+            boost::lexical_cast<std::string>(rf_scaling[n - 1] * 100) + " " +
+            boost::lexical_cast<std::string>(n) + " %\n";
 
   cube comp_dist;
   // for BROADBAND case: states, freq offsets, rf scalings
   // for STEP case: states, steps, rf scalings
-  vector<string> chs = rf_->get_channels_str();
+  std::vector<std::string> chs = rf_->get_channels_str();
 
   if (str_opt == "step") {
     dim2 = "pulse steps\n";
-    dim2 += "interval: " + boost::lexical_cast<string>(dt) + " s\n";
+    dim2 += "interval: " + boost::lexical_cast<std::string>(dt) + " s\n";
     comp_dist = cube(obsrv_state.size(), nsteps,
                      rf_scaling.size());  // states, steps, rf scalings
     sp_cx_mat L;
@@ -785,17 +784,17 @@ void grape::projection(const sol::table &t) {
   } else if (str_opt == "broadband") {
     dim2 = "freq offsets\n";
     int n = superop_.nominal_offset.size();
-    dim2 += boost::lexical_cast<string>(superop_.nominal_offset[0]) + ":" +
-            boost::lexical_cast<string>(superop_.nominal_offset[n - 1]) + " " +
-            boost::lexical_cast<string>(n) + " Hz\n";
+    dim2 += boost::lexical_cast<std::string>(superop_.nominal_offset[0]) + ":" +
+            boost::lexical_cast<std::string>(superop_.nominal_offset[n - 1]) + " " +
+            boost::lexical_cast<std::string>(n) + " Hz\n";
 
     comp_dist = cube(obsrv_state.size(), superop_.L0s.size(),
                      rf_scaling.size());  // states, freq offsets, rf scalings
 
     omp_set_num_threads(omp_core_num);
 
-    vector<sp_cx_vec *> forward_trajs_parfor =
-        vector<sp_cx_vec *>(omp_core_num);
+    std::vector<sp_cx_vec *> forward_trajs_parfor =
+        std::vector<sp_cx_vec *>(omp_core_num);
     for (int i = 0; i < omp_core_num; i++) {
       sp_cx_vec *forward = new sp_cx_vec[nsteps + 1];
       forward[0] = init_state;
@@ -831,7 +830,7 @@ void grape::projection(const sol::table &t) {
     }
   }
 
-  string time_s = sys_time();
+  std::string time_s = sys_time();
   H5File file("proj_" + time_s + ".h5", H5F_ACC_TRUNC);
   ssl::utility::h5write(file, nullptr, "projection", comp_dist);
   ssl::utility::h5write(file, nullptr, "dim1", dim1);
@@ -853,7 +852,7 @@ void grape::projection(const sol::table &t) {
       lines.add(line);
     }
 
-    string fig_spec;
+    std::string fig_spec;
     vec xval;
     if (str_opt == "step") {
       xval = vec::LinSpaced(grid.cols(), 0, user_rf.width_in_ms()); // transfer trajectories of basis operators
@@ -862,7 +861,7 @@ void grape::projection(const sol::table &t) {
           "duration "
           "/ ms> ylabel<magnetization>";
       fig_spec +=
-          "xrange<0:" + boost::lexical_cast<string>(user_rf.width_in_ms()) +
+          "xrange<0:" + boost::lexical_cast<std::string>(user_rf.width_in_ms()) +
           "> ";
     } else if (str_opt == "broadband") {
       int n = superop_.nominal_offset.size();
@@ -870,8 +869,8 @@ void grape::projection(const sol::table &t) {
                             superop_.nominal_offset[n - 1]);
       xval *= 1e-3;
       fig_spec = "xlabel<frequency offset / kHz> ylabel<magnetization>"; // title<scan 1> 
-      fig_spec += "xrange<" + boost::lexical_cast<string>(xval[0]) + ":" +
-                  boost::lexical_cast<string>(xval[xval.size() - 1]) + "> ";
+      fig_spec += "xrange<" + boost::lexical_cast<std::string>(xval[0]) + ":" +
+                  boost::lexical_cast<std::string>(xval[xval.size() - 1]) + "> ";
     }
     if (expr.size() > 5)
         fig_spec += " gnuplot<set key outside>";
@@ -881,7 +880,7 @@ void grape::projection(const sol::table &t) {
 
     fig_spec += " lw<7>";
     fig_spec += " color<YiZhang16,16>";
-    string lege;
+    std::string lege;
     for (size_t i = 0; i < expr.size(); i++) lege += expr[i] + ";";
     fig_spec += " legend<" + lege + ">";
     plot(fig_spec, line_series(xval, lines));
@@ -893,7 +892,7 @@ void grape::projection(const sol::table &t) {
   Eigen::Tensor<double, 2> sub =
       comp_dist.chip(0, 0);  // observed states at dim 0, by default, plot the
                              // map for first state.
-  string state_name = expr[0];
+  std::string state_name = expr[0];
   Eigen::Map<mat> m(sub.data(), sub.dimension(0), sub.dimension(1));
   mat grid = m.matrix();
 
@@ -908,7 +907,7 @@ void grape::projection(const sol::table &t) {
   utility::map gnu(grid, "style<3d>");
   gnu.xrange = xrange;
   gnu.yrange = yrange;
-  string fig_spec =
+  std::string fig_spec =
       "'ylabel<freq offset / kHz> xlabel<rf inhomogeneity / %> color<Spectral> "
       "gnuplot<set xlabel offset -1,-1; set ylabel offset -2,-2; set palette "
       "negative; set zrange [0.8:1]; set cbrange [0.8:1]> ";

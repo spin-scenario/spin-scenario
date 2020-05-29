@@ -29,7 +29,6 @@ limitations under the License.
 #include <fstream>
 #include <vector>
 #include <omp.h>
-using namespace std;
 #include <sol.hpp>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -73,7 +72,7 @@ WORD get_old_color_attrs();
 
 #endif
 
-void ssl_color_text(const string &option, const string &s, ostream &ostr = cout);
+void ssl_color_text(const std::string &option, const std::string &s, std::ostream &ostr = std::cout);
 
 #define SSL_OUTPUT_ENABLE 1
 
@@ -138,11 +137,11 @@ struct seq_param {
   double gamma = 42.57; // MHz/T.
   double sw = 50; // kHz.
   double tof = 0;
-  string acq_channel = "1H";
+  std::string acq_channel = "1H";
   double acq_phase = 0;
-  string observer = "";
-  void write(ostream &ostr = cout) const {
-    string s;
+  std::string observer = "";
+  void write(std::ostream &ostr = std::cout) const {
+    std::string s;
     s = str(boost::format("%70T*\n"));
     ssl_color_text("info", s);
     s = str(boost::format("%s %.f*%.f mm.\n") % "fov set to be" % fov[_cx] % fov[_cy]);
@@ -180,8 +179,8 @@ void init_global_lua(sol::state &lua);
 extern seq_param *g_seq_param;
 
 // auxiliary functions.
-std::map<string, double> phase_map();
-extern const std::map<string, double> g_phase_map;
+std::map<std::string, double> phase_map();
+extern const std::map<std::string, double> g_phase_map;
 
 void set_phase_cycle_steps(size_t n);
 void set_phase_cycle_steps_api(const sol::table &t);
@@ -194,26 +193,26 @@ void set_max_grad_api(const sol::table &t);
 void set_max_slew_rate_api(const sol::table &t);
 
 void set_grad(double max_amp, double max_slew_rate);
-void set_B0(string mag);
+void set_B0(std::string mag);
 
 void set_B0_api(const sol::table &t);
 
 void apodization(bool app, double decay_rate);
 
 herr_t op_func(hid_t loc_id, const char *name, const H5L_info_t *info, void *operator_data);
-void h5write(H5File &file, Group *group, string dataset_name, const string s);
-void h5write(H5File &file, Group *group, string dataset_name, const mat &m);
-void h5write(H5File &file, Group *group, string dataset_name, const vec &v);
-void h5write(H5File &file, Group *group, string dataset_name, const ivec &iv);
-void h5write(H5File &file, Group *group, string dataset_name, const icube &cube);
-void h5write(H5File &file, Group *group, string dataset_name, const cube & m);
+void h5write(H5File &file, Group *group, std::string dataset_name, const std::string s);
+void h5write(H5File &file, Group *group, std::string dataset_name, const mat &m);
+void h5write(H5File &file, Group *group, std::string dataset_name, const vec &v);
+void h5write(H5File &file, Group *group, std::string dataset_name, const ivec &iv);
+void h5write(H5File &file, Group *group, std::string dataset_name, const icube &cube);
+void h5write(H5File &file, Group *group, std::string dataset_name, const cube & m);
 
-mat h5read_mat(const H5File &file, string dataset_name);
-imat h5read_imat(const H5File &file, string dataset_name);
-cube h5read_cube(const H5File &file, string dataset_name);
-icube h5read_icube(const H5File &file, string dataset_name);
+mat h5read_mat(const H5File &file, std::string dataset_name);
+imat h5read_imat(const H5File &file, std::string dataset_name);
+cube h5read_cube(const H5File &file, std::string dataset_name);
+icube h5read_icube(const H5File &file, std::string dataset_name);
 
-mat h5read_mat(string file, string dataset_name);
+mat h5read_mat(std::string file, std::string dataset_name);
 // seq time definition.
 typedef int timeline;
 typedef Eigen::Matrix<timeline, Eigen::Dynamic, 1> tlvec;
@@ -230,7 +229,7 @@ const double seq_time_scale = 1; // unit in us.
 extern int omp_core_num;
 extern sol::state *g_lua;
 extern CYacas *g_yacas;
-extern vector<string> g_h5_string;
+extern std::vector<std::string> g_h5_string;
 #define PATH_SEPARATOR   '/'
 #define PATH_SEPARATOR_2 "/"
 void declare_path(const char *ptr2);
@@ -238,10 +237,10 @@ char *sys_time();
 
 void load_yacas();
 // C++ and Lua interface for symbolic-computation.
-string yacas_evaluate(const string expr);
-double yacas_integral(double from, double to, string func, string var = "x", int precision = 5);
-string yacas_integral(string func, string var = "x");
-double yacas_func(double pos, string func, string var = "x", int precision = 5);
+std::string yacas_evaluate(const std::string expr);
+double yacas_integral(double from, double to, std::string func, std::string var = "x", int precision = 5);
+std::string yacas_integral(std::string func, std::string var = "x");
+double yacas_func(double pos, std::string func, std::string var = "x", int precision = 5);
 
 void yacas_global_vars();
 
@@ -252,11 +251,11 @@ cd fid_xy2amp(cd val);
 cd fid_amp2xy(cd val);
 
 struct state_par {
-  vector<cd> coeff;
-  vector<string> expr;
+  std::vector<cd> coeff;
+  std::vector<std::string> expr;
 };
 
-state_par state_evaluate(const string expr);
+state_par state_evaluate(const std::string expr);
 
 double phase_in_rad(cd val);
 double phase_in_degree(cd val);
@@ -267,7 +266,7 @@ cx_vec fft_1d(const cx_vec &src);
 cx_vec fft_1d(const sol::table &t);
 cx_mat fft_2d(const cx_mat &src);
 
-mat eigen_read(string file_name);
+mat eigen_read(std::string file_name);
 
 enum win_shape {
   _rect,
@@ -275,12 +274,12 @@ enum win_shape {
   _gauss,
   _unknown_window
 };
-std::map<string, win_shape> win_shape_map();
-const std::map<string, win_shape> g_win_shape = win_shape_map();
+std::map<std::string, win_shape> win_shape_map();
+const std::map<std::string, win_shape> g_win_shape = win_shape_map();
 
 mat unwrap2d(const mat &wrapped_phi);
 vec window_function(win_shape wshape, int length);
-win_shape window_interpreter(string win_name);
+win_shape window_interpreter(std::string win_name);
 struct stft_out {
   cx_mat specgram;
   mat specgram_re;
@@ -289,8 +288,8 @@ struct stft_out {
   mat ampdB;
   mat phase;
   mat unwrap_phase;
-  vec time; // time vector, s
-  vec freq; // frequency vector, Hz
+  vec time; // time std::vector, s
+  vec freq; // frequency std::vector, Hz
   double delta_time;
   double delta_freq;
   stft_out() {};
@@ -359,67 +358,67 @@ sol::table vec2table(const vec &v);
 
 template<typename T>
 void print(sol::variadic_args va, const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> & /*m*/) {
-  cout.precision(3);
+  std::cout.precision(3);
   for (auto v : va) {
     Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> val = v;
-    string sep = "\n----------------------------------------\n";
+    std::string sep = "\n----------------------------------------\n";
     Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "", "", "[", "]");
-    cout << val.format(OctaveFmt) << sep;
+    std::cout << val.format(OctaveFmt) << sep;
   }
 
 }
 template<typename T>
 void print(sol::variadic_args va, const Eigen::Matrix<T, Eigen::Dynamic, 1> & /*v*/) {
-  cout.precision(3);
+  std::cout.precision(3);
   for (auto v : va) {
     Eigen::Matrix<T, Eigen::Dynamic, 1> val = v;
-    string sep = "\n----------------------------------------\n";
+    std::string sep = "\n----------------------------------------\n";
        Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "", "", "[", "]");
-    cout << val.format(OctaveFmt) << sep;
+    std::cout << val.format(OctaveFmt) << sep;
   }
 }
 template<typename T>
 void print(sol::variadic_args va, const Eigen::SparseMatrix<T> & /*m*/) {
-  cout.precision(3);
+  std::cout.precision(3);
   for (auto v : va) {
     Eigen::SparseMatrix<T> val = v;
-    string sep = "\n----------------------------------------\n";
+    std::string sep = "\n----------------------------------------\n";
        Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "", "", "[", "]");
-    cout << val.toDense().format(OctaveFmt) << sep;
+    std::cout << val.toDense().format(OctaveFmt) << sep;
   }
 }
 template<typename T>
 void print(sol::variadic_args va, const Eigen::SparseVector<T> & /*v*/) {
-  cout.precision(3);
+  std::cout.precision(3);
   for (auto v : va) {
     Eigen::SparseVector<T> val = v;
-    string sep = "\n----------------------------------------\n";
+    std::string sep = "\n----------------------------------------\n";
     Eigen::IOFormat OctaveFmt(Eigen::StreamPrecision, 0, ", ", ";\n", "", "", "[", "]");
-    cout << val.toDense().format(OctaveFmt) << sep;
+    std::cout << val.toDense().format(OctaveFmt) << sep;
   }
 }
 
-void write(string file, sol::variadic_args va, const mat & /*m*/);
-void write(string file, sol::variadic_args va, const cx_mat & /*m*/);
-void write(string file, sol::variadic_args va, const vec & /*v*/);
-void write(string file, sol::variadic_args va, const cx_vec & /*v*/);
-void write(string file, sol::variadic_args va, const sp_mat & /*m*/);
-void write(string file, sol::variadic_args va, const sp_cx_mat & /*m*/);
-void write(string file, sol::variadic_args va, const sp_vec & /*v*/);
-void write(string file, sol::variadic_args va, const sp_cx_vec & /*v*/);
+void write(std::string file, sol::variadic_args va, const mat & /*m*/);
+void write(std::string file, sol::variadic_args va, const cx_mat & /*m*/);
+void write(std::string file, sol::variadic_args va, const vec & /*v*/);
+void write(std::string file, sol::variadic_args va, const cx_vec & /*v*/);
+void write(std::string file, sol::variadic_args va, const sp_mat & /*m*/);
+void write(std::string file, sol::variadic_args va, const sp_cx_mat & /*m*/);
+void write(std::string file, sol::variadic_args va, const sp_vec & /*v*/);
+void write(std::string file, sol::variadic_args va, const sp_cx_vec & /*v*/);
 template<typename T>
 Eigen::SparseVector<T> normalized(const Eigen::SparseVector<T> &v) {
   double norm_val = v.norm();
   return (1 / norm_val) * v;
 }
 
-sol::object retrieve_table(string key, const sol::table &t, string supp = "");
-string retrieve_table_str(string key, const sol::table &t, string supp = "");
-int retrieve_table_int(string key, const sol::table &t, string supp = "");
-double retrieve_table_double(string key, const sol::table &t, string supp = "");
-size_t retrieve_table_size_t(string key, const sol::table &t, string supp = "");
+sol::object retrieve_table(std::string key, const sol::table &t, std::string supp = "");
+std::string retrieve_table_str(std::string key, const sol::table &t, std::string supp = "");
+int retrieve_table_int(std::string key, const sol::table &t, std::string supp = "");
+double retrieve_table_double(std::string key, const sol::table &t, std::string supp = "");
+size_t retrieve_table_size_t(std::string key, const sol::table &t, std::string supp = "");
 
-bool is_retrievable(string key, const sol::table &t);
+bool is_retrievable(std::string key, const sol::table &t);
 
 struct colon_sep {
   double a;
@@ -428,9 +427,9 @@ struct colon_sep {
 };
 
 // parse  "a:b:c"
-bool parse(string exp, colon_sep &val);
+bool parse(std::string exp, colon_sep &val);
 
-vec stl2vec(const vector<double> &data);
+vec stl2vec(const std::vector<double> &data);
 
 enum WindowFunction {
   kWF_exp_1d, ///<divides the first point by 2 and multiplies the FID by a decaying exponential with the decay rate specified by the user.

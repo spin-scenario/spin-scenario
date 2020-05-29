@@ -33,16 +33,16 @@ void gradient::evolution(int index) {
   //sc.delay_if = true;
   sc.grad.v[channel_] = grad_area() / width_in_ms();
   g_engine->evolution(WIDTH(), sc);
-  cout << "evolution gradient " << index << " " << width_in_ms() << " ms\n";
+  std::cout << "evolution gradient " << index << " " << width_in_ms() << " ms\n";
 }
 
 void gradient::assign() {
   config_table_.set("category", _grad);
 
-  string str_channel = retrieve_config_table_str("axis"); // required.
+  std::string str_channel = retrieve_config_table_str("axis"); // required.
   boost::to_lower(str_channel);
   if (str_channel != "x" && str_channel != "y" && str_channel != "z") {
-    string s = "invalid gradient channel: " + str_channel;
+    std::string s = "invalid gradient channel: " + str_channel;
     throw std::runtime_error(s.c_str());
   }
   if (str_channel == "x")
@@ -52,7 +52,7 @@ void gradient::assign() {
   if (str_channel == "z")
     channel_ = _gz;
 
-  string new_name = retrieve_config_table_str("name");
+  std::string new_name = retrieve_config_table_str("name");
   config_table_.set("name", new_name + ": " + str_channel);
 
   // for any gradient, the keys only contain the two boundaries.
@@ -64,11 +64,11 @@ void gradient::assign() {
 }
 
 void gradient::plot() const {
-  ofstream ofstr("gnu_grad");
+  std::ofstream ofstr("gnu_grad");
   ofstr.precision(4);
   write(ofstr);
   ofstr.close();
-  string gp = "plot(\"xlabel<time / ms> ylabel<amplitude / mT/m> gnuplot<unset key> title<" + name() + ">" + "xrange<0:"
+  std::string gp = "plot(\"xlabel<time / ms> ylabel<amplitude / mT/m> gnuplot<unset key> title<" + name() + ">" + "xrange<0:"
       + std::to_string(width_in_ms()) + ">\", line('gnu_grad', 'fc'))";
   g_lua->script(gp);
 }

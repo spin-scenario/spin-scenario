@@ -32,7 +32,7 @@ CoilBiotSavart::~CoilBiotSavart() {
 }
 void CoilBiotSavart::assign() {
   Coil::assign();
-  //string str = getAttribute("azimuth");
+  //std::string str = getAttribute("azimuth");
   /*if (!str.empty())
 	azimuth_ = boost::lexical_cast<double>(str);
 
@@ -45,7 +45,7 @@ void CoilBiotSavart::assign() {
 
   //str = getAttribute("pos");
   //if (!str.empty()) {
-  // vector<double> pars;// = str_cast<double>(str);
+  // std::vector<double> pars;// = str_cast<double>(str);
   //  pos_(0) = pars[0];
   //  pos_(1) = pars[1];
   //  pos_(2) = pars[2];
@@ -56,10 +56,10 @@ cd CoilBiotSavart::get_sensitivity(const vec3 &pos) const {
   cd B1s;
   vec3 B1 = vec3::Zero();
   //for (size_t i = 0; i < segments_.size() - 1; i++) {
-  //   vec3 dl = segments_[i + 1] - segments_[i];  // components of segment vector dl.
+  //   vec3 dl = segments_[i + 1] - segments_[i];  // components of segment std::vector dl.
   //   vec3 cp = (segments_[i + 1] + segments_[i]) / 2;  // the location of the midpoint of current segment.
   //   vec r = pos - cp;  // segment on loop and observation point.
-  //  double r3 = pow(norm(r, 2), 3);  // r^3 from r vector.
+  //  double r3 = pow(norm(r, 2), 3);  // r^3 from r std::vector.
   //   vec3 dl_r = cross(dl, r);  // cross product between dl and r.
   //  B1 += (radius_ / k_2pi / r3) * dl_r;  // increment sum of B1 magnetic field.
   //}
@@ -72,7 +72,7 @@ cd CoilBiotSavart::get_sensitivity(const vec3 &pos) const {
   // the magnetic field at the center of the coil B0 = Imu0/2*radius.
   // ref from http://www.netdenizen.com/emagnettest/offaxis/?offaxisloop
 }
-vector<vec3> CoilBiotSavart::get_sampe_points() const {
+std::vector<vec3> CoilBiotSavart::get_sampe_points() const {
   // vec theta =  linspace< vec>(
   //    0, k_2pi * (double) current_direction_, segment_);
   // rowvec3 N;
@@ -83,7 +83,7 @@ vector<vec3> CoilBiotSavart::get_sampe_points() const {
   //double ang = atan2(dot(cross(V.col(0), V.col(1)), N),
   //                   dot(cross(V.col(0), N), cross(V.col(1), N)));  // determine angle direction.
   //V.col(0) = (ang / abs(ang)) * V.col(0);  // match angle direction.
-  vector<vec3> points;
+  std::vector<vec3> points;
   /* for (size_t i = 0; i < theta.size(); i++) {
 	  vec3 p = pos_
 		 + radius_ * (cos(theta(i)) * V.col(0) + sin(theta(i)) * V.col(1));

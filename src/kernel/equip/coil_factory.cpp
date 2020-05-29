@@ -20,21 +20,21 @@ namespace equip {
 
 CoilFactory::CoilFactory() {
   // TODO Auto-generated constructor stub
-  coils_.insert(pair<string, Coil *>("COILIDEAL", new CoilIdeal()));
-  coils_.insert(pair<string, Coil *>("COILBIOTSAVART", new CoilBiotSavart()));
+  coils_.insert(std::pair<std::string, Coil *>("COILIDEAL", new CoilIdeal()));
+  coils_.insert(std::pair<std::string, Coil *>("COILBIOTSAVART", new CoilBiotSavart()));
 }
 
 CoilFactory::~CoilFactory() {
   // TODO Auto-generated destructor stub
 }
-Coil *CoilFactory::get_coil(string key) const {
+Coil *CoilFactory::get_coil(std::string key) const {
   boost::to_upper(key);  // in case of case-sensitive key, such as PulseRect, PULSErect, etc.
   return coils_.find(key)->second;
 }
 Coil *CoilFactory::clone_coil(/*const tinyxml2::XMLElement* node*/) const {
   return nullptr; // clone_coil(/*std_string(node->Name()*/"");
 }
-Coil *CoilFactory::clone_coil(string key) const {
+Coil *CoilFactory::clone_coil(std::string key) const {
   Coil *to_be_cloned = get_coil(key);
   if (!to_be_cloned)
     return NULL;

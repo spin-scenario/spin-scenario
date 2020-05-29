@@ -33,9 +33,9 @@ void serial_block::evolution(int index) {
     ssl_color_text("warn", "unknown compute engine, serial_block evolution ignored.\n");
     return;
   }
-  vector<int> priors = descending_cycle_priorities();
+  std::vector<int> priors = descending_cycle_priorities();
   imat cycling_matrix = descending_cycle_matrix();
-  //cout << cycling_matrix << "\n";
+  //std::cout << cycling_matrix << "\n";
   // #1 #2 #3 ...
   // 0  0  0
   // 1  0  0
@@ -59,7 +59,7 @@ void serial_block::evolution(int index) {
       for (size_t j = 0; j < sub_blocks_.size(); j++) {
         int loop_index = -1; // by default, this block is supposed to be non-cycling.
         // retrieve current loop index for this block which denoted as # for cycling block.
-        vector<int>::iterator pos = find(priors.begin(), priors.end(), sub_blocks_[j]->cycle_priority());
+        std::vector<int>::iterator pos = find(priors.begin(), priors.end(), sub_blocks_[j]->cycle_priority());
         if (pos != priors.end()) {
           int prior_id = distance(priors.begin(), pos); // column index of the cycling matrix for this block.
           loop_index = cycling_matrix(i, priors.size()-1 -prior_id); // priority fixed in 03/04/2020.
@@ -70,16 +70,16 @@ void serial_block::evolution(int index) {
         else // global cycling loop.
           sub_blocks_[j]->evolution(loop_index);
       }
-      cout << "\n";
+      std::cout << "\n";
     }
   }
 }
 
-void serial_block::write(ostream &ostr) const {
+void serial_block::write(std::ostream &ostr) const {
   glue::write(ostr);
 }
-vector<const seq_block *> serial_block::retrieve_cycle_seq_blocks(int prior) const {
-  vector<const seq_block *> val;
+std::vector<const seq_block *> serial_block::retrieve_cycle_seq_blocks(int prior) const {
+  std::vector<const seq_block *> val;
   for (size_t i = 0; i < sub_blocks_.size(); i++)
     if (sub_blocks_[i]->cycle_priority() == prior)
       val.push_back(sub_blocks_[i]);
@@ -87,10 +87,10 @@ vector<const seq_block *> serial_block::retrieve_cycle_seq_blocks(int prior) con
 }
 
 int serial_block::max_cycle_count(int prior) const {
-  vector<const seq_block *> sbs = retrieve_cycle_seq_blocks(prior);
+  std::vector<const seq_block *> sbs = retrieve_cycle_seq_blocks(prior);
   if (sbs.empty())
     return 0;
-  vector<int> count;
+  std::vector<int> count;
   for (size_t i = 0; i < sbs.size(); i++)
     count.push_back(sbs[i]->loop_count());
   auto maximum = std::max_element(std::begin(count), std::end(count));
@@ -98,15 +98,15 @@ int serial_block::max_cycle_count(int prior) const {
 }
 
 imat serial_block::descending_cycle_matrix() const {
-  vector<int> priors = descending_cycle_priorities();
-  vector<int> counts;
+  std::vector<int> priors = descending_cycle_priorities();
+  std::vector<int> counts;
   int levels = priors.size();
   for (size_t i = 0; i < priors.size(); i++) {
     int cur_count = max_cycle_count(priors[i]);
     counts.push_back(cur_count);
   }
 
-  vector<vector<int>> cycle_list;
+  std::vector<std::vector<int>> cycle_list;
   for (size_t i = 0; i < counts.size(); i++)
     cycle_list = cycle_index_list(cycle_list, counts[counts.size() -1 - i]); // priority fixed in 03/04/2020.
 
@@ -119,17 +119,17 @@ imat serial_block::descending_cycle_matrix() const {
   return m;
 }
 
-vector<vector<int>> serial_block::cycle_index_list(const vector<vector<int>> &old, int count) const {
-  vector<vector<int>> result;
+std::vector<std::vector<int>> serial_block::cycle_index_list(const std::vector<std::vector<int>> &old, int count) const {
+  std::vector<std::vector<int>> result;
   if (old.size() == 0) {
     for (int i = 0; i < count; i++) {
-      vector<int> tmp;
+      std::vector<int> tmp;
       tmp.push_back(i);
       result.push_back(tmp);
     }
   } else {
     for (int i = 0; i < count; i++) {
-      vector<vector<int>> old_copy = old;
+      std::vector<std::vector<int>> old_copy = old;
       for (size_t j = 0; j < old.size(); j++) {
         old_copy[j].push_back(i);
         result.push_back(old_copy[j]);

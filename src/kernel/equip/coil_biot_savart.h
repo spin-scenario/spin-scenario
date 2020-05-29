@@ -29,14 +29,14 @@ class CoilBiotSavart : public Coil {
   virtual void assign();
   virtual cd get_sensitivity(const vec3 &pos) const;
  private:
-  vector<vec3> get_sampe_points() const;
+  std::vector<vec3> get_sampe_points() const;
  private:
   double radius_;  ///< the coil circle radius.
   double azimuth_;  ///< the azimuth angle of the circle plane.
   double elevation_;  ///< the elevation angle of the circle plane.
   size_t segment_;  ///< the number of line segments for approximating circle.
   int current_direction_;  ///< 1 for clockwise, -1 for counterclockwise.
-  //vector< vec3> segments_;  ///< segment points on loop.
+  //std::vector< vec3> segments_;  ///< segment points on loop.
 };
 
 } /* namespace equip */

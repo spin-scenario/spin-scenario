@@ -26,21 +26,21 @@ class CoilArray {
   virtual ~CoilArray();
   /// \brief initialize the input *.xml coil array.
   void load_via_xml(const char *coil_file);
-  vector<Coil *> get_coil_pointer(CoilMode mode) const;
-  vector<size_t> get_coil_index(CoilMode mode) const;
-  inline vector<Coil *> get_coils() const {
+  std::vector<Coil *> get_coil_pointer(CoilMode mode) const;
+  std::vector<size_t> get_coil_index(CoilMode mode) const;
+  inline std::vector<Coil *> get_coils() const {
     return array_;
   }
   inline size_t get_coils_num() const {
     return array_.size();
   }
   void graphic_view() const;
-  vector<vec3> get_shape() const;
+  std::vector<vec3> get_shape() const;
  private:
   /// \brief generate a coil object corresponding to the xml node.
   void create_coil(/*tinyxml2::XMLElement* node*/);
  private:
-  vector<Coil *> array_;
+  std::vector<Coil *> array_;
   CoilFactory factory_coils_;  ///< all types of coils have been built in this factory.
 };
 

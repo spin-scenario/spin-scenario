@@ -27,7 +27,7 @@ Coil::~Coil() {
   // TODO Auto-generated destructor stub
 }
 void Coil::assign() {
-  /*string str = getAttribute("mode");
+  /*std::string str = getAttribute("mode");
   if (!str.empty()) {
       if (str == "Tx")
           mode_ = kTx;

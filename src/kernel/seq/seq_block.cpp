@@ -39,13 +39,13 @@ void seq_block::copy_config_table() {
   config_table_ = new_table;
 }
 
-string seq_block::uuid() const {
-  string s = uuid_hyphen();
+std::string seq_block::uuid() const {
+  std::string s = uuid_hyphen();
   boost::erase_all(s, "-");
   return s;
 }
-string seq_block::uuid_hyphen() const {
-  return boost::lexical_cast<string>(uuid_);
+std::string seq_block::uuid_hyphen() const {
+  return boost::lexical_cast<std::string>(uuid_);
 }
 
 void seq_block::config(const sol::table &t) {
@@ -74,40 +74,40 @@ void seq_block::set_align(double ms) {
   align_ctrl_.offset_orign = ms2timeline(ms);
   align_ctrl_.is_specified = true;
 }
-void seq_block::set_align(string label) {
+void seq_block::set_align(std::string label) {
   align_ctrl_.label = label;
   align_ctrl_.is_specified = true;
 }
 
-bool seq_block::is_retrievable(string par) const {
+bool seq_block::is_retrievable(std::string par) const {
   return ssl::utility::is_retrievable(par, config_table_);
 }
 
-sol::object seq_block::retrieve_config_table(string key) const {
+sol::object seq_block::retrieve_config_table(std::string key) const {
   return retrieve_table(key, config_table_, "seq_block config");
 }
 
-string seq_block::retrieve_config_table_str(string key) const {
+std::string seq_block::retrieve_config_table_str(std::string key) const {
   return retrieve_table_str(key, config_table_, "seq_block config");
 }
 
-int seq_block::retrieve_config_table_int(string key) const {
+int seq_block::retrieve_config_table_int(std::string key) const {
   return retrieve_table_int(key, config_table_, "seq_block config");
 }
 
-double seq_block::retrieve_config_table_double(string key) const {
+double seq_block::retrieve_config_table_double(std::string key) const {
   return retrieve_table_double(key, config_table_, "seq_block config");
 }
 
-size_t seq_block::retrieve_config_table_size_t(string key) const {
+size_t seq_block::retrieve_config_table_size_t(std::string key) const {
   return retrieve_table_size_t(key, config_table_, "seq_block config");
 }
 
-string seq_block::name() const {
+std::string seq_block::name() const {
   return retrieve_config_table_str("name");
 }
 
-void seq_block::set_name(string new_name) {
+void seq_block::set_name(std::string new_name) {
   config_table_.set("name", new_name);
 }
 
@@ -141,11 +141,11 @@ void seq_block::local_loop_evolution() {
       evolution(i);
 }
 
-vector<timeline> seq_block::absolute_keys() const {
+std::vector<timeline> seq_block::absolute_keys() const {
   int n = timer_.keys.size();
   tlvec t = start_timeline() * tlvec::Ones(n);
   t += timer_.keys;
-  return vector<timeline>(&t.data()[0], &t.data()[n]); // Note 0 ~ n-1.
+  return std::vector<timeline>(&t.data()[0], &t.data()[n]); // Note 0 ~ n-1.
 }
 
 bool seq_block::adjust_key_interval(timeline &t0, timeline &t1) const {
@@ -163,20 +163,20 @@ bool seq_block::adjust_key_interval(timeline &t0, timeline &t1) const {
 //bool seq_block::check_keys(timeline key0, timeline key1) const {
 //    if (key0 >= 0 && key0 < key1 && key1 <= timer_.duration)
 //        return true;
-////  cout
+////  std::cout
 ////      << boost::format("%s %s %d %d.\n") % "S-S-L warning: "
 ////          % "invalid adjacent time keys (us): " % key0 % key1;
 //    return false;
 //}
-void seq_block::write(ostream &ostr) const {
+void seq_block::write(std::ostream &ostr) const {
   ostr << get_header() << "\n";
 }
 
-string seq_block::get_header() const {
-  string s;
+std::string seq_block::get_header() const {
+  std::string s;
   s += "# " + name() + "\n";
-  s += "# " + to_string(loop_ctrl_.loop_prior) + "\n";
-  s += "# width: " + to_string(width_in_ms()) + " ms.";
+  s += "# " + std::to_string(loop_ctrl_.loop_prior) + "\n";
+  s += "# width: " + std::to_string(width_in_ms()) + " ms.";
   return s;
 }
 

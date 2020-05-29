@@ -19,11 +19,11 @@ limitations under the License.
 
 namespace ssl {
 namespace utility {
-extern string g_output_terminal;
-extern string g_output_font;
+extern std::string g_output_terminal;
+extern std::string g_output_font;
 
 void set_output_terminal(const sol::table &t);
-string terminal_cmd(string key);
+std::string terminal_cmd(std::string key);
 
 vec linspace(double start, double stop, int num);
 
@@ -36,17 +36,17 @@ mat vec_table(const sol::table &t);
 struct line {
   vec x;
   vec y;
-  string file = "";
-  string line_spec = "";
+  std::string file = "";
+  std::string line_spec = "";
   bool is_x_only = false;
   bool is_file = false;
 
-  line(string a) {
+  line(std::string a) {
     file = a;
     is_file = true;
   }
 
-  line(string a, string b) {
+  line(std::string a, std::string b) {
     file = a;
     line_spec = b;
     is_file = true;
@@ -57,7 +57,7 @@ struct line {
     is_x_only = true;
   }
 
-  line(const vec &a, string b) {
+  line(const vec &a, std::string b) {
     x = a;
     line_spec = b;
     is_x_only = true;
@@ -68,7 +68,7 @@ struct line {
     y = b;
   }
 
-  line(const vec &a, const vec &b, string c) {
+  line(const vec &a, const vec &b, std::string c) {
     x = a;
     y = b;
     line_spec = c;
@@ -79,7 +79,7 @@ struct line {
     is_x_only = true;
   }
 
-  line(const sol::table &t, string b) {
+  line(const sol::table &t, std::string b) {
     init_line(t);
     line_spec = b;
     is_x_only = true;
@@ -89,7 +89,7 @@ struct line {
     init_line(t0, t1);
   }
 
-  line(const sol::table &t0, const sol::table &t1, string c) {
+  line(const sol::table &t0, const sol::table &t1, std::string c) {
     init_line(t0, t1);
     line_spec = c;
   }
@@ -121,18 +121,18 @@ struct line {
 
 struct line_series {
   vec x;
-  vector<vec> y;
-  vector<string> files;
+  std::vector<vec> y;
+  std::vector<std::string> files;
   bool is_y_only = false;
   bool is_file = false;
 
-  line_series(string file/*file_list*/) {
+  line_series(std::string file/*file_list*/) {
     //boost::cmatch what;
     //boost::regex reg("([^\"]*)([^\\d]*)(\\d+):(\\d+)([^\\d]*)([^\"]*)");
-    //string s1, s2, s3, s4;
+    //std::string s1, s2, s3, s4;
     //int n0 = 0, n1 = 0;
     //if (boost::regex_search(file_list.c_str(), what, reg)) {
-    //  //cout << what[0] << "\n" << what[1] << "\n" << what[2] << "\n" << what[3] << "\n" << what[4] << "\n" << what[5] << "\n" << what[6] << "\n";
+    //  //std::cout << what[0] << "\n" << what[1] << "\n" << what[2] << "\n" << what[3] << "\n" << what[4] << "\n" << what[5] << "\n" << what[6] << "\n";
     //  s1 = what[1];
     //  s2 = what[2];
     //  n0 = boost::lexical_cast<int>(what[3]);
@@ -142,7 +142,7 @@ struct line_series {
     //}
 
     //for (int i = 0; i < (n1 - n0 + 1); i++)
-    //  files.push_back(s1 + s2 + boost::lexical_cast<string>(n0 + i) + s3 + s4);
+    //  files.push_back(s1 + s2 + boost::lexical_cast<std::string>(n0 + i) + s3 + s4);
 
     //is_file = true;
 	  mat data = eigen_read(file);
@@ -173,13 +173,13 @@ struct line_series {
 
 struct map {
   mat m;
-  string file = "";
-  string map_spec = "";
+  std::string file = "";
+  std::string map_spec = "";
   bool is_file = false;
   vec2 xrange;
   vec2 yrange;
 
-  map(string a) {
+  map(std::string a) {
     file = a;
     m = eigen_read(a);
     init_range();
@@ -194,12 +194,12 @@ struct map {
 
   }
 
-  map(const mat &a, string b) {
+  map(const mat &a, std::string b) {
     m = a;
     init_range(b);
   }
 
-  map(string a, string b) {
+  map(std::string a, std::string b) {
     file = a;
     m = eigen_read(a);
     init_range(b);
@@ -207,7 +207,7 @@ struct map {
     is_file = true;
   }
 
-  void init_range(string par = "") {
+  void init_range(std::string par = "") {
     boost::cmatch what;
     boost::regex reg_xrange("xrange<(\\-?\\d+\\.?\\d*):(\\-?\\d+\\.?\\d*)>{1}");
     if (boost::regex_search(par.c_str(), what, reg_xrange)) {
@@ -234,75 +234,75 @@ struct map {
 // plot one or mutil-line in the same figure.
 void plot(sol::variadic_args va, const line &);
 
-void plot(string fig_info, sol::variadic_args va, const line &);
+void plot(std::string fig_info, sol::variadic_args va, const line &);
 
 void plot(const line_series &);
 
-void plot(string fig_info, const line_series &);
+void plot(std::string fig_info, const line_series &);
 
-void plot(string fig_info, sol::variadic_args va, const line_series &);
+void plot(std::string fig_info, sol::variadic_args va, const line_series &);
 
 // plot one or mutil-map figures.
 void plot(sol::variadic_args va, const map &);
 
-void plot(string fig_info, sol::variadic_args va, const map &);
+void plot(std::string fig_info, sol::variadic_args va, const map &);
 
 // auxiliary functions.
-std::map<string, string> line_color();
+std::map<std::string, std::string> line_color();
 
-std::map<string, string> line_style();
+std::map<std::string, std::string> line_style();
 
-std::map<string, string> line_marker();
+std::map<std::string, std::string> line_marker();
 
-std::map<string, string> line_dash();
+std::map<std::string, std::string> line_dash();
 
-std::map<string, string> map_color();
+std::map<std::string, std::string> map_color();
 
-void write_line(const vec &x, string file);
+void write_line(const vec &x, std::string file);
 
-void write_line(const vec &x, const vec &y, string file);
+void write_line(const vec &x, const vec &y, std::string file);
 
-void write_map(const mat &x, string file);
+void write_map(const mat &x, std::string file);
 
 struct line_spec {
-  string color; // default line_color.
-  string style = "l"; // default line_style.
-  string marker; // default line_marker.
-  string dash; // default line_marker.
+  std::string color; // default line_color.
+  std::string style = "l"; // default line_style.
+  std::string marker; // default line_marker.
+  std::string dash; // default line_marker.
 };
 
 struct map_spec {
-  string color = "Spectral"; // default map_color.
-  string style = "image";
+  std::string color = "Spectral"; // default map_color.
+  std::string style = "image";
 };
 
 struct fig_spec {
-  string title;
-  string xlabel;
-  string ylabel;
-  string color = "Paired";
+  std::string title;
+  std::string xlabel;
+  std::string ylabel;
+  std::string color = "Paired";
   int ncolor = 8;
-  string gnu_cmd;
-  string lw = "2"; // only for line_series (line width)
+  std::string gnu_cmd;
+  std::string lw = "2"; // only for line_series (line width)
   bool latex_output = false;
-  vector<string> legend;
+  std::vector<std::string> legend;
   vec2 xrange = vec2::Zero();
   vec2 yrange = vec2::Zero();
 };
 
-line_spec parsing_line_spec(string par);
+line_spec parsing_line_spec(std::string par);
 
-map_spec parsing_map_spec(string par);
+map_spec parsing_map_spec(std::string par);
 
-fig_spec parsing_fig_spec(string par);
+fig_spec parsing_fig_spec(std::string par);
 
-string find_color(string short_cut);
+std::string find_color(std::string short_cut);
 
-const std::map<string, string> g_line_color = line_color();
-const std::map<string, string> g_line_style = line_style();
-const std::map<string, string> g_line_marker = line_marker();
-const std::map<string, string> g_line_dash = line_dash();
+const std::map<std::string, std::string> g_line_color = line_color();
+const std::map<std::string, std::string> g_line_style = line_style();
+const std::map<std::string, std::string> g_line_marker = line_marker();
+const std::map<std::string, std::string> g_line_dash = line_dash();
 
-const std::map<string, string> g_map_color = map_color();
+const std::map<std::string, std::string> g_map_color = map_color();
 }
 }

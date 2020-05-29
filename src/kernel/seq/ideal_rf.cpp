@@ -46,29 +46,29 @@ void ideal_rf::assign() {
   timer_.keys = tlvec::LinSpaced(nsteps_ + 1, 0, timer_.width);
   tl_dt_ = timer_.width;
 
-  string channels = "1H"; // if not specified, use 1H as default.
+  std::string channels = "1H"; // if not specified, use 1H as default.
   if (is_retrievable("channel")) {
     channels = retrieve_config_table_str("channel"); // required.
   }
 
-  vector<string> ch_par_vec;
+  std::vector<std::string> ch_par_vec;
   boost::split(ch_par_vec, channels, boost::is_any_of("\t, |"), boost::token_compress_on);
   channels_ = ch_par_vec.size();
 
   // phase.
   if (is_retrievable("phase")) {
     sol::object phase = retrieve_config_table("phase"); // required.
-    string phase_par = phase.as<string>();
+    std::string phase_par = phase.as<std::string>();
 
     boost::to_lower(phase_par);
 
-    vector<string> pha_vec;
+    std::vector<std::string> pha_vec;
     boost::split(pha_vec, phase_par, boost::is_any_of("|"), boost::token_compress_on);
 
     // in case of this case: hardRF{ channel ="1H 13C", beta = 90, phase = 'x'} should be equal to phase = 'x|x'.
      if (pha_vec.size() < channels_) {
       size_t n = channels_ - pha_vec.size();
-      string s = pha_vec.back();
+      std::string s = pha_vec.back();
       for (size_t i = 0; i < n; i++) pha_vec.push_back(s);
     }
 
@@ -82,7 +82,7 @@ void ideal_rf::assign() {
       cur_phase.channel = ch_par_vec[i];
 
       // ugly code to be rewritten.
-      vector<char> list;
+      std::vector<char> list;
       for (size_t j = 0; j < pha_vec[i].size(); j++) {
         char s = pha_vec[i].at(j);
         list.push_back(s);
@@ -98,13 +98,13 @@ void ideal_rf::assign() {
           continue;
         }
       }
-      string new_s(&list[0], list.size());
-      vector<string> par_vec;
+      std::string new_s(&list[0], list.size());
+      std::vector<std::string> par_vec;
       boost::trim(new_s);
       boost::split(par_vec, new_s, boost::is_any_of("\t "), boost::token_compress_on);
       // ugly code to be rewritten.
 
-      std::map<string, double>::const_iterator iter;
+      std::map<std::string, double>::const_iterator iter;
       for (size_t i = 0; i < par_vec.size(); i++) {
         iter = g_phase_map.find(par_vec[i]);
         if (iter != g_phase_map.end())
@@ -141,7 +141,7 @@ void ideal_rf::assign() {
     raw_data_[i].envelope.imag() *= _pi / 180; // phase into rad.
 
   // determine loop counts.
-  vector<int> count;
+  std::vector<int> count;
   for (size_t i = 0; i < loop_phase_list_.size(); i++)
     count.push_back(loop_phase_list_[i].deg.size());
   auto bigest = std::max_element(std::begin(count), std::end(count));
@@ -154,7 +154,7 @@ int ideal_rf::switch2loop(int index) {
   if (index == -1)
     return 0;
 
-  //cout << index << "\n";
+  //std::cout << index << "\n";
 
 //  int phase0 = 117;
 //  //phase0 = deg2rad(phase0);
@@ -168,7 +168,7 @@ int ideal_rf::switch2loop(int index) {
 //
 //  cur_phase=cur_phase%360;
 //
-//  cout<<tmp_phase.back()/phase0<<"###\n";
+//  std::cout<<tmp_phase.back()/phase0<<"###\n";
 //
 //  cd tmp = raw_data_[0].envelope[0];
 //  if (mode_ == _ux_uy)
@@ -186,7 +186,7 @@ int ideal_rf::switch2loop(int index) {
     if (idi == 0)
       idi = ni;
     double cur_phase = loop_phase_list_[i].deg[idi - 1];
-    string s = "phi[" + boost::lexical_cast<string>(cur_phase) + "]\n";
+    std::string s = "phi[" + boost::lexical_cast<std::string>(cur_phase) + "]\n";
     ssl_color_text("seq_phase", s);
     cur_phase = deg2rad(cur_phase);
     cd tmp = raw_data_[i].envelope[0];

@@ -13,6 +13,7 @@ limitations under the License.
 #include "spin_system_auxiliary.h"
 #include <unsupported/Eigen/KroneckerProduct>
 #include <unsupported/Eigen/MatrixFunctions>
+#include <functional>
 
 namespace ssl {
 namespace spinsys {
@@ -42,12 +43,12 @@ sp_cx_vec step(const sp_cx_vec &rho0, const sp_cx_mat &L, double dt) {
   //////////////////////////////
   //rho=expm(-1i*L*dt)*rho;
 
-  // Get the norm of the vector
+  // Get the norm of the std::vector
   double norm_rho = norm(rho0);
 
   // Get the norm of the i*L*dt matrix
   double norm_mat = norm(L) * fabs(dt);
-  // Scale the vector
+  // Scale the std::vector
   rho /= norm_rho;
 
   // Determine the number of time steps
@@ -67,7 +68,7 @@ sp_cx_vec step(const sp_cx_vec &rho0, const sp_cx_mat &L, double dt) {
     }
 
   }
-  //// Scale the vector back
+  //// Scale the std::vector back
   rho *= norm_rho;
   return rho;
 }
@@ -127,7 +128,7 @@ sp_cx_mat expmv_tspan(const sp_cx_vec &b0,
   if (temp > 63.152)
     force_estm = 1;
 
-  //cout<<force_estm<<"force_estm\n";
+  //std::cout<<force_estm<<"force_estm\n";
 
   if (M.size() == 1)
     M = select_taylor_degree(A, shift, false, force_estm);
@@ -143,7 +144,7 @@ sp_cx_mat expmv_tspan(const sp_cx_vec &b0,
 
   // Easy case.
   if (q <= s) {
-    cout << "Easy case\n";
+    std::cout << "Easy case\n";
     for (int k = 1; k <= q; k++) {
       X.col(k) = expmv(X.col(k - 1), A, h, M, shift, false);
     }
@@ -196,7 +197,7 @@ sp_cx_mat expmv_tspan(const sp_cx_vec &b0,
           break;
         c1 = c2;
       }
-      m = max(m, p);
+      m = std::max(m, p);
       X.col(k + (i - 1) * d) = exp((double) k * h * mu) * f;
     }
 
@@ -249,7 +250,7 @@ cx_mat expmv_tspan(const cx_vec &b0,
   if (temp > 63.152)
     force_estm = 1;
 
-  //cout<<force_estm<<"force_estm\n";
+  //std::cout<<force_estm<<"force_estm\n";
 
   if (M.size() == 1)
     M = select_taylor_degree(A, shift, false, force_estm);
@@ -265,7 +266,7 @@ cx_mat expmv_tspan(const cx_vec &b0,
 
   // Easy case.
   if (q <= s) {
-    cout << "Easy case\n";
+    std::cout << "Easy case\n";
     for (int k = 1; k <= q; k++) {
       X.col(k) = expmv(X.col(k - 1), A, h, M, shift, false);
     }
@@ -318,7 +319,7 @@ cx_mat expmv_tspan(const cx_vec &b0,
           break;
         c1 = c2;
       }
-      m = max(m, p);
+      m = std::max(m, p);
       X.col(k + (i - 1) * d) = exp((double) k * h * mu) * f;
     }
 
@@ -375,7 +376,7 @@ sp_cx_vec expmv(const sp_cx_vec &b0, const sp_cx_mat &A0, double t, const mat &M
   if (M.size() == 1) {
     sp_cx_mat C = t * A;
     M = select_taylor_degree(C, false, false, false);
-    //cout<<M<<"\n\n";
+    //std::cout<<M<<"\n\n";
     tt = 1;
   } else
     tt = t;
@@ -452,7 +453,7 @@ cx_vec expmv(const cx_vec &b0, const cx_mat &A0, double t, const mat &M0, bool s
   double tt;
   if (M.size() == 1) {
     M = select_taylor_degree(t * A, false, false, false);
-    //cout<<M<<"\n\n";
+    //std::cout<<M<<"\n\n";
     tt = 1;
   } else
     tt = t;
@@ -504,7 +505,7 @@ double norm_inf(const cx_mat &m) {
 }
 
 double norm1(const sp_cx_mat &m) {
-  vector<double> sum_cols;
+  std::vector<double> sum_cols;
   int ncols = m.cols();
   sp_mat m_abs = m.cwiseAbs();
 
@@ -514,7 +515,7 @@ double norm1(const sp_cx_mat &m) {
 }
 
 double norm_inf(const sp_cx_vec &m) {
-  vector<double> sum_rows;
+  std::vector<double> sum_rows;
   int nrows = m.rows();
   sp_vec m_abs = m.cwiseAbs();
 
@@ -528,7 +529,7 @@ void degree_selector(double t, const mat &M, int &m, int &s) {
 
   vec v = vec::LinSpaced(m_max, 1, m_max);
   mat C = (abs(t) * M).array().ceil().matrix().transpose() * v.asDiagonal();
-  C = C.unaryExpr(ptr_fun(ramp));
+  C = C.unaryExpr([](double x) {return ramp(x);});
   double cost;
   if (p > 1) {
     cost = (C.colwise().minCoeff()).minCoeff(&m);
@@ -539,7 +540,7 @@ void degree_selector(double t, const mat &M, int &m, int &s) {
 
   if (cost == g_inf)
     cost = 0;
-  s = max<int>((int) (cost / (double) m), 1);
+  s = std::max<int>((int) (cost / (double) m), 1);
 }
 
 mat select_taylor_degree(const cx_mat &A0, bool shift, bool bal, bool force_estm) {
@@ -583,7 +584,7 @@ mat select_taylor_degree(const cx_mat &A0, bool shift, bool bal, bool force_estm
     }
 
     for (int p = 0; p < p_max - 1; p++)
-      alpha(p) = max<double>(eta(p), eta(p + 1));
+      alpha(p) = std::max<double>(eta(p), eta(p + 1));
   }
 
   mat M = mat::Zero(m_max, p_max - 1);
@@ -634,7 +635,7 @@ mat select_taylor_degree(const sp_cx_mat &A0, bool shift, bool bal, bool force_e
     }
 
     for (int p = 0; p < p_max - 1; p++)
-      alpha(p) = max<double>(eta(p), eta(p + 1));
+      alpha(p) = std::max<double>(eta(p), eta(p + 1));
   }
 
   mat M = mat::Zero(m_max, p_max - 1);
@@ -703,7 +704,7 @@ sp_cx_mat propagator(const sp_cx_mat &L, double dt) {
   if (mat_norm > 1024) {
   }
   // Determine scaling and squaring parameters
-  double n_squarings = max(0.0, ceil(log2(mat_norm)));
+  double n_squarings = std::max(0.0, ceil(log2(mat_norm)));
   double scaling_factor = std::pow(2, n_squarings);
 
   // Scale the matrices
@@ -762,8 +763,8 @@ void composition::init() {
     base_freq_[i] = B0_ * spins_[i].gamma();  // Note magnet should be set before.
   // The sign of freq to be confirmed.
 }
-vector<size_t> composition::parse_labeled_spins(const string symbol) const {
-  vector<size_t> idx;
+std::vector<size_t> composition::parse_labeled_spins(const std::string symbol) const {
+  std::vector<size_t> idx;
   for (size_t i = 0; i < spins_.size(); i++)
     if (symbol == spins_[i].symbol())
       idx.push_back(i);
@@ -833,15 +834,15 @@ sp_cx_mat composition::mprealloc() const {
   size_t dim = liouville_space_dim();
   return sp_cx_mat(dim, dim);
 }
-sp_cx_vec composition::state(const string list) const {
+sp_cx_vec composition::state(const std::string list) const {
   return op(list, kLeft).cast<cd>() * unit_state();
 }
-sp_mat composition::op(const string list, op_side type) const {
-  string list_copy = list;
+sp_mat composition::op(const std::string list, op_side type) const {
+  std::string list_copy = list;
   boost::trim(list_copy);
-  vector<string> par_vec;
+  std::vector<std::string> par_vec;
   boost::split(par_vec, list_copy, boost::is_any_of("\t, "), boost::token_compress_on);
-  string op_type = par_vec.back();
+  std::string op_type = par_vec.back();
   if (op_type == "comm") {
     type = kComm;
     par_vec.pop_back();
@@ -869,13 +870,13 @@ sp_mat composition::op(const string list, op_side type) const {
   } catch (boost::bad_lexical_cast &) {
     // if it throws, it's not a number.
   }
-  vector<int> flags = vector<int>(nspins(), 0);
-  vector<op_coeff> all;
+  std::vector<int> flags = std::vector<int>(nspins(), 0);
+  std::vector<op_coeff> all;
   double coeff = 1;
   if (is_product_superop) { // op1 case.
     for (size_t i = 0; i < par_vec.size(); i++) {
       size_t id = boost::lexical_cast<size_t>(par_vec[i]);
-      string op_label = par_vec[++i];
+      std::string op_label = par_vec[++i];
 
       check_valid_spin_id(id);
       check_valid_op_label(op_label);
@@ -911,12 +912,12 @@ sp_mat composition::op(const string list, op_side type) const {
       all.push_back(tmp);
     }
   } else {
-    vector<size_t> spins_id = parse_labeled_spins(par_vec[0]);
+    std::vector<size_t> spins_id = parse_labeled_spins(par_vec[0]);
     if (spins_id.size() == 0) {
-      string s = "invalid spin symbol ** " + par_vec[0] + " **";
+      std::string s = "invalid spin symbol ** " + par_vec[0] + " **";
       throw std::runtime_error(s.c_str());
     }
-    string op_label = par_vec.back();
+    std::string op_label = par_vec.back();
     check_valid_op_label(op_label);
     boost::to_lower(op_label);
     for (size_t i = 0; i < spins_id.size(); i++) {
@@ -957,7 +958,7 @@ sp_mat composition::op(const string list, op_side type) const {
   sp_mat m = empty_op();
   if (!is_product_superop)
     for (size_t k = 0; k < all.size(); k++) {
-      vector<op_coeff> tmp;
+      std::vector<op_coeff> tmp;
       tmp.push_back(all[k]);
       m += all[k].coeff * p_superop(tmp, flags, type);
     }
@@ -970,7 +971,7 @@ sp_mat composition::op(const string list, op_side type) const {
   //	sp_mat m;
   //	for (size_t i = 0; i < flags.size(); i++) {
   //		LM lm = linear_index(flags[i]);
-  //		vector<sp_mat> T = irr_sph_ten2(getHilbertSpaceDim(i), lm.L);
+  //		std::vector<sp_mat> T = irr_sph_ten2(getHilbertSpaceDim(i), lm.L);
   //		if (i == 0)
   //			m = T[lm.L - lm.M];
   //		else {
@@ -988,16 +989,16 @@ sp_mat composition::op(const string list, op_side type) const {
 void composition::check_valid_spin_id(const size_t id) const {
   size_t n = nspins();
   if (id > n || id == 0) {
-    string s = "invalid spin index ** " + boost::lexical_cast<string>
-        (id) + " ** ( 1 ~ " + boost::lexical_cast<string>(n) + " )";
+    std::string s = "invalid spin index ** " + boost::lexical_cast<std::string>
+        (id) + " ** ( 1 ~ " + boost::lexical_cast<std::string>(n) + " )";
     throw std::runtime_error(s.c_str());
   }
 }
-void composition::check_valid_op_label(const string linear_index) const {
+void composition::check_valid_op_label(const std::string linear_index) const {
   if (linear_index != "Ie" && linear_index != "Iz" && linear_index != "I+"
       && linear_index != "Ip" && linear_index != "I-" && linear_index != "Im"
       && linear_index != "T") {
-    string s = "invalid operator notation ** " + linear_index + " **";
+    std::string s = "invalid operator notation ** " + linear_index + " **";
     throw std::runtime_error(s.c_str());
   }
 }
@@ -1021,8 +1022,8 @@ sp_cx_vec composition::unit_state() const {
   //  break;
   //}
 }
-sp_mat composition::p_superop(const vector<op_coeff> &active_spins,
-                              const vector<int> &flags,
+sp_mat composition::p_superop(const std::vector<op_coeff> &active_spins,
+                              const std::vector<int> &flags,
                               const op_side type) const {
 
   if (type != kComm && type != kLeftComm && type != kRightComm && type != kLeft
@@ -1034,10 +1035,10 @@ sp_mat composition::p_superop(const vector<op_coeff> &active_spins,
     return p_superop(active_spins, flags, kLeftComm)
         - p_superop(active_spins, flags, kRightComm);
   size_t active_num = active_spins.size();
-  vector<ivec> source = vector<ivec>(active_num);  // source state index
-  vector<ivec> destin = vector<ivec>
+  std::vector<ivec> source = std::vector<ivec>(active_num);  // source state index
+  std::vector<ivec> destin = std::vector<ivec>
       (active_num);  // destination state index
-  vector<vec> structure = vector<vec>
+  std::vector<vec> structure = std::vector<vec>
       (active_num);  // structure coefficients table
   for (size_t i = 0; i < active_num; i++) {
     size_t mult = hilbert_space_dim(active_spins[i].id);
@@ -1055,9 +1056,9 @@ sp_mat composition::p_superop(const vector<op_coeff> &active_spins,
         pt.col(k) = pt_right[k].row(flags[active_spins[i].id]);
     }
 
-    vector<size_t> rows;
-    vector<size_t> cols;
-    vector<double> vals;
+    std::vector<size_t> rows;
+    std::vector<size_t> cols;
+    std::vector<double> vals;
     for (size_t col = 0; col < mult2; col++)
       for (size_t row = 0; row < mult2; row++) {
         double val = pt(row, col);
@@ -1102,18 +1103,18 @@ sp_mat composition::p_superop(const vector<op_coeff> &active_spins,
 
     coeff = kroneckerProduct(coeff, structure[i]).eval();
   }
-  //cout << "from:\n" << from << "\n\n" << "to:\n" << to << "\n\n" << "coeff:\n"
+  //std::cout << "from:\n" << from << "\n\n" << "to:\n" << to << "\n\n" << "coeff:\n"
   //    << coeff << "\n";
   size_t dim = liouville_space_dim();
   sp_mat mat(dim, dim);
 
   // Lift the basis columns corresponding to the relevant spins
-  vector<size_t> active_ids;
+  std::vector<size_t> active_ids;
   for (size_t k = 0; k < active_spins.size(); k++)
     active_ids.push_back(active_spins[k].id);
   imat basis_col = basis_cols(active_ids);
 
-  vector<int> used_rows;
+  std::vector<int> used_rows;
   // For commutation superoperators remove commuting paths
   if (type == kLeftComm || type == kRightComm) {
     for (int i = 0; i < from.rows(); i++)
@@ -1138,7 +1139,7 @@ sp_mat composition::p_superop(const vector<op_coeff> &active_spins,
       source_subsp_idx = source_subsp_idx.cwiseProduct(comp);
     }
 
-    vector<int> source_row_select;
+    std::vector<int> source_row_select;
     for (int j = 0; j < source_subsp_idx.rows(); j++)
       if (source_subsp_idx(j))
         source_row_select.push_back(j);
@@ -1155,7 +1156,7 @@ sp_mat composition::p_superop(const vector<op_coeff> &active_spins,
       destin_subsp_idx = destin_subsp_idx.cwiseProduct(comp);
     }
 
-    vector<int> destin_row_select;
+    std::vector<int> destin_row_select;
     for (int j = 0; j < destin_subsp_idx.rows(); j++)
       if (destin_subsp_idx(j))
         destin_row_select.push_back(j);
@@ -1198,7 +1199,7 @@ sp_mat composition::p_superop(const vector<op_coeff> &active_spins,
 void composition::ist_product_table(size_t mult, mat *product_table_left,
                                     mat *product_table_right) const {
   // Get the irreducible spherical tensors
-  vector<sp_mat> T = irr_sph_ten2(mult);
+  std::vector<sp_mat> T = irr_sph_ten2(mult);
 
   // Preallocate the arrays
   size_t mult2 = mult * mult;
@@ -1222,17 +1223,17 @@ void composition::ist_product_table(size_t mult, mat *product_table_left,
       }
     }
 }
-vector<sp_mat> composition::irr_sph_ten2(size_t mult) const {
-  vector<sp_mat> T;
+std::vector<sp_mat> composition::irr_sph_ten2(size_t mult) const {
+  std::vector<sp_mat> T;
   for (int k = 0; k < (int) mult; k++) {
-    vector<sp_mat> Tk = irr_sph_ten2(mult, k);
+    std::vector<sp_mat> Tk = irr_sph_ten2(mult, k);
     for (size_t i = 0; i < Tk.size(); i++)
       T.push_back(Tk[i]);
   }
   return T;
 }
-vector<sp_mat> composition::irr_sph_ten2(size_t mult, int k) const {
-  vector<sp_mat> Tk;
+std::vector<sp_mat> composition::irr_sph_ten2(size_t mult, int k) const {
+  std::vector<sp_mat> Tk;
   pauli_matrices L(mult);
   // Get the top state
   sp_mat T0 = (std::pow(-1, k) * std::pow(2, -k / 2.0)) * spow(L.p, k);
@@ -1245,15 +1246,15 @@ vector<sp_mat> composition::irr_sph_ten2(size_t mult, int k) const {
   }
   return Tk;
 }
-imat composition::basis_cols(vector<size_t> active_ids) const {
+imat composition::basis_cols(std::vector<size_t> active_ids) const {
   size_t cols = active_ids.size();
   imat m(basis_table_.rows(), cols);
   for (size_t i = 0; i < cols; i++)
     m.col(i) = basis_table_.col(active_ids[i]);
   return m;
 }
-imat composition::basis_cols(vector<size_t> active_ids,
-                             vector<int> row_select) const {
+imat composition::basis_cols(std::vector<size_t> active_ids,
+                             std::vector<int> row_select) const {
   size_t cols = active_ids.size();
   size_t rows = row_select.size();
 
@@ -1263,7 +1264,7 @@ imat composition::basis_cols(vector<size_t> active_ids,
     return n;
 
   imat m(basis_table_.rows(), spin_num - cols);
-  vector<int> if_active(spin_num, 0);
+  std::vector<int> if_active(spin_num, 0);
   for (size_t i = 0; i < cols; i++)  // set active flags (1)
     if_active[active_ids[i]] = 1;
 
@@ -1287,24 +1288,24 @@ interaction::interaction(
 interaction::~interaction() {
 }
 
-void interaction::set_zeeman(string list) {
+void interaction::set_zeeman(std::string list) {
   boost::trim(list); // trim the spaces on both left and right sides.
   boost::to_lower(list);
 
-  vector<string> par_vec;
+  std::vector<std::string> par_vec;
   boost::split(par_vec, list, boost::is_any_of("\t, "), boost::token_compress_on);
 
-  vector<string>::iterator iter;
+  std::vector<std::string>::iterator iter;
   iter = par_vec.begin();
   while (iter != par_vec.end()) {
     if (*(iter + 1) == "scalar") {
       size_t id = boost::lexical_cast<size_t>(*iter);
 
-      string val = *(iter + 2);
-      vector<string> val_vec;
+      std::string val = *(iter + 2);
+      std::vector<std::string> val_vec;
       boost::split(val_vec, val, boost::is_any_of(":"), boost::token_compress_on);
 
-      string unit = *(iter + 3);
+      std::string unit = *(iter + 3);
 
       if (val_vec.size() == 1) // normal case.
         set_zeeman_scalar(id, boost::lexical_cast<double>(val), unit);
@@ -1321,34 +1322,34 @@ void interaction::set_zeeman(string list) {
     } else if (*(iter + 1) == "eigs-euler") {
       // TODO.
     } else {
-      string s = "unidentified zeeman parameters: " + list;
+      std::string s = "unidentified zeeman parameters: " + list;
       throw std::runtime_error(s.c_str());
     }
   }
 #ifdef SSL_OUTPUT_ENABLE
-  string s = str(boost::format("%s %s.\n") % "zeeman effect pars set to be" % list);
+  std::string s = str(boost::format("%s %s.\n") % "zeeman effect pars set to be" % list);
   ssl_color_text("info", s);
 #endif
 }
-void interaction::set_Jcoupling(string list) {
+void interaction::set_Jcoupling(std::string list) {
   boost::trim(list); // trim the spaces on both left and right sides.
   boost::to_lower(list);
 
-  vector<string> par_vec;
+  std::vector<std::string> par_vec;
   boost::split(par_vec, list, boost::is_any_of("\t, "), boost::token_compress_on);
 
-  vector<string>::iterator iter;
+  std::vector<std::string>::iterator iter;
   iter = par_vec.begin();
   while (iter != par_vec.end()) {
     if (*(iter + 2) == "scalar") {
       size_t id1 = boost::lexical_cast<size_t>(*iter);
       size_t id2 = boost::lexical_cast<size_t>(*(iter + 1));
 
-      string val = *(iter + 3);
-      vector<string> val_vec;
+      std::string val = *(iter + 3);
+      std::vector<std::string> val_vec;
       boost::split(val_vec, val, boost::is_any_of(":"), boost::token_compress_on);
 
-      string unit = *(iter + 4);
+      std::string unit = *(iter + 4);
 
       if (val_vec.size() == 1) // normal case.
         set_Jcoupling_scalar(id1, id2, boost::lexical_cast<double>(val), unit);
@@ -1365,24 +1366,24 @@ void interaction::set_Jcoupling(string list) {
     } else if (*(iter + 1) == "eigs-euler") {
       // TODO.
     } else {
-      string s = "unidentified zeeman parameters: " + list;
+      std::string s = "unidentified zeeman parameters: " + list;
       throw std::runtime_error(s.c_str());
     }
   }
 #ifdef SSL_OUTPUT_ENABLE
-  string s = str(boost::format("%s %s.\n") % "J coupling pars set to be" % list);
+  std::string s = str(boost::format("%s %s.\n") % "J coupling pars set to be" % list);
   ssl_color_text("info", s);
 #endif
 }
-void interaction::set_zeeman(vector<string> list) {
+void interaction::set_zeeman(std::vector<std::string> list) {
   if (!list.size())
     return;
-  string par_zeeman = boost::algorithm::join(list, " ");
+  std::string par_zeeman = boost::algorithm::join(list, " ");
   set_zeeman(par_zeeman);
 }
-void interaction::set_zeeman_scalar(size_t id, double val, string unit) {
+void interaction::set_zeeman_scalar(size_t id, double val, std::string unit) {
   if (id > comp_.nspins()) {
-    string s = "zeeman scalar id out of range: " + boost::lexical_cast<string>(id);
+    std::string s = "zeeman scalar id out of range: " + boost::lexical_cast<std::string>(id);
     throw std::runtime_error(s.c_str());
   }
   if (unit == "ppm") { // do nothing.
@@ -1392,21 +1393,21 @@ void interaction::set_zeeman_scalar(size_t id, double val, string unit) {
     val *= 1e3;
     val /= comp_.get_freq(id - 1); // kHz into ppm.
   } else {
-    string s = "unidentified zeeman scalar unit: " + unit;
+    std::string s = "unidentified zeeman scalar unit: " + unit;
     throw std::runtime_error(s.c_str());
   }
   zeeman_.scalars[id - 1] = val;
 }
 
-void interaction::set_zeeman_scalar_broadband(size_t id, vec3 val, string unit) {
+void interaction::set_zeeman_scalar_broadband(size_t id, vec3 val, std::string unit) {
   if (id > comp_.nspins()) {
-    string s = "zeeman scalar id out of range: " + boost::lexical_cast<string>(id);
+    std::string s = "zeeman scalar id out of range: " + boost::lexical_cast<std::string>(id);
     throw std::runtime_error(s.c_str());
   }
 
   int num = int(val[2]);
   if (num < 2) {
-    string s = "broadband zeeman scalar set failed, spin No. " + boost::lexical_cast<string>(id);
+    std::string s = "broadband zeeman scalar set failed, spin No. " + boost::lexical_cast<std::string>(id);
     throw std::runtime_error(s.c_str());
   }
 
@@ -1429,7 +1430,7 @@ void interaction::set_zeeman_scalar_broadband(size_t id, vec3 val, string unit) 
     val[0] /= comp_.get_freq(id - 1); // kHz into ppm.
     val[1] /= comp_.get_freq(id - 1); // kHz into ppm.
   } else {
-    string s = "unidentified zeeman scalar unit: " + unit;
+    std::string s = "unidentified zeeman scalar unit: " + unit;
     throw std::runtime_error(s.c_str());
   }
 
@@ -1441,10 +1442,10 @@ void interaction::set_zeeman_scalar_broadband(size_t id, vec3 val, string unit) 
   zeeman_.bb_scalars.push_back(bb);
 }
 
-void interaction::set_Jcoupling(vector<string> list) {
+void interaction::set_Jcoupling(std::vector<std::string> list) {
   if (!list.size())
     return;
-  string par_coupling = boost::algorithm::join(list, " "); // "1 2 scalar 14 Hz"
+  std::string par_coupling = boost::algorithm::join(list, " "); // "1 2 scalar 14 Hz"
   set_Jcoupling(par_coupling);
 }
 void interaction::set_Jcoupling_coords(const sol::table &t) {
@@ -1457,28 +1458,28 @@ void interaction::set_Jcoupling_coords(const sol::table &t) {
       pos[i++] = kvv.second.as<double>();
     }
     coupling_.coordinates.push_back(pos);
-    //cout<<pos<<"\n";
-    //cout<<pos.norm()<<"\n";
+    //std::cout<<pos<<"\n";
+    //std::cout<<pos.norm()<<"\n";
   }
 }
 
-void interaction::set_relaxation(vector<string> list) {
+void interaction::set_relaxation(std::vector<std::string> list) {
   if (!list.size())
     return;
-  string par_relax = boost::algorithm::join(list, " ");
+  std::string par_relax = boost::algorithm::join(list, " ");
   set_relaxation(par_relax);
 }
-void interaction::set_relaxation(string list) {
+void interaction::set_relaxation(std::string list) {
   boost::trim(list); // trim the spaces on both left and right sides.
   boost::to_lower(list);
 
-  vector<string> par_vec;
+  std::vector<std::string> par_vec;
   boost::split(par_vec, list, boost::is_any_of("\t, "), boost::token_compress_on);
 
-  vector<string>::iterator t1_pos = find(par_vec.begin(),
+  std::vector<std::string>::iterator t1_pos = find(par_vec.begin(),
                                          par_vec.end(),
                                          "t1");
-  vector<string>::iterator t2_pos = find(par_vec.begin(),
+  std::vector<std::string>::iterator t2_pos = find(par_vec.begin(),
                                          par_vec.end(),
                                          "t2");
 
@@ -1499,29 +1500,29 @@ void interaction::set_relaxation(string list) {
   }
 
 #ifdef SSL_OUTPUT_ENABLE
-  string s = str(boost::format("%s %s.\n") % "relaxation pars set to be" % list);
+  std::string s = str(boost::format("%s %s.\n") % "relaxation pars set to be" % list);
   ssl_color_text("info", s);
 #endif
 }
 
 void interaction::set_Jcoupling_scalar(size_t id1, size_t id2, double val,
-                                       string unit) {
+                                       std::string unit) {
   if (unit == "hz") {
     coupling_.scalar(id1 - 1, id2 - 1) = val;
     if (id1 != id2)
       coupling_.scalar(id2 - 1, id1 - 1) = val;
   } else {
-    string s = "unidentified Jcoupling scalar unit: " + unit;
+    std::string s = "unidentified Jcoupling scalar unit: " + unit;
     throw std::runtime_error(s.c_str());
   }
 }
 
-void interaction::set_Jcoupling_scalar_broadband(size_t id1, size_t id2, vec3 val, string unit) {
+void interaction::set_Jcoupling_scalar_broadband(size_t id1, size_t id2, vec3 val, std::string unit) {
   if (unit == "hz") {
     int num = int(val[2]);
     if (num < 2) {
-      string s = "broadband Jcoupling scalar set failed, spin No. " + boost::lexical_cast<string>(id1) + " and "
-          + boost::lexical_cast<string>(id2);
+      std::string s = "broadband Jcoupling scalar set failed, spin No. " + boost::lexical_cast<std::string>(id1) + " and "
+          + boost::lexical_cast<std::string>(id2);
       throw std::runtime_error(s.c_str());
     }
 
@@ -1533,24 +1534,24 @@ void interaction::set_Jcoupling_scalar_broadband(size_t id1, size_t id2, vec3 va
     bb.offset = vec::LinSpaced(num, -(val[1]-val[0]) / 2, (val[1]-val[0]) / 2);
     coupling_.bb_scalars.push_back(bb);
   } else {
-    string s = "unidentified Jcoupling scalar unit: " + unit;
+    std::string s = "unidentified Jcoupling scalar unit: " + unit;
     throw std::runtime_error(s.c_str());
   }
 }
-vector<vector<cs_par>> interaction::parsing_zeeman_broadband() {
+std::vector<std::vector<cs_par>> interaction::parsing_zeeman_broadband() {
   // case 1: broadband spin system. ONLY for the specific spin.
-  vector<vector<cs_par>> result0;
+  std::vector<std::vector<cs_par>> result0;
   if (zeeman_.bb_scalars.size() == 0)
       return result0;
   for (int i = 0; i < zeeman_.bb_scalars[0].offset.size(); i++) {
       cs_par tmp;
       tmp.id = zeeman_.bb_scalars[0].spin_id;
       tmp.val = zeeman_.bb_scalars[0].offset[i];
-      vector<cs_par> b;
+      std::vector<cs_par> b;
       b.push_back(tmp);
       result0.push_back(b);
   }
-  vector<vector<cs_par>> result = result0;
+  std::vector<std::vector<cs_par>> result = result0;
   for (int i = 1; i < zeeman_.bb_scalars.size(); i++) {
       result = parsing_zeeman_broadband(result, zeeman_.bb_scalars[i]);
   }
@@ -1558,13 +1559,13 @@ vector<vector<cs_par>> interaction::parsing_zeeman_broadband() {
 
 
   // case 2: broadband magnet field. NOTE: chemical shifts of all spins are shifted rigidly.
-  //vector<vector<cs_par>> result;
+  //std::vector<std::vector<cs_par>> result;
   //if (zeeman_.bb_scalars.size() == 0)
   //  return result;
 
   //vec offset = zeeman_.bb_scalars[0].offset;
   //for (int i = 0; i < offset.size(); i++) {
-  //  vector<cs_par> b;
+  //  std::vector<cs_par> b;
   //  for (size_t j = 0; j < comp_.nspins(); j++) {
   //    cs_par tmp;
   //    tmp.id = j;
@@ -1575,18 +1576,18 @@ vector<vector<cs_par>> interaction::parsing_zeeman_broadband() {
   //}
   //return result;
 }
-vector<vector<jcoup_par>> interaction::parsing_Jcoupling_broadband() {
-  vector<vector<jcoup_par>> result;
+std::vector<std::vector<jcoup_par>> interaction::parsing_Jcoupling_broadband() {
+  std::vector<std::vector<jcoup_par>> result;
   if (coupling_.bb_scalars.size() == 0)
     return result;
 
-  vector<vector<jcoup_par>> result0;
+  std::vector<std::vector<jcoup_par>> result0;
   for (int i = 0; i < coupling_.bb_scalars[0].offset.size(); i++) {
     jcoup_par tmp;
     tmp.id1 = coupling_.bb_scalars[0].spin_id1;
     tmp.id2 = coupling_.bb_scalars[0].spin_id2;
     tmp.val = coupling_.bb_scalars[0].offset[i];
-    vector<jcoup_par> b;
+    std::vector<jcoup_par> b;
     b.push_back(tmp);
     result0.push_back(b);
   }
@@ -1597,15 +1598,15 @@ vector<vector<jcoup_par>> interaction::parsing_Jcoupling_broadband() {
   return result;
 }
 
-vector<vector<cs_par>> interaction::parsing_zeeman_broadband(const vector<vector<cs_par>> &old,
+std::vector<std::vector<cs_par>> interaction::parsing_zeeman_broadband(const std::vector<std::vector<cs_par>> &old,
                                                              const broadband_cs &bb) {
-  vector<vector<cs_par>> result;
+  std::vector<std::vector<cs_par>> result;
   cs_par cur;
   cur.id = bb.spin_id;
   for (int i = 0; i < bb.offset.size(); i++) {
     cur.val = bb.offset[i];
     for (size_t j = 0; j < old.size(); j++) {
-      vector<cs_par> tmp = old[j];
+      std::vector<cs_par> tmp = old[j];
       tmp.push_back(cur);
       result.push_back(tmp);
     }
@@ -1613,16 +1614,16 @@ vector<vector<cs_par>> interaction::parsing_zeeman_broadband(const vector<vector
   return result;
 }
 
-vector<vector<jcoup_par>> interaction::parsing_Jcoupling_broadband(const vector<vector<jcoup_par>> &old,
+std::vector<std::vector<jcoup_par>> interaction::parsing_Jcoupling_broadband(const std::vector<std::vector<jcoup_par>> &old,
                                                                    const broadband_jcoup &bb) {
-  vector<vector<jcoup_par>> result;
+  std::vector<std::vector<jcoup_par>> result;
   jcoup_par cur;
   cur.id1 = bb.spin_id1;
   cur.id2 = bb.spin_id2;
   for (int i = 0; i < bb.offset.size(); i++) {
     cur.val = bb.offset[i];
     for (size_t j = 0; j < old.size(); j++) {
-      vector<jcoup_par> tmp = old[j];
+      std::vector<jcoup_par> tmp = old[j];
       tmp.push_back(cur);
       result.push_back(tmp);
     }
@@ -1635,12 +1636,12 @@ void interaction::alloc() {
   zeeman_ = zeeman(nspins);
   coupling_ = coupling(nspins);
 }
-void interaction::set_assumption(string assume) {
+void interaction::set_assumption(std::string assume) {
   if (assume_ == assume)
     return;
   assume_ = assume;
   if (assume_ != "labframe" && assume_ != "nmr" && assume_ != "esr") {
-    string s = "unknown interaction assumption ** " + assume + " **!";
+    std::string s = "unknown interaction assumption ** " + assume + " **!";
     throw std::runtime_error(s.c_str());
   }
   size_t nspins = comp_.nspins();
@@ -1712,8 +1713,8 @@ void interaction::init() {
         //if (r < tol_.prox_cutoff)  // Dipolar interaction for a pair of spins at a separation
         // (in Angstron) greater than the threshold is set to 0.
         {
-          //cout << r << "###########\n";
-          //cout << orient << "\n";
+          //std::cout << r << "###########\n";
+          //std::cout << orient << "\n";
           double x = orient(_cx) / r;
           double y = orient(_cy) / r;
           double z = orient(_cz) / r;
@@ -1729,13 +1730,13 @@ void interaction::init() {
           mat(2, 1) = -3 * z * y;
           mat(2, 2) = 1 - 3 * z * z;
 
-          //cout << mat << "##\n";
+          //std::cout << mat << "##\n";
 
           r *= 1e-10;  // into A
           double coeff = kMu * kHbar * comp_.gamma(i) * comp_.gamma(j) / (r * r * r); // constant_dipolar.
 
           coupling_.matrices[i * nspins + j] = coeff * mat;
-          //cout << coupling_.matrices[i * nspins + j] << "\n";
+          //std::cout << coupling_.matrices[i * nspins + j] << "\n";
         }
       }
   }
@@ -1747,7 +1748,7 @@ void interaction::init() {
       // SCALARS case
       if (coupling_.scalar(i, j)) {
         coupling_.matrices[i * nspins + j] += 2 * _pi * coupling_.scalar(i, j) * unit;
-        //cout << coupling_.matrices[i * nspins + j] << "\n";
+        //std::cout << coupling_.matrices[i * nspins + j] << "\n";
       }
       // EIGEN_EULERS case
       if (coupling_.eigs[i] != vec3::Zero()) {
@@ -1833,16 +1834,16 @@ mat33 euler2dcm(const vec3 &euler) {
 }
 ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
   /* if (assume_ == kNoAssumption) {
-           cout
+           std::cout
                            << format("%1% %2%.\n") % "S-S-L warning: "
                            % "simulation assumption should be specified heretofore";
            exit(0);
    }*/
   size_t nspins = comp_.nspins();
-  vector<op_item> iso_ham;
-  vector<op_item> *ani_ham = NULL;
+  std::vector<op_item> iso_ham;
+  std::vector<op_item> *ani_ham = NULL;
   if (build_aniso)
-    ani_ham = new vector<op_item>[25];
+    ani_ham = new std::vector<op_item>[25];
   // Process zeeman interactions
   for (size_t i = 0; i < nspins; i++) {
     // Write the isotropic part.
@@ -1854,10 +1855,10 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
             + comp_.base_freq_[i];
         if (fabs(zeeman_iso) > tol_inter_cutoff) {
 #ifdef SSL_ENABLE_DEBUG_SPIN_SYS
-          cout
+          std::cout
                   << format("%30T %=10s %-20s %-20d \n") % "---->"
                   % "complete isotropic zeeman interaction for spin " % i;
-          cout
+          std::cout
                   << format("%31T %40s %20.4e Hz\n") % "(Lz) x  "
                   % (zeeman_iso / (2 * k_pi));
 #endif
@@ -1870,10 +1871,10 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
         zeeman_iso = zeeman_.matrices[i].trace() / 3;
         if (fabs(zeeman_iso) > tol_inter_cutoff) {
 #ifdef SSL_ENABLE_DEBUG_SPIN_SYS
-          cout
+          std::cout
                   << format("%30T %=10s %-20s %-20d \n") % "---->"
                   % "offset isotropic zeeman interaction for spin " % i;
-          cout
+          std::cout
                   << format("%31T %40s %20.4e Hz\n") % "(Lz) x  "
                   % (zeeman_iso / (2 * k_pi));
 #endif
@@ -1893,16 +1894,16 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
         switch (zeeman_.strengths[i]) {
           case full: {
 #ifdef SSL_ENABLE_DEBUG_SPIN_SYS
-            cout
+            std::cout
                     << format("%30T %=10s %-20s %-20d \n") % "---->"
                     % "complete anisotropic zeeman interaction for spin " % i;
-            cout
+            std::cout
                     << format("%31T %40s %20s Hz\n") % "-0.5*(Lp) x "
                     % (T.r2(1) / (2 * k_pi));
-            cout
+            std::cout
                     << format("%31T %40s %20s Hz\n") % "sqrt(2/3)*(Lz) x "
                     % (T.r2(2) / (2 * k_pi));
-            cout
+            std::cout
                     << format("%31T %40s %20s Hz\n") % "0.5*(Lm) x "
                     % (T.r2(3) / (2 * k_pi));
 #endif
@@ -1915,11 +1916,11 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
             break;
           case secular: {
 #ifdef SSL_ENABLE_DEBUG_SPIN_SYS
-            cout
+            std::cout
                     << format("%30T %=10s %-20s %-20d \n") % "---->"
                     % "Z part of the anisotropic zeeman interaction for spin "
                     % i;
-            cout
+            std::cout
                     << format("%31T %40s %20s Hz\n") % "sqrt(2/3)*(Lz) x "
                     % (T.r2(2) / (2 * k_pi));
 #endif
@@ -1937,7 +1938,7 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
             for (size_t m = 0; m < 5; m++) {
               op_item tmp = tt[k];
               tmp.coeff *= T.r2(m);
-              vector<op_item> Qmn;
+              std::vector<op_item> Qmn;
               Qmn.push_back(tmp);
               copy(Qmn.begin(), Qmn.end(), back_inserter(ani_ham[k * 5 + m]));
             }
@@ -1946,31 +1947,31 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
       size_t index = i * nspins + i;// (2 * comp_.nspins + 1 - i) * i / 2;
       T = mat2sphten(coupling_.matrices[index]);
       if (T.r2.cwiseAbs().sum() > tol_inter_cutoff) {
-        vector<op_item> *tt = new vector<op_item>[5];
+        std::vector<op_item> *tt = new std::vector<op_item>[5];
         switch (coupling_.strengths[index]) {
           case strong: {
 #ifdef SSL_ENABLE_DEBUG_SPIN_SYS
-            cout
+            std::cout
                     << format("%30T %=10s %-20s %=3d \n") % "---->"
                     % "complete quadratic coupling for spins " % i;
-            cout
+            std::cout
                     << format("%31T %40s %20s Hz\n") % "T(2,+2) x "
                     % (T.r2(0) / (2 * k_pi));
-            cout
+            std::cout
                     << format("%31T %40s %20s Hz\n") % "T(2,+1) x "
                     % (T.r2(1) / (2 * k_pi));
-            cout
+            std::cout
                     << format("%31T %40s %20s Hz\n") % "T(2,0) x "
                     % (T.r2(2) / (2 * k_pi));
-            cout
+            std::cout
                     << format("%31T %40s %20s Hz\n") % "T(2,-1) x "
                     % (T.r2(3) / (2 * k_pi));
-            cout
+            std::cout
                     << format("%31T %40s %20s Hz\n") % "T(2,-2) x "
                     % (T.r2(4) / (2 * k_pi));
 #endif
 
-            vector<op_item> tmp;
+            std::vector<op_item> tmp;
             tmp.push_back(op_item(1.0, "T(2,2)", "", i, -1));
             tt[0] = tmp;
             tmp.clear();
@@ -1994,14 +1995,14 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
             break;
           case secular: {
 #ifdef SSL_ENABLE_DEBUG_SPIN_SYS
-            cout
+            std::cout
                     << format("%30T %=10s %-20s %=3d \n") % "---->"
                     % "secular part of the quadratic coupling_ for spin " % i;
-            cout
+            std::cout
                     << format("%31T %40s %20s Hz\n") % "T(2,0) x "
                     % (T.r2(2) / (2 * k_pi));
 #endif
-            vector<op_item> tmp;
+            std::vector<op_item> tmp;
             tt[0] = tmp;
             tt[1] = tmp;
 
@@ -2017,7 +2018,7 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
         }
         for (size_t k = 0; k < 5; k++)
           for (size_t m = 0; m < 5; m++) {
-            vector<op_item> Qmn;
+            std::vector<op_item> Qmn;
             for (size_t p = 0; p < tt[k].size(); p++) {
               op_item tmp = tt[k][p];
               tmp.coeff *= T.r2(m);
@@ -2042,10 +2043,10 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
           case strong:
           case secular: {
 #ifdef SSL_ENABLE_DEBUG_SPIN_SYS
-            cout
+            std::cout
                     << format("%30T %=10s %-20s %=3d  %=3d\n") % "---->"
                     % "complete isotropic coupling for spins " % i % j;
-            cout
+            std::cout
                     << format("%31T %40s %20s Hz\n") % "(LxSx+LySy+LzSz) x "
                     % (coupling_iso / (2 * k_pi));
 #endif
@@ -2056,11 +2057,11 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
             break;
           case weak: {
 #ifdef SSL_ENABLE_DEBUG_SPIN_SYS
-            cout
+            std::cout
                     << format("%30T %=10s %-20s %=3d  %=3d\n") % "---->"
                     % "(z,z) part of the isotropic coupling_ for spins " % i
                     % j;
-            cout
+            std::cout
                     << format("%31T %40s %20s Hz\n") % "(LzSz) x "
                     % (coupling_iso / (2 * k_pi));
 #endif
@@ -2074,33 +2075,33 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
       if (build_aniso) {
         rank T = mat2sphten(coupling_.matrices[index]);
         if (T.r2.cwiseAbs().sum() > tol_inter_cutoff) {
-          vector<op_item> *tt = new vector<op_item>[5];
+          std::vector<op_item> *tt = new std::vector<op_item>[5];
           switch (coupling_.strengths[index]) {
             case strong: {
 #ifdef SSL_ENABLE_DEBUG_SPIN_SYS
-              cout
+              std::cout
                       << format("%30T %=10s %-20s %=3d  %=3d\n") % "---->"
                       % "complete anisotropic coupling for spins " % i % j;
 
-              cout
+              std::cout
                       << format("%31T %40s %20s Hz\n") % "0.5*(LpSp) x "
                       % (T.r2(0) / (2 * k_pi));
-              cout
+              std::cout
                       << format("%31T %40s %20s Hz\n") % "-0.5*(LzSp+LpSz) x "
                       % (T.r2(1) / (2 * k_pi));
-              cout
+              std::cout
                       << format("%31T %40s %20s Hz\n")
                       % "sqrt(2/3)*(LzSz-0.25*(LpSm+LmSp)) x "
                       % (T.r2(2) / (2 * k_pi));
-              cout
+              std::cout
                       << format("%31T %40s %20s Hz\n") % "0.5*(LzSm+LmSz) x "
                       % (T.r2(3) / (2 * k_pi));
-              cout
+              std::cout
                       << format("%31T %40s %20s Hz\n") % "0.5*(LmSm) x "
                       % (T.r2(4) / (2 * k_pi));
 #endif
               // Eq(3) in Kuprov 2011
-              vector<op_item> tmp;
+              std::vector<op_item> tmp;
               tmp.push_back(op_item(0.5, "I+", "I+", i, j));
               tt[0] = tmp;
               tmp.clear();
@@ -2128,18 +2129,18 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
               break;
             case secular: {
 #ifdef SSL_ENABLE_DEBUG_SPIN_SYS
-              cout
+              std::cout
                       << format("%30T %=10s %-20s %=3d  %=3d\n") % "---->"
                       % "secular part of the anisotropic coupling for spins "
                       % i % j;
 
-              cout
+              std::cout
                       << format("%31T %40s %20s Hz\n")
                       % "sqrt(2/3)*(LzSz-0.25*(LpSm+LmSp)) x "
                       % (T.r2(2) / (2 * k_pi));
 #endif
               // Eq(3) in Kuprov 2011
-              vector<op_item> tmp;
+              std::vector<op_item> tmp;
               tt[0] = tmp;
               tt[1] = tmp;
 
@@ -2155,17 +2156,17 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
               break;
             case weak: {
 #ifdef SSL_ENABLE_DEBUG_SPIN_SYS
-              cout
+              std::cout
                       << format("%30T %=10s %-20s %=3d  %=3d\n") % "---->"
                       % "(z,z) part of the anisotropic coupling for spins " % i
                       % j;
 
-              cout
+              std::cout
                       << format("%31T %40s %20s Hz\n") % "sqrt(2/3)*LzSz x "
                       % (T.r2(2) / (2 * k_pi));
 #endif
               // Eq(3) in Kuprov 2011
-              vector<op_item> tmp;
+              std::vector<op_item> tmp;
               tt[0] = tmp;
               tt[1] = tmp;
 
@@ -2181,7 +2182,7 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
           }
           for (size_t k = 0; k < 5; k++)
             for (size_t m = 0; m < 5; m++) {
-              vector<op_item> Qmn;
+              std::vector<op_item> Qmn;
               for (size_t p = 0; p < tt[k].size(); p++) {
                 op_item tmp = tt[k][p];
                 tmp.coeff *= T.r2(m);
@@ -2193,7 +2194,7 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
       }
     }
 #ifdef SSL_ENABLE_DEBUG_SPIN_SYS
-  cout
+  std::cout
           << format("\n%=20s %=10s %-20s %3s items.\n") % "Hamiltonian" % "---->"
           % "Build the isotropic Hamiltonian: " % iso_ham.size();
 #endif
@@ -2204,10 +2205,10 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
   ham.isotropic = aux_hamiltonian(iso_ham, type);
   // Q: twenty-five matrices giving the irreducible components of the anisotropic part
 #ifdef SSL_ENABLE_DEBUG_SPIN_SYS
-  cout
+  std::cout
           << format("\n%=20s %=10s %-20s \n") % "Hamiltonian" % "---->"
           % "Build the rotational basis.";
-  cout
+  std::cout
           << format("%30T %=10s %-20s\n") % "---->"
           % "building irreducible spherical component.";
 #endif
@@ -2216,7 +2217,7 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
     for (int k = 0; k < 5; k++)
       for (int m = 0; m < 5; m++) {
 #ifdef SSL_ENABLE_DEBUG_SPIN_SYS
-        cout
+        std::cout
                 << format("%41T k= %2s %3T  m= %2s %3T %2s items\n") % (2 - k)
                 % (2 - m) % ani_ham[k * 5 + m].size();
 #endif
@@ -2225,25 +2226,25 @@ ham_op interaction::hamiltonian(const op_side type, bool build_aniso) const {
   }
   return ham;
 }
-sp_cx_mat interaction::aux_hamiltonian(const vector<op_item> &descr,
+sp_cx_mat interaction::aux_hamiltonian(const std::vector<op_item> &descr,
                                        const op_side type) const {
   size_t dim = comp_.liouville_space_dim();
   sp_cx_mat H = sp_cx_mat(dim, dim);
 
   for (size_t i = 0; i < descr.size(); i++) {
-    string par = "";
+    std::string par = "";
     switch (descr[i].used) {  // tensor type
       case 0:  // not used
         break;
       case 1: {
-        par += boost::lexical_cast<string>(descr[i].id1 + 1);
+        par += boost::lexical_cast<std::string>(descr[i].id1 + 1);
         par += " " + descr[i].op1;
       }
         break;
       case 2: {
-        par += boost::lexical_cast<string>(descr[i].id1 + 1);
+        par += boost::lexical_cast<std::string>(descr[i].id1 + 1);
         par += " " + descr[i].op1;
-        par += " " + boost::lexical_cast<string>(descr[i].id2 + 1);
+        par += " " + boost::lexical_cast<std::string>(descr[i].id2 + 1);
         par += " " + descr[i].op2;
       }
         break;
@@ -2285,7 +2286,7 @@ void interaction::cacl_relaxation() {
   sp_cx_mat mat_R = comp_.mprealloc();
   switch (relax_.theory) {
     case redfield: {
-      cout
+      std::cout
           << boost::format("%=20s %=10s %-20s \n") % "Relaxation" % "---->"
               % "statrt to calculate redfield superoperator.";
       // If correlation times are zero, just return a zero matrix
@@ -2316,28 +2317,28 @@ void interaction::cacl_relaxation() {
       // Set the number of integration steps according to the accuracy goal
       double nsteps = ceil(
           1 / (10 * std::pow(xi, 1.0 / 6))
-              * std::pow(t_max / min(tau_max, 1 / L0_norm), 7.0 / 6));
+              * std::pow(t_max / std::min(tau_max, 1 / L0_norm), 7.0 / 6));
       // Get the numerical integration step
       double timestep = t_max / nsteps;
       // Kill the terms in the static Liouvillian that are irrelevant on the time scale of the integration
       cleanup(L0, 1 / t_max);
-      cout
+      std::cout
           << boost::format("%=20s %=10s %-47s %-10s \n") % "Relaxation" % "---->"
               % "norm of the static Hamiltonian superoperator: " % L0_norm;
-      cout
+      std::cout
           << boost::format("%=32T %-47s %-10s \n")
               % "correlation function integration time step: " % timestep;
-      cout << boost::format("%=32T %-47s %-10s \n") % "integration steps: " % nsteps;
+      std::cout << boost::format("%=32T %-47s %-10s \n") % "integration steps: " % nsteps;
       // Get the static Liouvillian propagator
       sp_cx_mat P = propagator(L0, timestep / 4);
-      cout
+      std::cout
           << boost::format("%=20s %=10s %-20s \n") % "Relaxation" % "---->"
               % "integrating spherical component.";
       // Loop over the multi-index
       int k, m, p, q;
       k = m = p = q = -1;
       for (int kmpq = 0; kmpq < 625; kmpq++) {
-        vector<int> indices = dec2base(kmpq, 5);
+        std::vector<int> indices = dec2base(kmpq, 5);
         switch (indices.size()) {
           case 4: {
             k = indices[3];
@@ -2379,7 +2380,7 @@ void interaction::cacl_relaxation() {
           sp_cx_mat A = comp_.mprealloc();
           // Set the initial value for the the operator between the exponentials in the BRW integral
           sp_cx_mat B = Q[p * 5 + q].adjoint();
-          cout
+          std::cout
               << boost::format("%33T k=%2s %5T  m=%2s %5T p=%2s %5T q=%2s\n") % (2 - k)
                   % (2 - m) % (2 - p) % (2 - q);
           // Compute the BRW integral using O(h^7) Boole's quadrature
@@ -2416,11 +2417,11 @@ void interaction::cacl_relaxation() {
       if (!relax_.dfs) {
         cx_mat tmp = (mat_R.toDense().real()).cast<cd>();
         mat_R = tmp.sparseView();
-        cout
+        std::cout
             << boost::format("%=20s %=10s %-20s \n") % "Relaxation" % "---->"
                 % "dynamic frequency shifts have been ignored.";
       } else
-        cout
+        std::cout
             << boost::format("%=20s %=10s %-20s \n") % "Relaxation" % "---->"
                 % "dynamic frequency shifts have been kept.";
 
@@ -2428,7 +2429,7 @@ void interaction::cacl_relaxation() {
         case diagonal: {
           cx_mat tmp = mat_R.diagonal().asDiagonal();
           mat_R = tmp.sparseView();
-          cout
+          std::cout
               << boost::format("%=20s %=10s %-20s \n") % "Relaxation" % "---->"
                   % "diagonal relaxation superoperator";
         }
@@ -2439,7 +2440,7 @@ void interaction::cacl_relaxation() {
                            stderr,
                            "Error:kite option is only available for sphten-liouv formalism!");*/
           mat_R = R2kite(mat_R);
-          cout
+          std::cout
               << boost::format("%=20s %=10s %-20s \n") % "Relaxation" % "---->"
                   % "kite relaxation superoperator";
         }
@@ -2450,13 +2451,13 @@ void interaction::cacl_relaxation() {
                            stderr,
                            "Error:secular option is only available for sphten-liouv formalism!");*/
           mat_R = R2secular(mat_R);
-          cout
+          std::cout
               << boost::format("%=20s %=10s %-20s \n") % "Relaxation" % "---->"
                   % "secular relaxation superoperator";
         }
           break;
         case labframe:
-          cout
+          std::cout
               << boost::format("%=20s %=10s %-20s \n") % "Relaxation" % "---->"
                   % "full relaxation superoperator";
           break;
@@ -2485,8 +2486,8 @@ void interaction::cacl_relaxation() {
       int spins = lm_mat.cols();
       cd val;
       sp_cx_mat R(dim, dim);
-      vector<double> r1 = relax_.r1;
-      vector<double> r2 = relax_.r2;
+      std::vector<double> r1 = relax_.r1;
+      std::vector<double> r2 = relax_.r2;
       double current_rlx_rate;
 
       for (int i = 0; i < dim; i++) {
@@ -2509,7 +2510,7 @@ void interaction::cacl_relaxation() {
         if (current_rlx_rate != 0)
           R.insert(i, i) = -current_rlx_rate;
       }
-      /* cout
+      /* std::cout
                << format("%=20s %=10s %-20s \n") % "Relaxation" % "---->"
                % "T1-T2 relaxation superoperator";*/
       mat_R = R;
@@ -2560,7 +2561,7 @@ sp_cx_mat interaction::R2kite(const sp_cx_mat &R) const {
   M = M.cwiseAbs();
   ivec long_states(M.rows());
 
-  vector<int> long_states_idx;
+  std::vector<int> long_states_idx;
   for (int i = 0; i < M.rows(); i++) {
     long_states[i] = M.row(i).sum();
     if (long_states[i] == 0)
@@ -2610,9 +2611,9 @@ sp_cx_mat interaction::R2secular(const sp_cx_mat &R) const {
   for (int i = 0; i < freqs_mat.rows(); i++)
     freqs(i) = freqs_mat.row(i).sum();
 
-  vector<double> freqs_unique = eigen2stl(freqs);
+  std::vector<double> freqs_unique = eigen2stl(freqs);
   sort(freqs_unique.begin(), freqs_unique.end());
-  vector<double>::iterator it = unique(freqs_unique.begin(),
+  std::vector<double>::iterator it = unique(freqs_unique.begin(),
                                        freqs_unique.end());
   freqs_unique.erase(it, freqs_unique.end());
 
@@ -2627,7 +2628,7 @@ sp_cx_mat interaction::R2secular(const sp_cx_mat &R) const {
   keep_mask.setZero();
 
   for (size_t i = 0; i < freqs_unique.size(); i++) {
-    vector<int> current_frq_group;
+    std::vector<int> current_frq_group;
     for (int j = 0; j < freqs.rows(); j++)
       if (freqs(j) == freqs_unique[i])
         current_frq_group.push_back(j);
@@ -2669,13 +2670,13 @@ void find(sp_cx_mat m, ivec &rows, ivec &cols, cx_vec &vals) {
     }
 }
 double norm(const sp_cx_mat &m) { // 1-norm
-  vector<double> cols;
-  vector<double> sum_cols;
+  std::vector<double> cols;
+  std::vector<double> sum_cols;
   for (int k = 0; k < m.outerSize(); ++k)
     for (Eigen::SparseMatrix<cd>::InnerIterator it(m, k); it; ++it) {
       int col = it.col();
       double val = sqrt(norm(it.value()));
-      typedef vector<double>::iterator iter;
+      typedef std::vector<double>::iterator iter;
       iter i = find(cols.begin(), cols.end(), col);
       if (i != cols.end()) { // already have it
         int pos = -1;
@@ -2696,20 +2697,20 @@ double norm(const sp_cx_mat &m) { // 1-norm
   else
     return *max_element(sum_cols.begin(), sum_cols.end());
 }
-ivec stl2eigen(vector<int> m) {
+ivec stl2eigen(std::vector<int> m) {
   ivec result(m.size());
   for (size_t i = 0; i < m.size(); i++)
     result(i) = m[i];
   return result;
 }
-vector<double> eigen2stl(vec m) {
-  vector<double> result;
+std::vector<double> eigen2stl(vec m) {
+  std::vector<double> result;
   for (int i = 0; i < m.rows(); i++)
     result.push_back((double) m(i));
   return result;
 }
-vector<int> dec2base(int num, int base) {
-  vector<int> result;
+std::vector<int> dec2base(int num, int base) {
+  std::vector<int> result;
   while (num >= base) {
     result.push_back(num % base);
     num /= base;

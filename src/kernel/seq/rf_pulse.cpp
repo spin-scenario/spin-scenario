@@ -14,7 +14,6 @@ limitations under the License.
 #include <kernel/utilities/ssl_plot.h>
 using namespace ssl::utility;
 #include <chrono>
-using namespace chrono;
 namespace ssl {
 namespace seq {
 
@@ -40,7 +39,7 @@ void rf_pulse::assign() {
 
     if (obj.get_type() == sol::type::string) {
       colon_sep val;
-      if (parse(obj.as<string>(), val)) {
+      if (parse(obj.as<std::string>(), val)) {
         modulated_gain_list_ = vec::LinSpaced(val.num, val.a, val.b);
         loop_ctrl_.loop_count = modulated_gain_list_.size();
         loop_type_ = _var_gain;
@@ -55,7 +54,7 @@ void rf_pulse::assign() {
 
     if (obj.get_type() == sol::type::string) {
       colon_sep val;
-      if (parse(obj.as<string>(), val)) {
+      if (parse(obj.as<std::string>(), val)) {
         modulated_freq_list_ = vec::LinSpaced(val.num, val.a, val.b);
         loop_ctrl_.loop_count = modulated_freq_list_.size();
         loop_type_ = _var_freq;
@@ -75,11 +74,11 @@ void rf_pulse::assign() {
 
   //// rf pulse should be specified and assigned in seq_block.
   //if (timer_.duration <= 0) {
-  //    cout << format("\033[1m\033[31m%s\033[0m %s \033[1m\033[31m'%s'\033[0m %s.\n") % "S-S-L error:" % "RF pulse" % name() % "duration NOT specified yet";
+  //    std::cout << format("\033[1m\033[31m%s\033[0m %s \033[1m\033[31m'%s'\033[0m %s.\n") % "S-S-L error:" % "RF pulse" % name() % "duration NOT specified yet";
   //    exit(0);
   //}
 
-  //string str;
+  //std::string str;
   //gain_.is_assigned = false;
   //gain_.val = 1;
   //str = getAttribute("beta");
@@ -92,7 +91,7 @@ void rf_pulse::assign() {
   //    // for searching optimal gain factor.
   //    str = getAttribute("gain");
   //    if (!str.empty()) {
-  //        vector<double> pars;// = str_cast<double>(str);
+  //        std::vector<double> pars;// = str_cast<double>(str);
   //        if (pars.size() == 1)
   //            gain_.val = pars[0];
 
@@ -104,13 +103,13 @@ void rf_pulse::assign() {
   //            gain_.is_assigned = true;
   //        }
   //    } else
-  //        cout << format("%s %s %s.\n") % "S-S-L warning: " % get_node_name() % "since flip angle has not been specified, RF pulse gain will use default value";
+  //        std::cout << format("%s %s %s.\n") % "S-S-L warning: " % get_node_name() % "since flip angle has not been specified, RF pulse gain will use default value";
   //}
 
   //bw_.is_assigned = false;
   //str = getAttribute("bandwidth");
   //if (!str.empty()) {
-  //    vector<double> pars;// = str_cast<double>(str);
+  //    std::vector<double> pars;// = str_cast<double>(str);
   //    if (pars.size() == 1)
   //        bw_.val = pars[0];
   //    if (pars.size() > 1) {
@@ -135,13 +134,13 @@ void rf_pulse::assign() {
   ////tx_index_ = pcoil_array_->get_coil_index(kTx);
   //tx_index_.push_back(1);
   //if (tx_index_.size() == 0) {
-  //    cout << format("%s %s %s.\n") % "S-S-L error: " % get_node_name() % "block should assign at least 1 Tx coil";
+  //    std::cout << format("%s %s %s.\n") % "S-S-L error: " % get_node_name() % "block should assign at least 1 Tx coil";
   //    exit(0);
   //}
 }
 
-vector<string> rf_pulse::get_channels_str() const {
-  vector<string> s;
+std::vector<std::string> rf_pulse::get_channels_str() const {
+  std::vector<std::string> s;
   for (size_t i = 0; i < raw_data_.size(); i++)
     s.push_back(raw_data_[i].channel);
   return s;
@@ -152,12 +151,12 @@ int rf_pulse::switch2loop(int index) {
   switch (loop_type_) {
     case ssl::seq::_var_freq: {
       modulated_freq_ = modulated_freq_list_[index];
-      cout << modulated_freq_ << "  current freq offset [Hz].\n";
+      std::cout << modulated_freq_ << "  current freq offset [Hz].\n";
     }
       break;
     case ssl::seq::_var_gain: {
       modulated_gain_ = modulated_gain_list_[index];
-      cout << modulated_gain_ << "  current modulated gain.\n";
+      std::cout << modulated_gain_ << "  current modulated gain.\n";
     }
       break;
     case ssl::seq::_var_phase: {
@@ -167,7 +166,7 @@ int rf_pulse::switch2loop(int index) {
         if (m >= 0)
           m = m + 1;
 
-        cout << m << "###\n";
+        std::cout << m << "###\n";
 
         double delta_k = -_pi / 2;//_pi/2;
         cx_vec shape = raw_data0_[0].envelope;
@@ -190,7 +189,7 @@ void rf_pulse::evolution(int index) {
     ssl_color_text("warn", "unknown compute engine, rf evolution ignored.\n");
     return;
   }
-  cout << "evolution rf " << index << " " << width_in_ms() << " ms\n";
+  std::cout << "evolution rf " << index << " " << width_in_ms() << " ms\n";
   switch2loop(index);
   seq_const sc;
   sc.rf_if = 1;
@@ -208,7 +207,7 @@ void rf_pulse::evolution(int index) {
       sc.rf[k].u[cx] = val.real();
       sc.rf[k].u[cy] = val.imag();
       sc.rf[k].u *= modulated_gain_;
-      //cout << sc.rf[k].u << "\n";
+      //std::cout << sc.rf[k].u << "\n";
       sc.rf[k].df = modulated_freq_; // reserved for freq.
     }
     // evolution on current step。
@@ -216,7 +215,7 @@ void rf_pulse::evolution(int index) {
     g_engine->evolution(dt, sc);
     //auto end = system_clock::now();
     //auto duration = duration_cast<microseconds>(end - start);
-    //cout << "Use Time:" << double(duration.count()) * microseconds::period::num / microseconds::period::den<<" s.\n";
+    //std::cout << "Use Time:" << double(duration.count()) * microseconds::period::num / microseconds::period::den<<" s.\n";
   }
 }
 
@@ -243,7 +242,7 @@ void rf_pulse::get_ctrl(const timeline key0, const timeline key1, seq_const &ctr
     ctrl.rf[k].u[cx] = val.real();
     ctrl.rf[k].u[cy] = val.imag();
     ctrl.rf[k].u *= modulated_gain_;
-    //cout << sc.rf[k].u << "\n";
+    //std::cout << sc.rf[k].u << "\n";
     //sc.rf[k].df = 0; // reserved for freq.
   }
   //ctrl(amp) = raw_data_[0].envelope(i).real();  // RF magnitude in rad/s.
@@ -251,8 +250,8 @@ void rf_pulse::get_ctrl(const timeline key0, const timeline key1, seq_const &ctr
   //ctrl(cf) = raw_data_[0].carrier(i);
 }
 
-vector<double> rf_pulse::clone_raw_data() const {
-  vector<double> vals;
+std::vector<double> rf_pulse::clone_raw_data() const {
+  std::vector<double> vals;
   for (size_t i = 0; i < nsteps_; i++)
     for (size_t j = 0; j < channels_; j++) {
       cd val = raw_data_[j].envelope(i);
@@ -267,12 +266,12 @@ vector<double> rf_pulse::clone_raw_data() const {
     }
   return vals;
 }
-vector<double> rf_pulse::clone_raw_data_ux() const {
+std::vector<double> rf_pulse::clone_raw_data_ux() const {
   if (mode_ != _ux_uy)
     throw std::runtime_error(
         "clone_raw_data_ux() failed due to raw data not in ux-uy mode.");
 
-  vector<double> vals;
+  std::vector<double> vals;
   for (size_t i = 0; i < nsteps_; i++)
     for (size_t j = 0; j < channels_; j++) {
       cd val = raw_data_[j].envelope(i);
@@ -282,12 +281,12 @@ vector<double> rf_pulse::clone_raw_data_ux() const {
   return vals;
 }
 
-vector<double> rf_pulse::clone_raw_data_uy() const {
+std::vector<double> rf_pulse::clone_raw_data_uy() const {
   if (mode_ != _ux_uy)
     throw std::runtime_error(
         "clone_raw_data_uy() failed due to raw data not in ux-uy mode.");
 
-  vector<double> vals;
+  std::vector<double> vals;
   for (size_t i = 0; i < nsteps_; i++)
     for (size_t j = 0; j < channels_; j++) {
       cd val = raw_data_[j].envelope(i);
@@ -378,8 +377,8 @@ void rf_pulse::update_raw_data_uy(const double *vals) {
       raw_data_[j].envelope.real() /= modulated_gain_;
   }
 }
-vector<cx_vec> rf_pulse::export_signal() const {
-  vector<cx_vec> sig;
+std::vector<cx_vec> rf_pulse::export_signal() const {
+  std::vector<cx_vec> sig;
   for (size_t j = 0; j < channels_; j++)
     sig.push_back(raw_data_[j].envelope);
   return sig;
@@ -388,21 +387,21 @@ double rf_pulse::sampling_freq() const {
   return 1e3 * double(nsteps_) / width_in_ms();
 }
 
-void rf_pulse::switch_rf_mode(string mode) {
+void rf_pulse::switch_rf_mode(std::string mode) {
   boost::to_lower(mode);
   if (mode == "amp/phase")
     convert2(_amp_phase);
   else if (mode == "ux/uy")
     convert2(_ux_uy);
   else {
-    string s = "unknown rf mode: ** " + mode + " ** 'amp/phase' or 'ux/uy' required!";
+    std::string s = "unknown rf mode: ** " + mode + " ** 'amp/phase' or 'ux/uy' required!";
     throw std::runtime_error(s.c_str());
   }
 }
 
-string rf_pulse::get_header() const {
-  string s = seq_block::get_header() + "\n";
-  s += "# pulse steps: " + to_string(nsteps_) + ".\n";
+std::string rf_pulse::get_header() const {
+  std::string s = seq_block::get_header() + "\n";
+  s += "# pulse steps: " + std::to_string(nsteps_) + ".\n";
   if (mode_ == _ux_uy)
     s += "# pulse format: x/y components (Hz).\n";
   else
@@ -414,11 +413,11 @@ string rf_pulse::get_header() const {
   s += "\n";
   if (mode_ == _amp_phase) {
 for (size_t j = 0; j < channels_; j++) {
-      s += "# CH "+ to_string(j+1)+ " MAX amplitude: "+ to_string(raw_data_[j].envelope.real().maxCoeff()/(2 * _pi))+" Hz\n";
-      s += "# CH "+ to_string(j+1)+ " MIN amplitude: "+ to_string(raw_data_[j].envelope.real().minCoeff()/(2 * _pi))+" Hz\n";
-	  s += "# CH "+ to_string(j+1)+ " AVG amplitude: "+ to_string(raw_data_[j].envelope.real().sum()/(2 * _pi)/nsteps_)+" Hz\n";
-	  s += "# CH "+ to_string(j+1)+ " MAX phase: "+ to_string(raw_data_[j].envelope.imag().maxCoeff()*180 / _pi)+" deg\n";
-      s += "# CH "+ to_string(j+1)+ " MIN phase: "+ to_string(raw_data_[j].envelope.imag().minCoeff()*180 / _pi)+" deg";
+      s += "# CH "+ std::to_string(j+1)+ " MAX amplitude: "+ std::to_string(raw_data_[j].envelope.real().maxCoeff()/(2 * _pi))+" Hz\n";
+      s += "# CH "+ std::to_string(j+1)+ " MIN amplitude: "+ std::to_string(raw_data_[j].envelope.real().minCoeff()/(2 * _pi))+" Hz\n";
+	  s += "# CH "+ std::to_string(j+1)+ " AVG amplitude: "+ std::to_string(raw_data_[j].envelope.real().sum()/(2 * _pi)/nsteps_)+" Hz\n";
+	  s += "# CH "+ std::to_string(j+1)+ " MAX phase: "+ std::to_string(raw_data_[j].envelope.imag().maxCoeff()*180 / _pi)+" deg\n";
+      s += "# CH "+ std::to_string(j+1)+ " MIN phase: "+ std::to_string(raw_data_[j].envelope.imag().minCoeff()*180 / _pi)+" deg";
     }
   }
   return s;
@@ -441,7 +440,7 @@ mat rf_pulse::get_shape() const {
   return m;
 }
 
-void rf_pulse::h5write(H5File &file, string abbr) const {
+void rf_pulse::h5write(H5File &file, std::string abbr) const {
   if (abbr.empty())
     abbr = name();
   Group group(file.createGroup(abbr));
@@ -450,7 +449,7 @@ void rf_pulse::h5write(H5File &file, string abbr) const {
   group.close();
 }
 
-void rf_pulse::write(ostream &ostr) const {
+void rf_pulse::write(std::ostream &ostr) const {
   //seq_block::write(ostr);
   ostr << get_header() << "\n";
   ostr << get_shape();
@@ -482,22 +481,22 @@ cd xy2amp(cd val) {
 }
 
 void rf_pulse::plot() const {
-  ofstream ofstr("shape.RF");
+  std::ofstream ofstr("shape.RF");
   ofstr.precision(3);
   write(ofstr); // already into Hz.
   ofstr.close();
 
   for (size_t i = 0; i < channels_; i++) {
-    string col1 = boost::lexical_cast<string>(2 * i + 1);
-    string col2 = boost::lexical_cast<string>(2 * i + 2);
+    std::string col1 = boost::lexical_cast<std::string>(2 * i + 1);
+    std::string col2 = boost::lexical_cast<std::string>(2 * i + 2);
 #ifdef GP_SCRIPT_OUTPUT
-    ofstream gp("plot_rf.gnu");
+    std::ofstream gp("plot_rf.gnu");
 #else
     Gnuplot gp;
 #endif
     gp << "reset\n";
     gp << terminal_cmd(g_output_terminal);
-    string title = name() + " [" + raw_data_[i].channel + "]";
+    std::string title = name() + " [" + raw_data_[i].channel + "]";
     if (g_output_terminal != "qt")
       gp << "set output "<< "'rf-" << title << "." << g_output_terminal << "'\n";
 

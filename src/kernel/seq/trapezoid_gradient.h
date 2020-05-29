@@ -18,9 +18,9 @@ namespace ssl {
 namespace seq {
 
 struct aux_grad_tree {
-  string header;
+  std::string header;
   int pos;
-  aux_grad_tree(string a, int b) {
+  aux_grad_tree(std::string a, int b) {
     header = a;
     pos = b;
   }
@@ -42,7 +42,7 @@ class trapezoid_gradient : public gradient {
     return (new trapezoid_gradient(*this));
   }
   virtual void get_ctrl(const timeline key0, const timeline key1, seq_const &ctrl) const;
-  virtual void write(ostream &ostr = cout) const;
+  virtual void write(std::ostream &ostr = std::cout) const;
   virtual void plot() const;
   virtual double grad_area() const;
   virtual int switch2loop(int index);
@@ -65,10 +65,10 @@ class trapezoid_gradient : public gradient {
   grad_func func_;
 
   tlvec tps;
-  string pattern_expr[3];
-  string pattern_integral_expr[3];
-  string pattern_integral_header[3];
-  vector<grad_interval> sub_intervals;
+  std::string pattern_expr[3];
+  std::string pattern_integral_expr[3];
+  std::string pattern_integral_header[3];
+  std::vector<grad_interval> sub_intervals;
   grad_interval_tree tree;
 };
 

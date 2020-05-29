@@ -52,36 +52,36 @@ void shaped_rf::assign() {
   if (!is_retrievable("name"))
     config_table_.set("name", "shaped rf pulse"); // the config table has been initialized in seq_block().
 
-  string s_name = name();
+  std::string s_name = name();
 
   double width = retrieve_config_table_double("width"); // required.
   timer_.width = ms2timeline(width);
 
-  string channel = "1H"; // if not specified, use 1H as default.
+  std::string channel = "1H"; // if not specified, use 1H as default.
   if (is_retrievable("channel")) {
     channel = retrieve_config_table_str("channel"); // required.
   }
 
-  vector<string> par_vec;
+  std::vector<std::string> par_vec;
   boost::split(par_vec, channel, boost::is_any_of(", |"), boost::token_compress_on);
   channels_ = par_vec.size();
 
   mode_ = _amp_phase;
   if (is_retrievable("mode")) {
-    string mode = retrieve_config_table_str("mode");
+    std::string mode = retrieve_config_table_str("mode");
     if (mode == "amp/phase")
       mode_ = _amp_phase;
     else if (mode == "ux/uy")
       mode_ = _ux_uy;
     else {
-      string s = "unknown shaped pulse mode, either amp/phase or ux/uy!";
+      std::string s = "unknown shaped pulse mode, either amp/phase or ux/uy!";
       throw std::runtime_error(s.c_str());
     }
   }
 
-  string waveform = retrieve_config_table_str("pattern");
+  std::string waveform = retrieve_config_table_str("pattern");
 
-  std::map<string, rf_pattern>::const_iterator iter;
+  std::map<std::string, rf_pattern>::const_iterator iter;
   iter = g_rf_pattern.find(waveform);
   if (iter != g_rf_pattern.end()) {
     if (is_retrievable("step"))  // external file do not need to assign this par.
@@ -124,7 +124,7 @@ void shaped_rf::assign() {
   }
 
   if (timer_.width != ms2timeline(width)) {
-    string s = str(boost::format("%s %s %s ms.\n") % name() % "rf duration auto adjusted to " % width_in_ms());
+    std::string s = str(boost::format("%s %s %s ms.\n") % name() % "rf duration auto adjusted to " % width_in_ms());
     ssl_color_text("warn", s);
   }
   timer_.keys = tlvec::LinSpaced(nsteps_ + 1, 0, timer_.width);
@@ -135,11 +135,11 @@ void shaped_rf::assign() {
   rf_pulse::assign();
 }
 
-void shaped_rf::set_shape(vector<string> channels, const mat &m) {
+void shaped_rf::set_shape(std::vector<std::string> channels, const mat &m) {
   raw_data_.clear(); // NOTE!!!
   nsteps_ = m.rows(); //!!! auto assign step from files.
   if (m.cols() != (int) (2 * channels_)) {
-    string s = "shaped pulse data does not match the specified channel!";
+    std::string s = "shaped pulse data does not match the specified channel!";
     throw std::runtime_error(s.c_str());
   }
   for (size_t i = 0; i < channels_; i++) {
@@ -159,7 +159,7 @@ void shaped_rf::set_shape(vector<string> channels, const mat &m) {
   raw_data0_ = raw_data_;
 }
 
-void shaped_rf::set_shape(vector<string> channels, string file) {
+void shaped_rf::set_shape(std::vector<std::string> channels, std::string file) {
   raw_data_.clear(); // NOTE!!!
   mat data;
   if (boost::ends_with(file.c_str(), ".h5")) {
@@ -181,7 +181,7 @@ void shaped_rf::set_shape(vector<string> channels, string file) {
   else // YACAS expr.
   {
     nsteps_ = (size_t) (retrieve_config_table_int("step")); // required.
-    string pattern_expr = yacas_evaluate(file); // in case of D(t) style.
+    std::string pattern_expr = yacas_evaluate(file); // in case of D(t) style.
 
     data = mat(nsteps_, 2 * channels.size());
     vec time = vec::LinSpaced(nsteps_, 0, width_in_ms());
@@ -194,13 +194,13 @@ void shaped_rf::set_shape(vector<string> channels, string file) {
   }
 
   if (data.size() == 0) {
-    string s = "failed to read shaped pulse data from file: " + file;
+    std::string s = "failed to read shaped pulse data from file: " + file;
     throw std::runtime_error(s.c_str());
   }
   set_shape(channels, data);
 }
 
-void shaped_rf::set_shape(vector<string> channels, rf_pattern p, double maxamp) {
+void shaped_rf::set_shape(std::vector<std::string> channels, rf_pattern p, double maxamp) {
   raw_data_.clear(); // NOTE!!!
   size_t steps = nsteps_;
   maxamp *= 2 * _pi; // into rad.
@@ -307,15 +307,15 @@ void shaped_rf::set_shape(vector<string> channels, rf_pattern p, double maxamp) 
   }
 }
 
-std::map<string, rf_pattern> rf_pattern_map() {
-  std::map<string, rf_pattern> map;
-  map.insert(pair<string, rf_pattern>("sinc", _sinc));
-  map.insert(pair<string, rf_pattern>("gauss", _gauss));
-  map.insert(pair<string, rf_pattern>("hamming", _hamming));
-  map.insert(pair<string, rf_pattern>("rand", _rand));
-  map.insert(pair<string, rf_pattern>("rect", _rect));
-  map.insert(pair<string, rf_pattern>("rand_spline", _rand_spline));
-  map.insert(pair<string, rf_pattern>("user_defined", _user_defined));
+std::map<std::string, rf_pattern> rf_pattern_map() {
+  std::map<std::string, rf_pattern> map;
+  map.insert(std::pair<std::string, rf_pattern>("sinc", _sinc));
+  map.insert(std::pair<std::string, rf_pattern>("gauss", _gauss));
+  map.insert(std::pair<std::string, rf_pattern>("hamming", _hamming));
+  map.insert(std::pair<std::string, rf_pattern>("rand", _rand));
+  map.insert(std::pair<std::string, rf_pattern>("rect", _rect));
+  map.insert(std::pair<std::string, rf_pattern>("rand_spline", _rand_spline));
+  map.insert(std::pair<std::string, rf_pattern>("user_defined", _user_defined));
   return map;
 }
 

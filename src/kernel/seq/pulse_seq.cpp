@@ -19,7 +19,6 @@ limitations under the License.
 #include <kernel/utilities/ssl_plot.h>
 using namespace ssl::utility;
 #include <chrono>
-using namespace chrono;
 
 namespace ssl {
 namespace seq {
@@ -33,7 +32,7 @@ sol::object multi_shaped_rf(const sol::table &t, sol::this_state s) {
   tt.set("pattern","rand");
   rf->config(tt);
 
-  string file = retrieve_table_str("file", t);
+  std::string file = retrieve_table_str("file", t);
   hid_t file_id;
   file_id = H5Fopen(file.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
   g_h5_string.clear();
@@ -58,7 +57,7 @@ void specgram(const seq_block &rf, const sol::table &t) {
   if (rf.category() != _rf)
     return;
   const rf_pulse &shape = (const rf_pulse &) (rf);
-  vector<cx_vec> sig = shape.export_signal();
+  std::vector<cx_vec> sig = shape.export_signal();
   // add baseline.
   int n = shape.get_steps();
   double ratio = 0;
@@ -74,23 +73,23 @@ void specgram(const seq_block &rf, const sol::table &t) {
      sig[i] = new_sig;
   }
 
-  vector<string> channels = shape.get_channels_str();
+  std::vector<std::string> channels = shape.get_channels_str();
   double fs = shape.sampling_freq();
   for (size_t i = 0; i < sig.size(); i++) 
     //specgram(sig[i], t, fs, shape.name() + "-" + channels[i]);
     specgram(sig[i], t, fs, channels[i]);
 }
-void specgram(string file_name, const sol::table &t) {
+void specgram(std::string file_name, const sol::table &t) {
   mat data = eigen_read(file_name);
   if (data.size() == 0) return;
 
   cx_vec sig(data.rows());
   sig.setZero();
 
-  string col_str;
+  std::string col_str;
   if (is_retrievable("col", t)) {
-    col_str = retrieve_table("col", t).as<string>();
-    vector<string> cols;
+    col_str = retrieve_table("col", t).as<std::string>();
+    std::vector<std::string> cols;
     boost::split(cols, col_str, boost::is_any_of(", "), boost::token_compress_on);
     if (cols.size() == 1)
       sig.real() = data.col(boost::lexical_cast<int>(cols[0]) - 1);
@@ -103,7 +102,7 @@ void specgram(string file_name, const sol::table &t) {
 
   specgram(sig, t, 0);
 }
-void specgram(const cx_vec &sig, const sol::table &t, double fs, string label) {
+void specgram(const cx_vec &sig, const sol::table &t, double fs, std::string label) {
   win_shape wshape = utility::_hamming;
   int wlen; // length of the hamming window, recomended to be power of 2.
   int hop; // hop size.
@@ -113,7 +112,7 @@ void specgram(const cx_vec &sig, const sol::table &t, double fs, string label) {
 
   // deal with the param table.
   if (is_retrievable("window", t))
-    wshape = window_interpreter(retrieve_table("window", t).as<string>());
+    wshape = window_interpreter(retrieve_table("window", t).as<std::string>());
 
   nfft = retrieve_table("nfft", t, "specgram").as<int>(); // required.
   wlen = retrieve_table("wlen", t, "specgram").as<int>(); // required.
@@ -129,9 +128,9 @@ void specgram(const cx_vec &sig, const sol::table &t, double fs, string label) {
 
   stft_out out = stft(sig, wshape, wlen, hop, nfft, fs);  // sig.normalized()
 
-  string style = "";
+  std::string style = "";
   if (is_retrievable("style", t))
-    style = retrieve_table("style", t).as<string>();
+    style = retrieve_table("style", t).as<std::string>();
 
   int is_ampdB, is_amp, is_phase;
   if (style == "") {  // plot all.
@@ -139,7 +138,7 @@ void specgram(const cx_vec &sig, const sol::table &t, double fs, string label) {
     is_amp = 1;
     is_phase = 1;
   } else {
-    vector<string> par_vec;
+    std::vector<std::string> par_vec;
     boost::split(par_vec, style, boost::is_any_of("\t |"),
                  boost::token_compress_on);
     is_ampdB = std::count(par_vec.begin(), par_vec.end(), "dB");
@@ -159,11 +158,11 @@ void specgram(const cx_vec &sig, const sol::table &t, double fs, string label) {
   if (is_retrievable("f0", t)) f0 = retrieve_table("f0", t).as<double>();
   if (is_retrievable("f1", t)) f1 = retrieve_table("f1", t).as<double>();
 
-  string frange = "";
+  std::string frange = "";
   if (f1 > f0)
-    frange = "yrange<" + boost::lexical_cast<string>(f0) + ":" + boost::lexical_cast<string>(f1) + ">";
+    frange = "yrange<" + boost::lexical_cast<std::string>(f0) + ":" + boost::lexical_cast<std::string>(f1) + ">";
 
-  string fig_spec ="'xlabel<time/ ms> ylabel<freq / kHz> color<Spectral> gnuplot<set palette negative> " +
+  std::string fig_spec ="'xlabel<time/ ms> ylabel<freq / kHz> color<Spectral> gnuplot<set palette negative> " +
       frange;
   if (is_amp) {
     utility::map gnu(out.amp);
@@ -205,10 +204,10 @@ void plot(const sol::table &t) {
   }
 }
 
-void write(string file, sol::variadic_args va, const seq_block & /*sb*/) {
-  ofstream ofstr(file.c_str());
+void write(std::string file, sol::variadic_args va, const seq_block & /*sb*/) {
+  std::ofstream ofstr(file.c_str());
   ofstr << "# " << sys_time()<<"\n";
-  string sep = "#----------------------------------------";
+  std::string sep = "#----------------------------------------";
   //ofstr.precision(4);
   for (auto v : va) {
     seq_block &val = v;
@@ -218,7 +217,7 @@ void write(string file, sol::variadic_args va, const seq_block & /*sb*/) {
   ofstr.close();
 }
 void print(sol::variadic_args va, const seq_block & /*sb*/) {
-  string sep = "----------------------------------------\n";
+  std::string sep = "----------------------------------------\n";
   std::cout << sys_time() << sep;
   std::cout.precision(4);
   for (auto v : va) {
@@ -229,8 +228,8 @@ void print(sol::variadic_args va, const seq_block & /*sb*/) {
 }
 
 sol::object run_seq(const seq_block &sb) {
-  auto start = system_clock::now();
-  cout << "start....\n";
+  auto start = std::chrono::system_clock::now();
+  std::cout << "start....\n";
 
   // in case of non-glue type bolck.
  if (sb.category() != _glue)
@@ -241,10 +240,10 @@ sol::object run_seq(const seq_block &sb) {
     return nullptr;
   serial.evolution();
 
-  auto end = system_clock::now();
-  auto duration = duration_cast<microseconds>(end - start);
-  cout << "Use Time:" << double(duration.count()) * microseconds::period::num / microseconds::period::den << " s.\n";
-  cout << "end....\n";
+  auto end = std::chrono::system_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  std::cout << "Use Time:" << double(duration.count()) * std::chrono::microseconds::period::num / std::chrono::microseconds::period::den << " s.\n";
+  std::cout << "end....\n";
 
   sol::table result = g_lua->create_table();
 
@@ -256,7 +255,7 @@ sol::object run_seq(const seq_block &sb) {
 
 seq_block &serial(const sol::table &t) {
   int num = t.size();
-  vector<seq_block *> sbs;
+  std::vector<seq_block *> sbs;
   for (int i = 1; i <= num; i++) {
     sol::object val = t[i];
     switch (val.get_type()) {
@@ -275,7 +274,7 @@ seq_block &serial(const sol::table &t) {
           }
         }
         sbs.push_back(&sb);
-        //cout << "running: " << sb.name() << "\n";
+        //std::cout << "running: " << sb.name() << "\n";
         //sb.write(std::cout);
       }
         break;
@@ -303,7 +302,7 @@ seq_block &set_align(seq_block &sb, double ms) {
   sb.set_align(ms);
   return sb;
 }
-seq_block &set_align(seq_block &sb, string label) {
+seq_block &set_align(seq_block &sb, std::string label) {
   sb.set_align(label);
   return sb;
 }
@@ -322,7 +321,7 @@ seq_block &concurrent(seq_block &sb1, seq_block &sb2) {
   return conc;
 }
 
-seq_block &serial(vector<seq_block *> sbs) {
+seq_block &serial(std::vector<seq_block *> sbs) {
   g_lua->script("seri = serial{}");
   sol::object val = (*g_lua)["seri"];
   seq_block &sb = val.as<seq_block &>();
@@ -351,7 +350,7 @@ sol::object run_seq_api(const sol::table &t) {
 void init_seq_param(const sol::table &t) {
   if (is_retrievable("fov", t)) {
     sol::object par = retrieve_table("fov", t); // unit in mT/m.
-    string par_str = par.as<string>();
+    std::string par_str = par.as<std::string>();
     boost::cmatch what;
     boost::regex reg("(\\-?\\d+\\.?\\d*)\\*((\\-?\\d+\\.?\\d*))");
     if (boost::regex_search(par_str.c_str(), what, reg)) {
@@ -363,7 +362,7 @@ void init_seq_param(const sol::table &t) {
   }
   if (is_retrievable("matrix", t)) {
     sol::object par = retrieve_table("matrix", t); // unit in mT/m.
-    string par_str = par.as<string>();
+    std::string par_str = par.as<std::string>();
     boost::cmatch what;
     boost::regex reg("(\\d+)\\*(\\d+)");
     if (boost::regex_search(par_str.c_str(), what, reg)) {
@@ -391,7 +390,7 @@ double area(const seq_block &sb) {
     const gradient &sb1 = (const gradient &) sb;
     s = sb1.grad_area();
   } else {
-    string s = "area() is only valid for gradient seq-block!";
+    std::string s = "area() is only valid for gradient seq-block!";
     throw std::runtime_error(s.c_str());
   }
   return s;

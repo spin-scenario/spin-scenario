@@ -15,15 +15,15 @@ limitations under the License.
 namespace ssl {
 namespace utility {
 
-string g_output_terminal = "qt";
-string g_output_font = "Arial,12";
+std::string g_output_terminal = "qt";
+std::string g_output_font = "Arial,12";
 void set_output_terminal(const sol::table &t) {
   g_output_terminal = retrieve_table_str("type", t, "gnuplot terminal");
     if(is_retrievable("font", t))
         g_output_font = retrieve_table_str("font", t, "gnuplot terminal");
 }
-string terminal_cmd(string key) {
-	string s;
+std::string terminal_cmd(std::string key) {
+	std::string s;
 	if (key == "qt")
     s ="set terminal qt enhanced font '"+ g_output_font + "'\n";
 	if (key == "png")
@@ -68,9 +68,9 @@ mat vec_table(const sol::table &t) {
 void plot(sol::variadic_args va, const line &b) {
   plot("", va, b);
 }
-void plot(string fig_info, sol::variadic_args va, const line_series &b) {
+void plot(std::string fig_info, sol::variadic_args va, const line_series &b) {
 #ifdef GP_SCRIPT_OUTPUT
-  ofstream gp("plot_line.gnu");
+  std::ofstream gp("plot_line.gnu");
 #else
   Gnuplot gp;
 #endif
@@ -92,7 +92,7 @@ void plot(string fig_info, sol::variadic_args va, const line_series &b) {
      << "/share/spin-scenario/config/gnuplot/colorbrewer/"
      << find_color(fig.color) << "'\n";
 
-  string time_s = sys_time();
+  std::string time_s = sys_time();
   gp << terminal_cmd(g_output_terminal);
   if (g_output_terminal != "qt")
     gp << "set output "
@@ -112,20 +112,20 @@ void plot(string fig_info, sol::variadic_args va, const line_series &b) {
   g_lua->script("os.execute('mkdir gnuplot')");
   gp << "cd 'gnuplot'\n";
 
-  string s;
+  std::string s;
     for (auto v : va) {
     id++;
     const line_series &val = v;
 
-    vector<string> files;
+    std::vector<std::string> files;
     size_t i = 0;
 
     if (val.is_file)
       files = val.files;
     else {
       for (i = 0; i < val.y.size(); i++) {
-        string file_i =
-            "dat" + boost::lexical_cast<string>(i + 1) + "_" + time_s + "_" + boost::lexical_cast<string>(id);
+        std::string file_i =
+            "dat" + boost::lexical_cast<std::string>(i + 1) + "_" + time_s + "_" + boost::lexical_cast<std::string>(id);
         if (val.is_y_only)
           write_line(val.y[i], "gnuplot/" + file_i);
         else
@@ -146,20 +146,20 @@ void plot(string fig_info, sol::variadic_args va, const line_series &b) {
 
     for (i = 1; i < files.size() - 1; i++) {
       s+= " '" + files[i] + "' with l ls "
-         + boost::lexical_cast<string>((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor) + " lw "
+         + boost::lexical_cast<std::string>((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor) + " lw "
          + fig.lw;
       if (nleg) {
-        string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
+        std::string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
          s+= " t '" + leg + "',";
       } else
          s+= ",";
     }
 
      s+= " '" + files.back() + "' with l ls "
-       + boost::lexical_cast<string>((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor) + " lw "
+       + boost::lexical_cast<std::string>((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor) + " lw "
        + fig.lw;
     if (nleg) {
-      string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
+      std::string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
       s+= " t '" + leg + "',";
     } else
       s+= ",";
@@ -173,9 +173,9 @@ void plot(string fig_info, sol::variadic_args va, const line_series &b) {
 #endif
 }
 
-void plot(string fig_info, sol::variadic_args va, const line &) {
+void plot(std::string fig_info, sol::variadic_args va, const line &) {
 #ifdef GP_SCRIPT_OUTPUT
-  ofstream gp("plot_line.gnu");
+  std::ofstream gp("plot_line.gnu");
 #else
   Gnuplot gp;
 #endif
@@ -195,7 +195,7 @@ void plot(string fig_info, sol::variadic_args va, const line &) {
 
   gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/colorbrewer/" << find_color(fig.color) << "'\n";
 
-    string time_s = sys_time();
+    std::string time_s = sys_time();
   gp << terminal_cmd(g_output_terminal);
   if (g_output_terminal != "qt")
     gp << "set output "
@@ -209,20 +209,20 @@ void plot(string fig_info, sol::variadic_args va, const line &) {
 
   gp << fig.gnu_cmd << "\n";
 
-  vector<string> files;
-  vector<line_spec> lines;
+  std::vector<std::string> files;
+  std::vector<line_spec> lines;
   size_t i = 0;
   //g_lua->script("os.execute('rm -rf gnuplot')");
   g_lua->script("os.execute('mkdir gnuplot')");
   for (auto v : va) {
     const line &val = v;
-    string file;
+    std::string file;
     if (val.is_file) {
       file = val.file;
       g_lua->script("os.execute('cp " + file + " gnuplot')");
     }
     else {
-      file = "dat" + boost::lexical_cast<string>(i) + "_" + time_s;
+      file = "dat" + boost::lexical_cast<std::string>(i) + "_" + time_s;
       if (val.is_x_only)
         write_line(val.x, "gnuplot/" + file);
       else
@@ -258,7 +258,7 @@ void plot(string fig_info, sol::variadic_args va, const line &) {
   for (i = 1; i < files.size() - 1; i++) {
     gp << " '" << files[i] << "' with " << lines[i].style << " ls " << (i + 1);
     if (nleg) {
-      string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
+      std::string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
       gp << " t '" << leg << "',";
     } else
       gp << ",";
@@ -266,7 +266,7 @@ void plot(string fig_info, sol::variadic_args va, const line &) {
 
   gp << " '" << files.back() << "' with " << lines.back().style << " ls " << files.size();
   if (nleg) {
-    string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
+    std::string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
     gp << " t '" << leg << "'\n";
   } else
     gp << "\n";
@@ -281,9 +281,9 @@ void plot(const line_series &v) {
   plot("", v);
 }
 
-void plot(string fig_info, const line_series &v) {
+void plot(std::string fig_info, const line_series &v) {
 #ifdef GP_SCRIPT_OUTPUT
-  ofstream gp("plot_line.gnu");
+  std::ofstream gp("plot_line.gnu");
 #else
   Gnuplot gp;
 #endif
@@ -305,7 +305,7 @@ void plot(string fig_info, const line_series &v) {
      << "/share/spin-scenario/config/gnuplot/colorbrewer/"
      << find_color(fig.color) << "'\n";
 
-  string time_s = sys_time();
+  std::string time_s = sys_time();
   gp << terminal_cmd(g_output_terminal);
   if (g_output_terminal != "qt")
     gp << "set output "
@@ -321,14 +321,14 @@ void plot(string fig_info, const line_series &v) {
   gp << "set key opaque\n";
   gp << fig.gnu_cmd << "\n";
 
-  vector<string> files;
+  std::vector<std::string> files;
   size_t i = 0;
   g_lua->script("os.execute('mkdir gnuplot')");
   if (v.is_file)
     files = v.files;
   else {
     for (i = 0; i < v.y.size(); i++) {
-      string file_i = "dat" + boost::lexical_cast<string>(i + 1) + "_" + time_s;
+      std::string file_i = "dat" + boost::lexical_cast<std::string>(i + 1) + "_" + time_s;
       if (v.is_y_only)
         write_line(v.y[i], "gnuplot/" + file_i);
       else
@@ -352,7 +352,7 @@ void plot(string fig_info, const line_series &v) {
     gp << " '" << files[i] << "' with l ls "
        << ((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor) << " lw "<<fig.lw;
     if (nleg) {
-      string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
+      std::string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
       gp << " t '" << leg << "',";
     } else
       gp << ",";
@@ -361,7 +361,7 @@ void plot(string fig_info, const line_series &v) {
   gp << " '" << files.back() << "' with l ls "
      << ((i + 1) % ncolor == 0 ? ncolor : (i + 1) % ncolor) << " lw " << fig.lw;
   if (nleg) {
-    string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
+    std::string leg = (i <= nleg - 1) ? fig.legend[i] : fig.legend.back();
     gp << " t '" << leg << "'\n";
   } else
     gp << "\n";
@@ -375,9 +375,9 @@ void plot(sol::variadic_args va, const map &b) {
   plot("", va, b);
 }
 
-void plot(string fig_info, sol::variadic_args va, const map &) {
+void plot(std::string fig_info, sol::variadic_args va, const map &) {
 #ifdef GP_SCRIPT_OUTPUT
-  ofstream gp("plot_map.gnu");
+  std::ofstream gp("plot_map.gnu");
 #else
   Gnuplot gp;
 #endif
@@ -394,7 +394,7 @@ void plot(string fig_info, sol::variadic_args va, const map &) {
   gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/colorbrewer/" << find_color(fig.color) << "'\n";
   //gp << "set palette negative\n";
 
-    string time_s = sys_time();
+    std::string time_s = sys_time();
   gp << terminal_cmd(g_output_terminal);
   if (g_output_terminal != "qt")
     gp << "set output "
@@ -405,20 +405,20 @@ void plot(string fig_info, sol::variadic_args va, const map &) {
   g_lua->script("os.execute('mkdir gnuplot')");
   for (auto v : va) {
     const map &val = v;
-    string file;
+    std::string file;
     if (val.is_file) {
       file = val.file;
       g_lua->script("os.execute('cp " + file + " gnuplot')");
     }
     else {
-      file = "gnu_map_2d_" + boost::lexical_cast<string>(i) + "_" + time_s;
+      file = "gnu_map_2d_" + boost::lexical_cast<std::string>(i) + "_" + time_s;
       write_map(val.m, "gnuplot/" + file);
     }
 
     gp << "cd 'gnuplot'\n";
     map_spec map = parsing_map_spec(val.map_spec);
-        string color;
-        std::map<string, string>::const_iterator iter;
+        std::string color;
+        std::map<std::string, std::string>::const_iterator iter;
         iter = g_map_color.find(map.color);
         if (iter != g_map_color.end())
             color = iter->second;
@@ -481,9 +481,9 @@ void plot(string fig_info, sol::variadic_args va, const map &) {
 #endif
 }
 
-string find_color(string short_cut) {
-  string color;
-  std::map<string, string>::const_iterator iter;
+std::string find_color(std::string short_cut) {
+  std::string color;
+  std::map<std::string, std::string>::const_iterator iter;
   iter = g_map_color.find(short_cut);
   if (iter != g_map_color.end())
     color = iter->second;
@@ -492,38 +492,38 @@ string find_color(string short_cut) {
   return color;
 }
 
-fig_spec parsing_fig_spec(string par) {
+fig_spec parsing_fig_spec(std::string par) {
   fig_spec fig;
 
   boost::cmatch what;
   boost::regex reg_title("title<(.*?)>{1}");
   if (boost::regex_search(par.c_str(), what, reg_title))
-    fig.title = string(what[1]);
+    fig.title = std::string(what[1]);
 
   boost::regex reg_xlabel("xlabel<(.*?)>{1}");
   if (boost::regex_search(par.c_str(), what, reg_xlabel))
-    fig.xlabel = string(what[1]);
+    fig.xlabel = std::string(what[1]);
 
   boost::regex reg_ylabel("ylabel<(.*?)>{1}");
   if (boost::regex_search(par.c_str(), what, reg_ylabel))
-    fig.ylabel = string(what[1]);
+    fig.ylabel = std::string(what[1]);
 
   boost::regex reg_lw("lw<(.*?)>{1}");
   if (boost::regex_search(par.c_str(), what, reg_lw))
-      fig.lw = string(what[1]);
+      fig.lw = std::string(what[1]);
 
   boost::regex reg_legend("legend<(.*?)>{1}");
   if (boost::regex_search(par.c_str(), what, reg_legend)) {
-    string s = string(what[1]);
+    std::string s = std::string(what[1]);
     boost::split(fig.legend, s, boost::is_any_of(";"), boost::token_compress_on);
   }
 
   boost::regex reg_color("color<(.*?)>{1}");
   if (boost::regex_search(par.c_str(), what, reg_color)) {
-    string s = string(what[1]);
+    std::string s = std::string(what[1]);
     boost::erase_first(s, " ");
     boost::erase_last(s, " ");
-    vector<string> str_vec;
+    std::vector<std::string> str_vec;
     boost::split(str_vec, s, boost::is_any_of(","), boost::token_compress_on);
     if (str_vec.size() == 1)
       fig.color = s;
@@ -535,7 +535,7 @@ fig_spec parsing_fig_spec(string par) {
 
   boost::regex reg_latex("latex<(.*?)>{1}");
   if (boost::regex_search(par.c_str(), what, reg_latex)) {
-    string s = string(what[1]);
+    std::string s = std::string(what[1]);
     boost::erase_first(s, " ");
     boost::erase_last(s, " ");
     boost::to_upper(s);
@@ -559,21 +559,21 @@ fig_spec parsing_fig_spec(string par) {
 
   boost::regex reg_cmd("gnuplot<(.*?)>{1}");
   if (boost::regex_search(par.c_str(), what, reg_cmd))
-    fig.gnu_cmd = string(what[1]);
+    fig.gnu_cmd = std::string(what[1]);
 
   return fig;
 }
 
-line_spec parsing_line_spec(string par) {
+line_spec parsing_line_spec(std::string par) {
   line_spec line;
   boost::to_lower(par);
-  vector<string> par_vec;
+  std::vector<std::string> par_vec;
   boost::split(par_vec, par, boost::is_any_of("\t "), boost::token_compress_on);
-  std::map<string, string>::const_iterator iter;
-  string line_color = "'#0060ad'"; // default line_color.
-  string line_style = "lines"; // default line_style.
-  string line_marker = "7"; // default line_marker.
-  string line_dash = "1"; // default line_marker.
+  std::map<std::string, std::string>::const_iterator iter;
+  std::string line_color = "'#0060ad'"; // default line_color.
+  std::string line_style = "lines"; // default line_style.
+  std::string line_marker = "7"; // default line_marker.
+  std::string line_dash = "1"; // default line_marker.
   for (size_t i = 0; i < par_vec.size(); i++) {
     iter = g_line_color.find(par_vec[i]);
     if (iter != g_line_color.end())
@@ -594,29 +594,29 @@ line_spec parsing_line_spec(string par) {
   return line;
 }
 
-map_spec parsing_map_spec(string par) {
+map_spec parsing_map_spec(std::string par) {
   map_spec map;
 
   boost::cmatch what;
 
   boost::regex reg_style("style<(.*?)>{1}");
   if (boost::regex_search(par.c_str(), what, reg_style))
-    map.style = string(what[1]);
+    map.style = std::string(what[1]);
 
   return map;
 }
 
-void write_line(const vec &x, string file) {
-  ofstream ofstr(file.c_str());
+void write_line(const vec &x, std::string file) {
+  std::ofstream ofstr(file.c_str());
   ofstr.precision(4);
   ofstr << x;
   ofstr.close();
 }
 
-void write_line(const vec &x, const vec &y, string file) {
+void write_line(const vec &x, const vec &y, std::string file) {
   if (x.size() != y.size())
     return;
-  ofstream ofstr(file.c_str());
+  std::ofstream ofstr(file.c_str());
   ofstr.precision(4);
   mat xy(x.size(), 2);
   xy.col(0) = x;
@@ -625,116 +625,116 @@ void write_line(const vec &x, const vec &y, string file) {
   ofstr.close();
 }
 
-void write_map(const mat &x, string file) {
-  ofstream ofstr(file.c_str());
+void write_map(const mat &x, std::string file) {
+  std::ofstream ofstr(file.c_str());
   ofstr.precision(4);
   ofstr << x;
   ofstr.close();
 }
 
-std::map<string, string> line_color() {
-  std::map<string, string> color_map;
-  color_map.insert(pair<string, string>("r", "'red'"));
-  color_map.insert(pair<string, string>("g", "'green'"));
-  //color_map.insert(pair<string, string>("o", "'orange'"));
-  color_map.insert(pair<string, string>("y", "'yellow'"));
-  color_map.insert(pair<string, string>("b", "'blue'"));
-  color_map.insert(pair<string, string>("w", "'white'"));
-  color_map.insert(pair<string, string>("k", "'black'"));
-  color_map.insert(pair<string, string>("c", "'cyan'"));
+std::map<std::string, std::string> line_color() {
+  std::map<std::string, std::string> color_map;
+  color_map.insert(std::pair<std::string, std::string>("r", "'red'"));
+  color_map.insert(std::pair<std::string, std::string>("g", "'green'"));
+  //color_map.insert(std::pair<std::string, std::string>("o", "'orange'"));
+  color_map.insert(std::pair<std::string, std::string>("y", "'yellow'"));
+  color_map.insert(std::pair<std::string, std::string>("b", "'blue'"));
+  color_map.insert(std::pair<std::string, std::string>("w", "'white'"));
+  color_map.insert(std::pair<std::string, std::string>("k", "'black'"));
+  color_map.insert(std::pair<std::string, std::string>("c", "'cyan'"));
   return color_map;
 }
 
-std::map<string, string> line_style() {
-  std::map<string, string> style_map;
-  style_map.insert(pair<string, string>("lp", "linespoints"));
-  style_map.insert(pair<string, string>("l", "lines"));
-  style_map.insert(pair<string, string>("p", "points"));
-  style_map.insert(pair<string, string>("s", "steps"));
-  style_map.insert(pair<string, string>("d", "dots"));
-  style_map.insert(pair<string, string>("ip", "impulses"));
-  style_map.insert(pair<string, string>("hs", "histeps"));
-  style_map.insert(pair<string, string>("fs", "fsteps"));
-  style_map.insert(pair<string, string>("fc", "filledcurves"));
-  style_map.insert(pair<string, string>("hg", "histograms"));
-  style_map.insert(pair<string, string>("box", "boxes"));
+std::map<std::string, std::string> line_style() {
+  std::map<std::string, std::string> style_map;
+  style_map.insert(std::pair<std::string, std::string>("lp", "linespoints"));
+  style_map.insert(std::pair<std::string, std::string>("l", "lines"));
+  style_map.insert(std::pair<std::string, std::string>("p", "points"));
+  style_map.insert(std::pair<std::string, std::string>("s", "steps"));
+  style_map.insert(std::pair<std::string, std::string>("d", "dots"));
+  style_map.insert(std::pair<std::string, std::string>("ip", "impulses"));
+  style_map.insert(std::pair<std::string, std::string>("hs", "histeps"));
+  style_map.insert(std::pair<std::string, std::string>("fs", "fsteps"));
+  style_map.insert(std::pair<std::string, std::string>("fc", "filledcurves"));
+  style_map.insert(std::pair<std::string, std::string>("hg", "histograms"));
+  style_map.insert(std::pair<std::string, std::string>("box", "boxes"));
   return style_map;
 }
 
-std::map<string, string> line_marker() {
-  std::map<string, string> line_marker_map;
-  line_marker_map.insert(pair<string, string>("+", "1"));
-  line_marker_map.insert(pair<string, string>("x", "2"));
-  line_marker_map.insert(pair<string, string>("*", "3"));
-  line_marker_map.insert(pair<string, string>("@-", "4"));
-  line_marker_map.insert(pair<string, string>("@", "5"));
-  line_marker_map.insert(pair<string, string>("o-", "6"));
-  line_marker_map.insert(pair<string, string>("o", "7"));
-  line_marker_map.insert(pair<string, string>("^-", "8"));
-  line_marker_map.insert(pair<string, string>("^", "9"));
-  line_marker_map.insert(pair<string, string>("v-", "10"));
-  line_marker_map.insert(pair<string, string>("v", "11"));
-  line_marker_map.insert(pair<string, string>("#-", "12"));
-  line_marker_map.insert(pair<string, string>("#", "13"));
+std::map<std::string, std::string> line_marker() {
+  std::map<std::string, std::string> line_marker_map;
+  line_marker_map.insert(std::pair<std::string, std::string>("+", "1"));
+  line_marker_map.insert(std::pair<std::string, std::string>("x", "2"));
+  line_marker_map.insert(std::pair<std::string, std::string>("*", "3"));
+  line_marker_map.insert(std::pair<std::string, std::string>("@-", "4"));
+  line_marker_map.insert(std::pair<std::string, std::string>("@", "5"));
+  line_marker_map.insert(std::pair<std::string, std::string>("o-", "6"));
+  line_marker_map.insert(std::pair<std::string, std::string>("o", "7"));
+  line_marker_map.insert(std::pair<std::string, std::string>("^-", "8"));
+  line_marker_map.insert(std::pair<std::string, std::string>("^", "9"));
+  line_marker_map.insert(std::pair<std::string, std::string>("v-", "10"));
+  line_marker_map.insert(std::pair<std::string, std::string>("v", "11"));
+  line_marker_map.insert(std::pair<std::string, std::string>("#-", "12"));
+  line_marker_map.insert(std::pair<std::string, std::string>("#", "13"));
   return line_marker_map;
 }
 
-std::map<string, string> line_dash() {
-  std::map<string, string> line_dash_map;
-  line_dash_map.insert(pair<string, string>(".", "'.'"));
-  line_dash_map.insert(pair<string, string>("-", "'-'"));
-  line_dash_map.insert(pair<string, string>("._", "'._'"));
-  line_dash_map.insert(pair<string, string>("..-", "'..-'"));
+std::map<std::string, std::string> line_dash() {
+  std::map<std::string, std::string> line_dash_map;
+  line_dash_map.insert(std::pair<std::string, std::string>(".", "'.'"));
+  line_dash_map.insert(std::pair<std::string, std::string>("-", "'-'"));
+  line_dash_map.insert(std::pair<std::string, std::string>("._", "'._'"));
+  line_dash_map.insert(std::pair<std::string, std::string>("..-", "'..-'"));
   return line_dash_map;
 }
 
-std::map<string, string> map_color() {
-  std::map<string, string> color_map;
+std::map<std::string, std::string> map_color() {
+  std::map<std::string, std::string> color_map;
   // diverging.
-  color_map.insert(pair<string, string>("BrBG", "diverging/BrBG.plt"));
-  color_map.insert(pair<string, string>("PiYG", "diverging/PiYG.plt"));
-  color_map.insert(pair<string, string>("PRGn", "diverging/PRGn.plt"));
-  color_map.insert(pair<string, string>("PuOr", "diverging/PuOr.plt"));
-  color_map.insert(pair<string, string>("RdBu", "diverging/RdBu.plt"));
-  color_map.insert(pair<string, string>("RdGy", "diverging/RdGy.plt"));
-  color_map.insert(pair<string, string>("RdYlBu", "diverging/RdYlBu.plt"));
-  color_map.insert(pair<string, string>("RdYlGn", "diverging/RdYlGn.plt"));
-  color_map.insert(pair<string, string>("Spectral", "diverging/Spectral.plt"));
+  color_map.insert(std::pair<std::string, std::string>("BrBG", "diverging/BrBG.plt"));
+  color_map.insert(std::pair<std::string, std::string>("PiYG", "diverging/PiYG.plt"));
+  color_map.insert(std::pair<std::string, std::string>("PRGn", "diverging/PRGn.plt"));
+  color_map.insert(std::pair<std::string, std::string>("PuOr", "diverging/PuOr.plt"));
+  color_map.insert(std::pair<std::string, std::string>("RdBu", "diverging/RdBu.plt"));
+  color_map.insert(std::pair<std::string, std::string>("RdGy", "diverging/RdGy.plt"));
+  color_map.insert(std::pair<std::string, std::string>("RdYlBu", "diverging/RdYlBu.plt"));
+  color_map.insert(std::pair<std::string, std::string>("RdYlGn", "diverging/RdYlGn.plt"));
+  color_map.insert(std::pair<std::string, std::string>("Spectral", "diverging/Spectral.plt"));
 
   // qualitative.
-  color_map.insert(pair<string, string>("Accent", "qualitative/Accent.plt"));
-  color_map.insert(pair<string, string>("Dark2", "qualitative/Dark2.plt"));
-  color_map.insert(pair<string, string>("Paired", "qualitative/Paired.plt"));
-  color_map.insert(pair<string, string>("Pastel1", "qualitative/Pastel1.plt"));
-  color_map.insert(pair<string, string>("Pastel2", "qualitative/Pastel2.plt"));
-  color_map.insert(pair<string, string>("Set1", "qualitative/Set1.plt"));
-  color_map.insert(pair<string, string>("Set2", "qualitative/Set2.plt"));
-  color_map.insert(pair<string, string>("Set3", "qualitative/Set3.plt"));
+  color_map.insert(std::pair<std::string, std::string>("Accent", "qualitative/Accent.plt"));
+  color_map.insert(std::pair<std::string, std::string>("Dark2", "qualitative/Dark2.plt"));
+  color_map.insert(std::pair<std::string, std::string>("Paired", "qualitative/Paired.plt"));
+  color_map.insert(std::pair<std::string, std::string>("Pastel1", "qualitative/Pastel1.plt"));
+  color_map.insert(std::pair<std::string, std::string>("Pastel2", "qualitative/Pastel2.plt"));
+  color_map.insert(std::pair<std::string, std::string>("Set1", "qualitative/Set1.plt"));
+  color_map.insert(std::pair<std::string, std::string>("Set2", "qualitative/Set2.plt"));
+  color_map.insert(std::pair<std::string, std::string>("Set3", "qualitative/Set3.plt"));
 
   // sequential.
-  color_map.insert(pair<string, string>("Blues", "sequential/Blues.plt"));
-  color_map.insert(pair<string, string>("BuGn", "sequential/BuGn.plt"));
-  color_map.insert(pair<string, string>("BuPu", "sequential/BuPu.plt"));
-  color_map.insert(pair<string, string>("GnBu", "sequential/GnBu.plt"));
-  color_map.insert(pair<string, string>("Greens", "sequential/Greens.plt"));
-  color_map.insert(pair<string, string>("Greys", "sequential/Greys.plt"));
-  color_map.insert(pair<string, string>("Oranges", "sequential/Oranges.plt"));
-  color_map.insert(pair<string, string>("OrRd", "sequential/OrRd.plt"));
+  color_map.insert(std::pair<std::string, std::string>("Blues", "sequential/Blues.plt"));
+  color_map.insert(std::pair<std::string, std::string>("BuGn", "sequential/BuGn.plt"));
+  color_map.insert(std::pair<std::string, std::string>("BuPu", "sequential/BuPu.plt"));
+  color_map.insert(std::pair<std::string, std::string>("GnBu", "sequential/GnBu.plt"));
+  color_map.insert(std::pair<std::string, std::string>("Greens", "sequential/Greens.plt"));
+  color_map.insert(std::pair<std::string, std::string>("Greys", "sequential/Greys.plt"));
+  color_map.insert(std::pair<std::string, std::string>("Oranges", "sequential/Oranges.plt"));
+  color_map.insert(std::pair<std::string, std::string>("OrRd", "sequential/OrRd.plt"));
 
-  color_map.insert(pair<string, string>("PuBu", "sequential/PuBu.plt"));
-  color_map.insert(pair<string, string>("PuBuGn", "sequential/PuBuGn.plt"));
-  color_map.insert(pair<string, string>("PuRd", "sequential/PuRd.plt"));
-  color_map.insert(pair<string, string>("Purples", "sequential/Purples.plt"));
-  color_map.insert(pair<string, string>("RdPu", "sequential/RdPu.plt"));
-  color_map.insert(pair<string, string>("Reds", "sequential/Reds.plt"));
-  color_map.insert(pair<string, string>("YlGn", "sequential/YlGn.plt"));
-  color_map.insert(pair<string, string>("YlGnBu", "sequential/YlGnBu.plt"));
-  color_map.insert(pair<string, string>("YlOrBr", "sequential/YlOrBr.plt"));
-  color_map.insert(pair<string, string>("YlOrRd", "sequential/YlOrRd.plt"));
+  color_map.insert(std::pair<std::string, std::string>("PuBu", "sequential/PuBu.plt"));
+  color_map.insert(std::pair<std::string, std::string>("PuBuGn", "sequential/PuBuGn.plt"));
+  color_map.insert(std::pair<std::string, std::string>("PuRd", "sequential/PuRd.plt"));
+  color_map.insert(std::pair<std::string, std::string>("Purples", "sequential/Purples.plt"));
+  color_map.insert(std::pair<std::string, std::string>("RdPu", "sequential/RdPu.plt"));
+  color_map.insert(std::pair<std::string, std::string>("Reds", "sequential/Reds.plt"));
+  color_map.insert(std::pair<std::string, std::string>("YlGn", "sequential/YlGn.plt"));
+  color_map.insert(std::pair<std::string, std::string>("YlGnBu", "sequential/YlGnBu.plt"));
+  color_map.insert(std::pair<std::string, std::string>("YlOrBr", "sequential/YlOrBr.plt"));
+  color_map.insert(std::pair<std::string, std::string>("YlOrRd", "sequential/YlOrRd.plt"));
 
   // usr def.
-  color_map.insert(pair<string, string>("YiZhang16", "../usr/YiZhang16.plt"));
-  color_map.insert(pair<string, string>("ShiLiu16", "../usr/ShiLiu16.plt"));
+  color_map.insert(std::pair<std::string, std::string>("YiZhang16", "../usr/YiZhang16.plt"));
+  color_map.insert(std::pair<std::string, std::string>("ShiLiu16", "../usr/ShiLiu16.plt"));
 
   return color_map;
 }

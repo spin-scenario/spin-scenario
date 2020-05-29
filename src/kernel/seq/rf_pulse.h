@@ -29,7 +29,7 @@ struct RFChannel {
   cx_vec envelope;  // a slowly varying B1(t) or A(t).
   vec
       carrier;  // unit in rad/s. the specified freq offset delta_f. ref to p28 "handbook", delta-omega = gamma*B0 - omega_rf.
-  string channel; // the isotope channel which is excited.
+  std::string channel; // the isotope channel which is excited.
 };
 
 enum rf_loop_type {
@@ -46,15 +46,15 @@ class rf_pulse : public seq_block {
 
   virtual void get_ctrl(const timeline key0, const timeline key1, seq_const &ctrl) const;
   virtual void evolution(int index = -1);
-  virtual void write(ostream &ostr = cout) const;
-  virtual void h5write(H5File &file, string abbr = "") const;
+  virtual void write(std::ostream &ostr = std::cout) const;
+  virtual void h5write(H5File &file, std::string abbr = "") const;
   virtual void plot() const;
 
   virtual mat get_shape() const;
-  virtual string get_header() const;
-  virtual void switch_rf_mode(string mode);
+  virtual std::string get_header() const;
+  virtual void switch_rf_mode(std::string mode);
   virtual int switch2loop(int index);
-  virtual vector<string> get_channels_str() const;
+  virtual std::vector<std::string> get_channels_str() const;
   void convert2(envelope_style mode);
   //virtual void set_modulated_gain(double g);
   virtual void set_gain(double g);
@@ -76,15 +76,15 @@ class rf_pulse : public seq_block {
   }
 
   // ONLY USED FOR GRAPE OPTIMIZATION.
-  vector<double> clone_raw_data() const;
-  vector<double> clone_raw_data_ux() const;
-  vector<double> clone_raw_data_uy() const;
+  std::vector<double> clone_raw_data() const;
+  std::vector<double> clone_raw_data_ux() const;
+  std::vector<double> clone_raw_data_uy() const;
   void update_raw_data(const double *vals);
   void update_raw_data_ux(const double *vals);
   void update_raw_data_uy(const double *vals);
   void update_raw_data(const limit_axis axis, const double *vals);
 
-  vector<cx_vec> export_signal() const;
+  std::vector<cx_vec> export_signal() const;
   double sampling_freq() const;
 
   // rf power on all channels.  \int_0^tp {u^2(t)dt}
@@ -96,8 +96,8 @@ class rf_pulse : public seq_block {
   size_t channels_;  ///< rf pulse channels, in MRI there is usually only 1H channel excitation.
   double dt_;  // time duration of each step. !!!!! unit in us.
   timeline tl_dt_;
-  vector<RFChannel> raw_data_;  ///< <amp, phase> in <rad, rad> or <ux,uy> in <rad,rad>
-  vector<RFChannel> raw_data0_;  ///< <amp, phase> in <rad, rad> or <ux,uy> in <rad,rad>
+  std::vector<RFChannel> raw_data_;  ///< <amp, phase> in <rad, rad> or <ux,uy> in <rad,rad>
+  std::vector<RFChannel> raw_data0_;  ///< <amp, phase> in <rad, rad> or <ux,uy> in <rad,rad>
 
   envelope_style mode_;
 

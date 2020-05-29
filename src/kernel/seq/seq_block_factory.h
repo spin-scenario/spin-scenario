@@ -25,12 +25,12 @@ class seq_block_factory {
   seq_block_factory();
   virtual ~seq_block_factory();
   // get the seq block pointer by key from this factory.
-  seq_block *get_seq_block(const string key) const;
+  seq_block *get_seq_block(const std::string key) const;
   // clone a seq block object simply by key name.
-  seq_block *clone_seq_block(string key) const;
+  seq_block *clone_seq_block(std::string key) const;
   sol::object clone_seq_block(const sol::table &list, sol::this_state s) const;
  private:
-  map<string, seq_block *> seq_blocks_;
+  std::map<std::string, seq_block *> seq_blocks_;
 };
 
 } /* namespace seq */

@@ -41,7 +41,7 @@ K intervalStop(const Interval<T, K> &i) {
 }
 
 template<class T, typename K>
-std::ostream &operator<<(std::ostream &out, Interval<T, K> &i) {
+std::string &operator<<(std::string &out, Interval<T, K> &i) {
   out << "interval(" << i.start << ", " << i.stop << "): " << i.value;
   return out;
 }

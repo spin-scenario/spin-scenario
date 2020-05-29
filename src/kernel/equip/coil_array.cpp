@@ -27,36 +27,36 @@ CoilArray::CoilArray(const char *coil_file) {
 CoilArray::~CoilArray() {
   // TODO Auto-generated destructor stub
 }
-vector<Coil *> CoilArray::get_coil_pointer(CoilMode mode) const {
-  vector<Coil *> coils;
+std::vector<Coil *> CoilArray::get_coil_pointer(CoilMode mode) const {
+  std::vector<Coil *> coils;
   for (size_t i = 0; i < array_.size(); i++) {
     if (array_[i]->get_mode() == mode || array_[i]->get_mode() == kTxRx)
       coils.push_back(array_[i]);
   }
   return coils;
 }
-vector<size_t> CoilArray::get_coil_index(CoilMode mode) const {
-  vector<size_t> index;
+std::vector<size_t> CoilArray::get_coil_index(CoilMode mode) const {
+  std::vector<size_t> index;
   for (size_t i = 0; i < array_.size(); i++) {
     if (array_[i]->get_mode() == mode || array_[i]->get_mode() == kTxRx)
       index.push_back(i);
   }
   return index;
 }
-vector<vec3> CoilArray::get_shape() const {
-  vector<vec3> data;
+std::vector<vec3> CoilArray::get_shape() const {
+  std::vector<vec3> data;
   for (size_t i = 0; i < array_.size(); i++) {
-    vector<vec3> tmp = array_[i]->get_shape();
+    std::vector<vec3> tmp = array_[i]->get_shape();
     std::copy(tmp.begin(), tmp.end(), std::back_inserter(data));
   }
   return data;
 }
 void CoilArray::graphic_view() const {
-  string file = "coils.xyza";
-  ofstream ofstr(file.c_str(), ios::binary);
+  std::string file = "coils.xyza";
+  std::ofstream ofstr(file.c_str(), std::ios::binary);
   ofstr.precision(3);
-  ofstr.setf(ios::fixed);
-  vector<vec3> data = get_shape();
+  ofstr.setf(std::ios::fixed);
+  std::vector<vec3> data = get_shape();
   if (data.size() == 0)
     return;
   for (size_t i = 0; i < data.size(); i++) {
@@ -73,7 +73,7 @@ void CoilArray::load_via_xml(const char *coil_file) {
 //  tinyxml2::XMLDocument doc;
 //  tinyxml2::XMLError error = doc.LoadFile(coil_file);
 //  if (error != tinyxml2::XML_NO_ERROR) {
-//    cout
+//    std::cout
 //        << boost::format("%s %s %s %s.\n") % "S-S-L error: " % error
 //            % "failed to load coil file" % coil_file;
 //    exit(0);
@@ -82,11 +82,11 @@ void CoilArray::load_via_xml(const char *coil_file) {
 //  // print the seq xml tree.
 ////  XMLPrinter printer;
 ////  doc.Print(&printer);
-////  cout << printer.CStr();
+////  std::cout << printer.CStr();
 //
 //  tinyxml2::XMLElement* root = doc.RootElement();
 //  /*if (std_string(root->Name()) != "CoilArray") {
-//	cout
+//	std::cout
 //		<< boost::format("%1% %2% %3%.\n") % "S-S-L error: " % coil_file
 //			% "should use CoilArray as root node";
 //	exit(0);
@@ -101,7 +101,7 @@ void CoilArray::create_coil(/*tinyxml2::XMLElement* node*/) {
   //Coil* coil = factory_coils_.clone_coil(node);
   //if (!coil)  // the input coil does not exist in the coil-factory.
   //{
-  // /*cout
+  // /*std::cout
   //  << boost::format("%1% '%2%' %3%.\n")
   //	  % "S-S-L error: non-existent coil type -" % std_string(node->Name())
   //	  % "in coil array xml file";*/

@@ -64,7 +64,7 @@ struct unified_spinsys {
     L0 = sys.free_hamiltonian();
     R = ci * sys.relaxation();
 
-    string acq_ch = g_seq_param->acq_channel;
+    std::string acq_ch = g_seq_param->acq_channel;
     //rho0 = sys.state(acq_ch + " Iz");
     rho0 = sys.equilibrium_state();
     Lz0 = sys.op(acq_ch + " Iz").cast<cd>();
@@ -78,7 +78,7 @@ if(g_seq_param->observer.empty())
     det = sys.state(acq_ch + " I+"); // temporarily used.
 else
 {
-    cout<<"###\n";
+    std::cout<<"###\n";
     det= sys.smart_state(g_seq_param->observer);
 
 }
@@ -114,7 +114,7 @@ struct each_spinsys {
 struct rf_const {
   vec2 u = vec2::Zero(); // x/y components.
   double df = 0; // Hz
-  string channel = "";
+  std::string channel = "";
 };
 
 struct grad_const {
@@ -130,7 +130,7 @@ struct acq_const {
 };
 
 struct seq_const {
-  vector<rf_const> rf;
+  std::vector<rf_const> rf;
   grad_const grad;
   acq_const acq;
   bool delay_if = false;
@@ -148,7 +148,7 @@ class engine {
   ~engine();
   void evolution(timeline dt, const seq_const &ctrl);
   //void set_observer(const sp_cx_vec &rho);
-  //void set_observer(const string expr);
+  //void set_observer(const std::string expr);
   sol::object process_signal();
 
  private:
@@ -162,12 +162,12 @@ class engine {
   physx_model physx_model_;
   phantom *p_phantom_;
   unified_spinsys unified_spinsys_;
-  vector<each_spinsys> ensemble_;
+  std::vector<each_spinsys> ensemble_;
 
-  vector<seq_step> seq_step_list_;
+  std::vector<seq_step> seq_step_list_;
 
-  vector<cx_vec> raw_signal_;
-  vector<cx_vec> raw_signal_tmp_;
+  std::vector<cx_vec> raw_signal_;
+  std::vector<cx_vec> raw_signal_tmp_;
 
   int nRxs_;
   int nTxs_;
@@ -190,15 +190,15 @@ class engine {
   af::array ux_;
   af::array uy_;
 
-  vector<double> raw_r1_;
-  vector<double> raw_r2_;
-  vector<double> raw_rho_;
-  vector<double> raw_loc_;
-  vector<double> raw_dB0_;
-  vector<double> raw_tx_B1_amp_;
-  vector<double> raw_tx_B1_phase_;
-  vector<double> raw_rx_B1_amp_;
-  vector<double> raw_rx_B1_phase_;
+  std::vector<double> raw_r1_;
+  std::vector<double> raw_r2_;
+  std::vector<double> raw_rho_;
+  std::vector<double> raw_loc_;
+  std::vector<double> raw_dB0_;
+  std::vector<double> raw_tx_B1_amp_;
+  std::vector<double> raw_tx_B1_phase_;
+  std::vector<double> raw_rx_B1_amp_;
+  std::vector<double> raw_rx_B1_phase_;
 
 
 
@@ -207,7 +207,7 @@ class engine {
   af::array mz_;
 
   //cx_mat signal_;
-  //vector<cx_mat> signals_;
+  //std::vector<cx_mat> signals_;
 #endif
 };
 

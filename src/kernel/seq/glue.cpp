@@ -30,7 +30,7 @@ void glue::assign() {
 void glue::add_sub_block(seq_block *sb) {
   sub_blocks_.push_back(sb);
 }
-void glue::add_sub_block(vector<seq_block *> sbs) {
+void glue::add_sub_block(std::vector<seq_block *> sbs) {
   //for each (auto var in sbs) {
   //    sub_blocks_.push_back(var);
   //}
@@ -44,16 +44,16 @@ void glue::add_sub_block(sol::variadic_args va, const seq_block & /*sb*/) {
   }
 }
 
-void glue::write(ostream &ostr) const {
+void glue::write(std::ostream &ostr) const {
   seq_block::write(ostr);
   for (size_t i = 0; i < sub_blocks_.size(); i++)
     ostr << sub_blocks_[i]->name() << "\n";
 }
 
-vector<int> glue::descending_cycle_priorities() const {
-  vector<seq_block *> sub_blocks = sub_blocks_;
+std::vector<int> glue::descending_cycle_priorities() const {
+  std::vector<seq_block *> sub_blocks = sub_blocks_;
   std::sort(sub_blocks.begin(), sub_blocks.end(), sort_seq_block_cycle_priority());
-  vector<int> val;
+  std::vector<int> val;
   for (size_t i = 1; i < sub_blocks.size(); i++) {
     int cur = sub_blocks[i]->cycle_priority();
     int pre = sub_blocks[i - 1]->cycle_priority();

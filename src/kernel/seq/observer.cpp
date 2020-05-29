@@ -35,7 +35,7 @@ void observer::get_ctrl(const timeline key0, const timeline key1, seq_const &ctr
 }
 
 void observer::evolution(int index) {
-  cout << "evolution observer " << index << " " << width_in_ms() << " ms\n";
+  std::cout << "evolution observer " << index << " " << width_in_ms() << " ms\n";
 }
 
 }

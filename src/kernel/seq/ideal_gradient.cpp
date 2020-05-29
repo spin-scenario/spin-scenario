@@ -31,7 +31,7 @@ void ideal_gradient::assign() {
   pattern_ = _trapezoid;
 
   if (is_retrievable("func")) {
-    string str_func = retrieve_config_table_str("func");
+    std::string str_func = retrieve_config_table_str("func");
     func_ = _general_grad;
     if (str_func == "phase")
       func_ = _phase_encoding;
@@ -54,17 +54,17 @@ void ideal_gradient::assign() {
         if (is_retrievable("width")) {
           duration = retrieve_config_table_double("width"); // unit in ms.
           if (duration < min_duration) {
-            string s = "invalid gradient width for phase encoding, minimum width: "
-                + boost::lexical_cast<string>(min_duration);
+            std::string s = "invalid gradient width for phase encoding, minimum width: "
+                + boost::lexical_cast<std::string>(min_duration);
             throw std::runtime_error(s.c_str());
           }
         } else
           config_table_.set("width", min_duration);
 
         double all_area = delta_area * g_seq_param->matrix[_cy];
-        string par = boost::lexical_cast<string>(-all_area / 2) + ":" + boost::lexical_cast<string>(all_area / 2) + ":"
-            + boost::lexical_cast<string>(g_seq_param->matrix[_cy]);
-        //string par = "0:" + boost::lexical_cast<string>(delta_area*g_seq_param->matrix[_cy]) + ":" + boost::lexical_cast<string>(g_seq_param->matrix[_cy]);
+        std::string par = boost::lexical_cast<std::string>(-all_area / 2) + ":" + boost::lexical_cast<std::string>(all_area / 2) + ":"
+            + boost::lexical_cast<std::string>(g_seq_param->matrix[_cy]);
+        //std::string par = "0:" + boost::lexical_cast<std::string>(delta_area*g_seq_param->matrix[_cy]) + ":" + boost::lexical_cast<std::string>(g_seq_param->matrix[_cy]);
         config_table_.set("areas", par);
         loop_ctrl_.loop_count = g_seq_param->matrix[_cy];
       }
@@ -97,7 +97,7 @@ void ideal_gradient::get_ctrl(const timeline key0, const timeline key1, seq_cons
     return;
 
   double grad_amp = amp;
-  //cout<<amp<<"###\n";
+  //std::cout<<amp<<"###\n";
   ctrl.grad.v[channel_] = grad_amp;
 }
 
@@ -108,12 +108,12 @@ void ideal_gradient::load_shape() {
     amp = retrieve_config_table_double("amp"); // unit in mT/m.
     if_amp = true;
     if (fabs(amp) > g_seq_param->max_grad) {
-      string s = "the given amplitude is beyond limit for this gradient: " + name();
+      std::string s = "the given amplitude is beyond limit for this gradient: " + name();
       throw std::runtime_error(s.c_str());
     }
   }
   if (is_retrievable("areas")) {
-    string par = retrieve_config_table_str("areas"); // unit in mT/m*ms.
+    std::string par = retrieve_config_table_str("areas"); // unit in mT/m*ms.
     colon_sep val;
     if (parse(par, val)) {
 
@@ -123,7 +123,7 @@ void ideal_gradient::load_shape() {
         areas[i] = -delta_s * (double) val.num / 2.0 + delta_s * (double) i;
       //areas[i]=delta_s*(double (i)-double(val.num-1)/2);
 
-      //cout<<areas<<"\n";
+      //std::cout<<areas<<"\n";
       if_areas = true;
       area = areas[0]; // set 1st phase-encoding area.
     }
@@ -142,19 +142,19 @@ void ideal_gradient::load_shape() {
       amp = area / duration;
     }
   } else {
-    string s = "must set duration for this gradient: " + name();
+    std::string s = "must set duration for this gradient: " + name();
     throw std::runtime_error(s.c_str());
   }
 
   timer_.width = WIDTH();
-  //cout << timer_.width << "\n";
+  //std::cout << timer_.width << "\n";
 
   tps = tlvec(2);
   tps[0] = 0;
   tps[1] = timer_.width;
 }
 
-void ideal_gradient::write(ostream &ostr) const {
+void ideal_gradient::write(std::ostream &ostr) const {
   seq_block::write(ostr);
   ostr << "# channel: " << grad_channel_str[channel_] << ".\n";
 }

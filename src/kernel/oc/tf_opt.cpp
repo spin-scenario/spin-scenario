@@ -48,7 +48,7 @@ tf_opt::tf_opt(spin_system &sys)
   if (bb_size) {
     superop_.profile = vec::Ones(bb_size);
     superop_.nominal_offset = sys.nominal_broadband();
-    superop_.grad_bb = vector<vector<double>>(bb_size);
+    superop_.grad_bb = std::vector<std::vector<double>>(bb_size);
   }
 
 }
@@ -71,7 +71,7 @@ void tf_opt::create_graph(std::string g_type) {
   //call system which will call python function to construct the graph
   if (call_system(size, n_channels, dt, graph_definition, g_type)) {
     std::cout << "\n\n" << std::endl;
-    string s1 = str(boost::format("Time needed for graph computation: [%.3f] seconds.\n\n") %
+    std::string s1 = str(boost::format("Time needed for graph computation: [%.3f] seconds.\n\n") %
         ((duration(timeNow() - start))));
     ssl_color_text("info", s1);
   }
@@ -107,7 +107,7 @@ void tf_opt::create_graph(std::string g_type) {
   initialize_placeholder();
 
   if (measure_time) {
-    string
+    std::string
         s1 = str(boost::format("Time needed to load the graph: [%.3f] seconds.\n\n") % ((duration(timeNow() - start))));
     ssl_color_text("info", s1);
   }
@@ -141,7 +141,7 @@ void tf_opt::update_tf_variables(const double *x) {
 
 }
 
-double tf_opt::objfunc(const vector<double> &x, vector<double> &grad) {
+double tf_opt::objfunc(const std::vector<double> &x, std::vector<double> &grad) {
 
   rf_->update_raw_data(x.data());
   //update variables in graph with values of x
@@ -205,12 +205,12 @@ double tf_opt::objfunc(const vector<double> &x, vector<double> &grad) {
 //            create_graph("evaluation");
 //
 //            rf_->convert2(_ux_uy);
-//            vector<double> x = rf_->clone_raw_data();
+//            std::vector<double> x = rf_->clone_raw_data();
 //
-//            //create vector with the names of the grafients to fetch gradient with a call to tensroflow run
+//            //create std::vector with the names of the grafients to fetch gradient with a call to tensroflow run
 //            int n_channels = sys_->nspins();
-//            gradient_names = std::vector<string> (nsteps*n_channels*2 + 1); //here we have all nodes we want to fetch for the optimization
-//            string s;
+//            gradient_names = std::vector<std::string> (nsteps*n_channels*2 + 1); //here we have all nodes we want to fetch for the optimization
+//            std::string s;
 //            for (int i = 0; i < nsteps; ++i) {
 //                for (int c = 0; c < n_channels; ++c) {
 //                    s = std::to_string(c) + "_" + std::to_string(i);
@@ -241,7 +241,7 @@ double tf_opt::objfunc(const vector<double> &x, vector<double> &grad) {
 //            if (result == nlopt::SUCCESS)
 //                ssl_color_text("info", "pulse optimization succeed.\n");
 //            if(measure_time) {
-//                string s1 = str(boost::format("Time needed for the Tensorflow optimization process is: [%.3f] seconds.\n") % duration(timeNow()-start));
+//                std::string s1 = str(boost::format("Time needed for the Tensorflow optimization process is: [%.3f] seconds.\n") % duration(timeNow()-start));
 //                ssl_color_text("info", s1);
 //            }
 //            if (result == nlopt::FAILURE)
@@ -281,13 +281,13 @@ seq_block &tf_opt::optimize(const sol::table &t) {
   create_graph("optimize");
 
   rf_->convert2(_ux_uy);
-  vector<double> x = rf_->clone_raw_data();
+  std::vector<double> x = rf_->clone_raw_data();
 
-  //create vector with the names of the grafients to fetch gradient with a call to tensroflow run
+  //create std::vector with the names of the grafients to fetch gradient with a call to tensroflow run
   int n_channels = sys_->nspins();
   gradient_names =
-      std::vector<string>(nsteps * n_channels * 2 + 1); //here we have all nodes we want to fetch for the optimization
-  string s;
+      std::vector<std::string>(nsteps * n_channels * 2 + 1); //here we have all nodes we want to fetch for the optimization
+  std::string s;
   for (int i = 0; i < nsteps; ++i) {
     for (int c = 0; c < n_channels; ++c) {
       s = std::to_string(c) + "_" + std::to_string(i);
@@ -318,7 +318,7 @@ seq_block &tf_opt::optimize(const sol::table &t) {
   if (result == nlopt::SUCCESS)
     ssl_color_text("info", "pulse optimization succeed.\n");
   if (measure_time) {
-    string s1 = str(boost::format("Time needed for the Tensorflow optimization process is: [%.3f] seconds.\n")
+    std::string s1 = str(boost::format("Time needed for the Tensorflow optimization process is: [%.3f] seconds.\n")
                         % duration(timeNow() - start));
     ssl_color_text("info", s1);
   }
@@ -341,7 +341,7 @@ seq_block &tf_opt::optimize(const sol::table &t) {
 
 void tf_opt::projection(const sol::table &t) { //results are not correct
   sol::object val = retrieve_table("init_state", t);
-  sp_cx_vec init_state = sys_->smart_state(val.as<string>());
+  sp_cx_vec init_state = sys_->smart_state(val.as<std::string>());
   init_state = norm_state(init_state);
   //init_state = levante_ernst(init_state);
 
@@ -354,9 +354,9 @@ void tf_opt::projection(const sol::table &t) { //results are not correct
   size_t nchannels = user_rf.get_channels();
   double dt = user_rf.width_in_ms() * 1e-3 / double(nsteps); // into s.
 
-  std::map<string, sp_cx_vec> obsrv_state_map;
-  vector<string> expr;
-  vector<sp_cx_vec> obsrv_state;
+  std::map<std::string, sp_cx_vec> obsrv_state_map;
+  std::vector<std::string> expr;
+  std::vector<sp_cx_vec> obsrv_state;
   if (is_retrievable("observ_states", t)) {
     val = retrieve_table("observ_states", t);
     sol::table expr_table = val.as<sol::table>();
@@ -365,9 +365,9 @@ void tf_opt::projection(const sol::table &t) { //results are not correct
     } else {
       for (size_t i = 0; i < expr_table.size(); i++) {
         sol::object val = expr_table[i + 1];
-        string exp = val.as<string>();
+        std::string exp = val.as<std::string>();
         sp_cx_vec rho = sys_->smart_state(exp);
-        obsrv_state_map.insert(pair<string, sp_cx_vec>(exp, rho));
+        obsrv_state_map.insert(std::pair<std::string, sp_cx_vec>(exp, rho));
       }
     }
 
@@ -375,19 +375,19 @@ void tf_opt::projection(const sol::table &t) { //results are not correct
     obsrv_state_map = sys_->cartesian_basis_states();
   }
 
-  std::map<string, sp_cx_vec>::iterator iter;
+  std::map<std::string, sp_cx_vec>::iterator iter;
   for (iter = obsrv_state_map.begin(); iter != obsrv_state_map.end(); iter++) {
     obsrv_state.push_back(norm_state(iter->second));
     //obsrv_state.push_back(levante_ernst(iter->second));
     expr.push_back(iter->first);
   }
 
-  string s;
+  std::string s;
   for (size_t p = 0; p < expr.size(); p++)
-    s += "row " + to_string(p + 1) + "-" + expr[p] + " ";
+    s += "row " + std::to_string(p + 1) + "-" + expr[p] + " ";
   //std::cout << "row " << p + 1 << "=>" << expr[p] << "\n";
 
-  string str_opt = "step";
+  std::string str_opt = "step";
   if (is_retrievable("option", t))
     str_opt = retrieve_table_str("option", t);
 
@@ -397,13 +397,13 @@ void tf_opt::projection(const sol::table &t) { //results are not correct
   else if (str_opt == "broadband")
     nrows = superop_.L0s.size();
   else {
-    string s = "unknown projection option ** " + str_opt + " ** using ‘step’ or 'broadband' instead.";
+    std::string s = "unknown projection option ** " + str_opt + " ** using ‘step’ or 'broadband' instead.";
     throw std::runtime_error(s.c_str());
   }
 
   mat transfer_wave = mat::Zero(nrows, expr.size());
 
-  vector<double> x = user_rf.clone_raw_data();
+  std::vector<double> x = user_rf.clone_raw_data();
   if (str_opt == "step") {
     sp_cx_mat L;
     sp_cx_mat L0 = superop_.L0 + superop_.R;
@@ -439,7 +439,7 @@ void tf_opt::projection(const sol::table &t) { //results are not correct
       }
     }
 
-    //cout<< (superop_.rf_ctrl.Lx[0]*superop_.L0-superop_.L0*superop_.rf_ctrl.Lx[0])<<"\n";
+    //std::cout<< (superop_.rf_ctrl.Lx[0]*superop_.L0-superop_.L0*superop_.rf_ctrl.Lx[0])<<"\n";
     //exit(0);
     sp_cx_mat Lrf = superop_.rf_ctrl.Lx[0] + superop_.rf_ctrl.Lx[1];
     sp_cx_vec tmp = ssl::spinsys::step(rho, Lrf, _pi);
@@ -463,7 +463,7 @@ void tf_opt::projection(const sol::table &t) { //results are not correct
   } else if (str_opt == "broadband") {
     omp_set_num_threads(omp_core_num);
 
-    vector<sp_cx_vec *> forward_trajs_parfor = vector<sp_cx_vec *>(omp_core_num);
+    std::vector<sp_cx_vec *> forward_trajs_parfor = std::vector<sp_cx_vec *>(omp_core_num);
     for (int i = 0; i < omp_core_num; i++) {
       sp_cx_vec *forward = new sp_cx_vec[nsteps + 1];
       forward[0] = init_state;
@@ -500,7 +500,7 @@ void tf_opt::projection(const sol::table &t) { //results are not correct
     lines.add(line);
   }
 
-  string fig_spec;
+  std::string fig_spec;
   vec time;
   if (str_opt == "step") {
     time = vec::LinSpaced(nrows, 0, user_rf.width_in_ms());
@@ -518,14 +518,14 @@ void tf_opt::projection(const sol::table &t) { //results are not correct
   fig_spec += " color<Spectral>";
   //fig_spec += " latex[ON]";
 
-  string lege;
+  std::string lege;
   for (size_t i = 0; i < expr.size(); i++)
     lege += expr[i] + ";";
   fig_spec += "legend<" + lege + ">";
 
   plot(fig_spec, line_series(time, lines));
 
-  ofstream ofstr("basis_projection.dat");
+  std::ofstream ofstr("basis_projection.dat");
   ofstr.precision(3);
   ofstr << transfer_wave;
   ofstr.close();
@@ -636,24 +636,24 @@ bool tf_opt::call_system(int size,
                          std::string graph_type) //const int* inputs
 {
   if (system(nullptr)) {
-    string s = "cd " + g_project_path + "; cp -r share/spin-scenario/tf_files" + " " + g_spin_scenario + "; cd "
+    std::string s = "cd " + g_project_path + "; cp -r share/spin-scenario/tf_files" + " " + g_spin_scenario + "; cd "
         + g_spin_scenario;
     int res = system(s.c_str());
-    string command = "cd tf_files; python3 -c 'import graph_generator as gg; print (gg.compute_graph_";
-    command += graph_type + "(" + to_string(size) + ", " + to_string(nsteps) + ", " + to_string(n_channels) + ", " +
-        to_string(dt) + ", " + to_string(relax) + "))'";
+    std::string command = "cd tf_files; python3 -c 'import graph_generator as gg; print (gg.compute_graph_";
+    command += graph_type + "(" + std::to_string(size) + ", " + std::to_string(nsteps) + ", " + std::to_string(n_channels) + ", " +
+        std::to_string(dt) + ", " + std::to_string(relax) + "))'";
     res = system(command.c_str());
     struct stat buf;
     std::cout << "output of system " << res << std::endl; //= 256 if error //= 0 if everything ok
     if (!(stat(graph_definition.c_str(), &buf) == 0)) {
-      string s = "\n           Error in system() call to python code. Graph was not created!!";
+      std::string s = "\n           Error in system() call to python code. Graph was not created!!";
       throw std::runtime_error(s.c_str());
       return 0;
     } else {
       return 1;
     }
   } else {
-    string s = "!!command processor doesn't exists!! Failed call to system()!!";
+    std::string s = "!!command processor doesn't exists!! Failed call to system()!!";
     throw std::runtime_error(s.c_str());
     return 0;
   }
@@ -662,11 +662,11 @@ double tf_opt::maxf() const {
   return opt_.max_f;
 }
 
-double tf_opt::objfunc(const vector<double> &x, vector<double> &grad, void *func) {
+double tf_opt::objfunc(const std::vector<double> &x, std::vector<double> &grad, void *func) {
   return ((tf_opt *) func)->objfunc(x, grad);
 }
 
-//double grape::objfunc_broadband(const vector<double> &x, vector<double> &grad, void *func) {
+//double grape::objfunc_broadband(const std::vector<double> &x, std::vector<double> &grad, void *func) {
 //    return ((grape *) func)->objfunc_broadband(x, grad);
 //}
 
@@ -681,7 +681,7 @@ void tf_opt::assign_state(const sol::table &t) {
 
     // in case of unified targ for diff freq offsets.
     if (superop_.L0s.size())
-      targ_list_ = vector<sp_cx_vec>(superop_.L0s.size(), targ_state_);
+      targ_list_ = std::vector<sp_cx_vec>(superop_.L0s.size(), targ_state_);
   }
 
 /*  if (obj.get_type() == sol::type::table) {
@@ -698,7 +698,7 @@ void tf_opt::assign_state(const sol::table &t) {
 void tf_opt::assign_nlopt(const sol::table &t) {
   opt_.algo = nlopt::LD_LBFGS; // default algorithm.
   if (is_retrievable("algorithm", t)) {
-    string oc = retrieve_table_str("algorithm", t);
+    std::string oc = retrieve_table_str("algorithm", t);
     boost::to_upper(oc);
 
     if (oc == "LBFGS")
@@ -727,21 +727,21 @@ void tf_opt::assign_nlopt(const sol::table &t) {
 void tf_opt::assign_pulse(const sol::table &t) {
   double width = retrieve_table_double("width", t); // unit in ms.
   size_t nsteps = (size_t) (retrieve_table_double("step", t));
-  string pattern = "random_spline";
+  std::string pattern = "random_spline";
   if (is_retrievable("init_pattern", t))
     pattern = retrieve_table_str("init_pattern", t);
 
   double dt = width * 1e-3 / double(nsteps); // into s.
 
-  string str_chs = boost::algorithm::join(superop_.rf_ctrl.chs, " ");
-  string code = "user_rf = shapedRF{name = 'juncy', width = " + boost::lexical_cast<string>(width) +
-      ",  step = " + boost::lexical_cast<string>(nsteps) +
+  std::string str_chs = boost::algorithm::join(superop_.rf_ctrl.chs, " ");
+  std::string code = "user_rf = shapedRF{name = 'juncy', width = " + boost::lexical_cast<std::string>(width) +
+      ",  step = " + boost::lexical_cast<std::string>(nsteps) +
       ",  max_amp = 1" +
       ",  channel = '" + str_chs + "'," +
       "pattern = '" + pattern + "'}";
   g_lua->script(code);
 
-  string s = str(boost::format("pulse width - [%.3f] ms, steps - [%d], step width - [%.3f] us.\n") % width % nsteps
+  std::string s = str(boost::format("pulse width - [%.3f] ms, steps - [%d], step width - [%.3f] us.\n") % width % nsteps
                      % (dt * 1e6));
   ssl_color_text("info", s);
 
@@ -759,9 +759,9 @@ void tf_opt::assign_pulse(const sol::table &t) {
 
 }
 
-void tf_opt::h5write(string file_name) const {
+void tf_opt::h5write(std::string file_name) const {
   if (file_name.empty()) {
-    string time_s = sys_time();
+    std::string time_s = sys_time();
     file_name = "oc_" + time_s + ".h5";
   }
   H5File file(file_name, H5F_ACC_TRUNC);
@@ -779,9 +779,9 @@ void tf_opt::assign_aux_var() {
   if (nbb > 1) {
     omp_set_num_threads(omp_core_num);
     for (size_t i = 0; i < superop_.grad_bb.size(); i++)
-      superop_.grad_bb[i] = vector<double>(rf_->get_dims(), 0);
+      superop_.grad_bb[i] = std::vector<double>(rf_->get_dims(), 0);
 
-    traj_omp_ = vector<state_traj>(omp_core_num);
+    traj_omp_ = std::vector<state_traj>(omp_core_num);
     for (int i = 0; i < omp_core_num; i++) {
       traj_omp_[i] = state_traj(rf_->get_steps());
     }
@@ -795,8 +795,8 @@ void tf_opt::assign_aux_var() {
 //    size_t dim = rf_->get_dims();
 //    size_t nsteps = rf_->get_steps();
 //    size_t nchannels = rf_->get_channels();
-//    vector<double> up_bound(dim);
-//    vector<double> low_bound(dim);
+//    std::vector<double> up_bound(dim);
+//    std::vector<double> low_bound(dim);
 //
 //    switch (opt_.algo) {
 //        case nlopt::LD_MMA:
@@ -865,7 +865,7 @@ void tf_opt::cartesian2polar(double amp, double phase, double gx, double gy, dou
 //}
 
 
-//double tf_opt::objfunc_broadband(const vector<double> &x, vector<double> &grad) {
+//double tf_opt::objfunc_broadband(const std::vector<double> &x, std::vector<double> &grad) {
 //    rf_->update_raw_data(x.data());
 //    int N = superop_.L0s.size();
 //    vec phi = vec::Zero(N);
@@ -879,7 +879,7 @@ void tf_opt::cartesian2polar(double amp, double phase, double gx, double gy, dou
 //        int id = omp_get_thread_num();
 //        traj_omp_[id].forward[0] = init_state_;
 //        traj_omp_[id].backward[nsteps] = targ_list_[p];
-//        //cout << id << "\n";
+//        //std::cout << id << "\n";
 //        sp_cx_mat L;
 //        sp_cx_mat L0 = superop_.L0s[p] + ci * superop_.R;
 //        double kx = 1, ky = 1;

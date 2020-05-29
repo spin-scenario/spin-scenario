@@ -26,10 +26,10 @@ class glue : public seq_block {
   virtual ~glue();
   virtual glue *Clone() const = 0;
   virtual void add_sub_block(seq_block *sb);
-  virtual void add_sub_block(vector<seq_block *> sbs);
+  virtual void add_sub_block(std::vector<seq_block *> sbs);
   virtual void add_sub_block(sol::variadic_args va, const seq_block & /*sb*/);
-  virtual void write(ostream &ostr = cout) const;
-  inline vector<seq_block *> sub_blocks() const {
+  virtual void write(std::ostream &ostr = std::cout) const;
+  inline std::vector<seq_block *> sub_blocks() const {
     return sub_blocks_;
   }
   inline glue_style style() const {
@@ -38,9 +38,9 @@ class glue : public seq_block {
  protected:
   virtual void assign();
   // all cycle priorities in descending order (from high to low).
-  vector<int> descending_cycle_priorities() const;
+  std::vector<int> descending_cycle_priorities() const;
  protected:
-  vector<seq_block *> sub_blocks_;
+  std::vector<seq_block *> sub_blocks_;
   glue_style style_;
 };
 }

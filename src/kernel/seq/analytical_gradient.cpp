@@ -46,17 +46,17 @@ void analytical_gradient::get_ctrl(const timeline key0, const timeline key1, seq
     return;
 
   double grad_amp;
-  //cout << t0 << "  " << t1 << "\n";
-  string s =
+  //std::cout << t0 << "  " << t1 << "\n";
+  std::string s =
       "N(" + pattern_integral_header_ + "(" + std::to_string(timeline2ms(t1)) + ")" + "-" + pattern_integral_header_
           + "(" + std::to_string(timeline2ms(t0)) + "))";
   grad_amp = std::stod(yacas_evaluate(s)) / double(timeline2ms((t1 - t0)));
-  //cout << grad_amp << "\n";
+  //std::cout << grad_amp << "\n";
 
   ctrl.grad.v[channel_] = grad_amp;
 }
 
-void analytical_gradient::write(ostream &ostr) const {
+void analytical_gradient::write(std::ostream &ostr) const {
   seq_block::write(ostr);
   ostr << "# channel: " << grad_channel_str[channel_] << ".\n";
   int np = 256;
@@ -70,7 +70,7 @@ void analytical_gradient::write(ostream &ostr) const {
 }
 
 double analytical_gradient::grad_area() const {
-  string s =
+  std::string s =
       "N(" + pattern_integral_header_ + "(" + std::to_string(width_in_ms()) + ") -" + pattern_integral_header_ + "("
           + std::to_string(0) + "))";
   return std::stod(yacas_evaluate(s));

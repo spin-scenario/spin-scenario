@@ -24,14 +24,14 @@ class analytical_gradient : public gradient {
     return (new analytical_gradient(*this));
   }
   virtual void get_ctrl(const timeline key0, const timeline key1, seq_const &ctrl) const;
-  virtual void write(ostream &ostr = cout) const;
+  virtual void write(std::ostream &ostr = std::cout) const;
   virtual double grad_area() const;
   virtual int switch2loop(int index);
  protected:
   virtual void assign();
  private:
-  string pattern_expr_;
-  string pattern_integral_header_;
+  std::string pattern_expr_;
+  std::string pattern_integral_header_;
 };
 
 }

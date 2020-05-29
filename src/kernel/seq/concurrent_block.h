@@ -25,7 +25,7 @@ class concurrent_block :
     return (new concurrent_block(*this));
   }
   virtual void evolution(int index = -1);
-  virtual void write(ostream &ostr = cout) const;
+  virtual void write(std::ostream &ostr = std::cout) const;
   // should be used only prior to the seq{} formed.
   void sync();
   void allign();
@@ -33,7 +33,7 @@ class concurrent_block :
   virtual void assign();
  private:
   // used when one or more sub-blocks are concurrent block type.
-  vector<seq_block *> simplify(const seq_block *sb);
+  std::vector<seq_block *> simplify(const seq_block *sb);
 };
 
 }

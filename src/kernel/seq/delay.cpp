@@ -33,11 +33,11 @@ void delay::assign() {
   }
   if (obj.get_type() == sol::type::string) {
     colon_sep val;
-    if (parse(obj.as<string>(), val))
+    if (parse(obj.as<std::string>(), val))
       loop_delay_list_ = tlvec::LinSpaced(val.num, ms2timeline(val.a), ms2timeline((val.b)));
   }
 
-  //cout << loop_delay_list_ << "\n";
+  //std::cout << loop_delay_list_ << "\n";
 
   timer_.width = loop_delay_list_[0];
   timer_.keys = tlvec::LinSpaced(2, 0, timer_.width);
@@ -65,7 +65,7 @@ void delay::evolution(int index) {
   seq_const sc;
   sc.delay_if = true;
   g_engine->evolution(WIDTH(), sc);
-  cout << "evolution delay " << index << " " << width_in_ms() << " ms\n";
+  std::cout << "evolution delay " << index << " " << width_in_ms() << " ms\n";
 }
 
 } /* namespace seq */

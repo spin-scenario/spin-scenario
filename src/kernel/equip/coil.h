@@ -42,12 +42,12 @@ class Coil {
   inline CoilMode get_mode() const {
     return mode_;
   }
-  vector<vec3> get_shape() const {
+  std::vector<vec3> get_shape() const {
     return segments_;
   }
   B1map create_sensitivity_map_VOI(const ivec3 &dim, const vec3 &reso, const vec3 &offset = vec3::Zero());
  protected:
-  vector<vec3> segments_;  ///< TEMP HERE FOR COIL POS VTK PLOT.
+  std::vector<vec3> segments_;  ///< TEMP HERE FOR COIL POS VTK PLOT.
   size_t id_;  ///< coil id.
   vec3 pos_;  ///< center position of this coil.
   CoilMode mode_;  ///< Tx/Rx for RF Transmitting and signal Receiving respectively.

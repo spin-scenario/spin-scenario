@@ -18,7 +18,7 @@ namespace seq {
 
 // write info of seq-blocks into a specific file.
 // Lua usage: ssl.write('sb.txt', sb1, sb2, ...)
-void write(string file, sol::variadic_args va, const seq_block & /*sb*/);
+void write(std::string file, sol::variadic_args va, const seq_block & /*sb*/);
 
 // print info of seq-blocks into the terminal.
 // Lua usage: ssl.print(sb1, sb2, ...)
@@ -35,15 +35,15 @@ void plot(const sol::table &t);
 // Lua usage: ssl.specgram(rf, {wlen = 16, overlap = 0.9, nfft = 2048, style = 'dB'})
 void specgram(const seq_block &rf, const sol::table &t);
 // Lua usage: ssl.specgram('coop_pulse.txt', {col ='6 7', fs = 219888, wlen = 32, overlap = 0.9, nfft = 1024})
-void specgram(string file_name, const sol::table &t);
-void specgram(const cx_vec &sig, const sol::table &t, double fs, string label = "");
+void specgram(std::string file_name, const sol::table &t);
+void specgram(const cx_vec &sig, const sol::table &t, double fs, std::string label = "");
 
 sol::object multi_shaped_rf(const sol::table &t, sol::this_state s);
 
 // each sequence starts with a keyword seq, followed by a pair of braces, containing the seq body.
 // Lua usage: seq{sb1, sb2, ...}
 seq_block &serial(const sol::table &t);
-seq_block &serial(vector<seq_block *> sbs);
+seq_block &serial(std::vector<seq_block *> sbs);
 
 // running the pulse seq, note 'sb' should be the serial glue block.
 sol::object run_seq(const seq_block &sb);
@@ -55,7 +55,7 @@ seq_block &set_cycle_priority(seq_block &sb, int priority);
 seq_block &set_loop_array(seq_block &sb, int);
 
 seq_block &set_align(seq_block &sb, double ms);
-seq_block &set_align(seq_block &sb, string label/*c/l/r*/);
+seq_block &set_align(seq_block &sb, std::string label/*c/l/r*/);
 
 // create a new concurrent seq-block. 
 // Lua usage: sb1+sb2

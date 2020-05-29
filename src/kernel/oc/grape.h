@@ -32,17 +32,17 @@ class grape {
   virtual void assign_x();
   virtual void assign_aux_var();
   virtual void print() const;
-  virtual void h5write(string file_name = "") const;
-  static double objfunc_broadband(const vector<double> &x, vector<double> &grad, void *func);
-  static double objfunc_propagator(const vector<double> &x, vector<double> &grad, void *func);
-  // double objfunc(const vector<double> &x, vector<double> &grad);
-  double objfunc_broadband(const vector<double> &x, vector<double> &grad);
-  double objfunc_propagator(const vector<double> &x, vector<double> &grad);
+  virtual void h5write(std::string file_name = "") const;
+  static double objfunc_broadband(const std::vector<double> &x, std::vector<double> &grad, void *func);
+  static double objfunc_propagator(const std::vector<double> &x, std::vector<double> &grad, void *func);
+  // double objfunc(const std::vector<double> &x, std::vector<double> &grad);
+  double objfunc_broadband(const std::vector<double> &x, std::vector<double> &grad);
+  double objfunc_propagator(const std::vector<double> &x, std::vector<double> &grad);
 
    sp_cx_mat update_rf_ham(const double *x,
                           size_t step,
                           size_t channel,
-                          string ch_str,
+                          std::string ch_str,
                           size_t nchannels,
                           double kx = 1,
                           double ky = 1);
@@ -55,12 +55,12 @@ class grape {
 
  protected:
   nlopt::opt *optimizer_;
-  vector<double> x_;
+  std::vector<double> x_;
   size_t x_dim_;
 
   limit_axis axis_;
   double max_val_;
-  vector<double> obj_val_;
+  std::vector<double> obj_val_;
 
 
 
@@ -70,16 +70,16 @@ class grape {
 
   sp_cx_vec init_state_;
   sp_cx_vec targ_state_;
-  vector<sp_cx_vec> targ_list_;
+  std::vector<sp_cx_vec> targ_list_;
 
   //state_traj traj_;
-  vector<state_traj> traj_omp_;
+  std::vector<state_traj> traj_omp_;
 
   sp_cx_mat init_op_;
   sp_cx_mat targ_op_;
-  vector<sp_cx_mat> targ_op_list_;
+  std::vector<sp_cx_mat> targ_op_list_;
 
-  vector<op_traj> op_traj_omp_;
+  std::vector<op_traj> op_traj_omp_;
 
   spin_system *sys_;
   double epsilon_;   // rf scaling factor. [-epsilon_, epsilon_]

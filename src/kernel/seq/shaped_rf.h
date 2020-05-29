@@ -25,8 +25,8 @@ enum rf_pattern {
   _user_defined
 };
 
-std::map<string, rf_pattern> rf_pattern_map();
-const std::map<string, rf_pattern> g_rf_pattern = rf_pattern_map();
+std::map<std::string, rf_pattern> rf_pattern_map();
+const std::map<std::string, rf_pattern> g_rf_pattern = rf_pattern_map();
 
 class shaped_rf : public rf_pulse {
  public:
@@ -35,9 +35,9 @@ class shaped_rf : public rf_pulse {
   inline shaped_rf *Clone() const {
     return (new shaped_rf(*this));
   }
-  void set_shape(vector<string> channels, rf_pattern p, double maxamp);
-  void set_shape(vector<string> channels, string file);
-  void set_shape(vector<string> channels, const mat &m);
+  void set_shape(std::vector<std::string> channels, rf_pattern p, double maxamp);
+  void set_shape(std::vector<std::string> channels, std::string file);
+  void set_shape(std::vector<std::string> channels, const mat &m);
  //protected:
   virtual void assign();
 

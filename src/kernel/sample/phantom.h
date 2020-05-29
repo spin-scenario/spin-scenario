@@ -37,8 +37,8 @@ struct isochromat {
     data[pd] = 1;
     data[dB0] = 0;
   }
-  //vector<cd> sens_tx;
-  //vector<cd> sens_rx;
+  //std::vector<cd> sens_tx;
+  //std::vector<cd> sens_rx;
   // the delta B in x/y/z direction, unit in mT.
   double dB(double gx, double gy, double gz) const {
     double dB = 0;
@@ -76,7 +76,7 @@ class phantom {
     return dim_;
   }
  private:
-  void view(const string &axis, int slice) const;
+  void view(const std::string &axis, int slice) const;
  private:
   ivec3 dim_;  // x,y,z dimension of the cube phantom.
   vec3 res_;   // x,y,z resolution of the cube phantom, unit in m.
@@ -95,7 +95,7 @@ class phantom {
 
   phantom_model model_;
  public:
-  vector<isochromat> isochromats_;
+  std::vector<isochromat> isochromats_;
 };
 
 }

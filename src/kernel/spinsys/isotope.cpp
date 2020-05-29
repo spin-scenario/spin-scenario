@@ -22,9 +22,9 @@ using namespace boost;
 namespace ssl {
 namespace spinsys {
 
-vector<nuclear_isotope> isotope::s_isotopes_;
+std::vector<nuclear_isotope> isotope::s_isotopes_;
 
-isotope::isotope(const string symbol) : isotope_(NULL) {
+isotope::isotope(const std::string symbol) : isotope_(NULL) {
   if (!s_isotopes_.size())
     load_nuclear_isotope_database();
   bind_isotope(symbol);
@@ -33,25 +33,25 @@ isotope::isotope(const string symbol) : isotope_(NULL) {
 isotope::~isotope() {
 }
 
-void isotope::bind_isotope(const string symbol) {
-  vector<nuclear_isotope>::iterator result = find(s_isotopes_.begin(),
+void isotope::bind_isotope(const std::string symbol) {
+  std::vector<nuclear_isotope>::iterator result = find(s_isotopes_.begin(),
                                                   s_isotopes_.end(),
                                                   symbol);
   if (result == s_isotopes_.end()) {
-    string s = "isotope ** " + symbol + " ** is NOT in the current NMR literature!";
+    std::string s = "isotope ** " + symbol + " ** is NOT in the current NMR literature!";
     throw std::runtime_error(s.c_str());
   } else
     isotope_ = &(*result);
 }
 void isotope::load_nuclear_isotope_database() {
-  ifstream file;
-  string file_name = g_project_path + "/share/spin-scenario/config/spin.dat";
-  file.open(file_name.c_str(), ios::in);
+  std::ifstream file;
+  std::string file_name = g_project_path + "/share/spin-scenario/config/spin.dat";
+  file.open(file_name.c_str(), std::ios::in);
   if (!file) {
-    string s = "can't open file " + file_name + " for writing!";
+    std::string s = "can't open file " + file_name + " for writing!";
     throw std::runtime_error(s.c_str());
   }
-  string line;
+  std::string line;
   typedef tokenizer<char_separator<char> > tokenizer;
   char_separator<char> sep(" ");  // to be hided.
   while (!file.eof()) {
@@ -73,7 +73,7 @@ void isotope::load_nuclear_isotope_database() {
             break;
           case 4:  //symbol
             if (iso.nucleons)
-              iso.symbol = lexical_cast<string>(iso.nucleons) + (*it);
+              iso.symbol = lexical_cast<std::string>(iso.nucleons) + (*it);
             else
               iso.symbol = (*it);  // for E
             break;

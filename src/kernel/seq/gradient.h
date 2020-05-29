@@ -16,7 +16,7 @@ limitations under the License.
 namespace ssl {
 namespace seq {
 
-const string grad_func_str[5] = {"phase-encoding", "freq-encoding", "slice-selection", "general-gradient", "gradient list"};
+const std::string grad_func_str[5] = {"phase-encoding", "freq-encoding", "slice-selection", "general-gradient", "gradient list"};
 enum grad_func {
   _phase_encoding = 0,
   _freq_encoding,
@@ -25,7 +25,7 @@ enum grad_func {
   _list_grads
 };
 
-const string grad_pattern_str[3] = {"trapezoid", "shaped", "analytical"};
+const std::string grad_pattern_str[3] = {"trapezoid", "shaped", "analytical"};
 enum grad_pattern {
   _trapezoid = 0,
   _shaped,

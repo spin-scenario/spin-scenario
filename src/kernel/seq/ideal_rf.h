@@ -17,8 +17,8 @@ namespace ssl {
 namespace seq {
 
 struct phase_channel {
-  string channel;
-  vector<double> deg; // unit in degree.
+  std::string channel;
+  std::vector<double> deg; // unit in degree.
 };
 
 class ideal_rf : public rf_pulse {
@@ -33,8 +33,8 @@ class ideal_rf : public rf_pulse {
   virtual void assign();
  protected:
   double beta_;  ///< flip angle, unit in rad.
-  vector<phase_channel> loop_phase_list_;
-  vector<int> tmp_phase;
+  std::vector<phase_channel> loop_phase_list_;
+  std::vector<int> tmp_phase;
 };
 
 }

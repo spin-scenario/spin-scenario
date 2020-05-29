@@ -50,7 +50,7 @@ struct loop_ctrl {
 struct align_ctrl {
   timeline offset_orign = 0;
   timeline offset = 0;
-  string label = "";
+  std::string label = "";
   bool is_specified = false; // flag indicates whether this block has been explicitly aligned via <>.
 };
 
@@ -68,8 +68,8 @@ class seq_block {
   void set_loop_style(loop_style s = _global_cycle);
 
   void set_align(double ms);
-  void set_align(string label);
-  inline string align_label() const {
+  void set_align(std::string label);
+  inline std::string align_label() const {
     return align_ctrl_.label;
   }
   inline bool is_align_specified() const {
@@ -92,18 +92,18 @@ class seq_block {
   /*inline loop_style loop_style() const {
       return loop_ctrl_.style;
   }*/
-  virtual void set_name(string new_name);
-  string name() const;
+  virtual void set_name(std::string new_name);
+  std::string name() const;
   double width_in_ms() const; // unit in [ms].
   timeline WIDTH() const; // unit in [timeline].
   virtual int switch2loop(int index);
   block_category category() const;
-  bool is_retrievable(string par) const;
-  sol::object retrieve_config_table(string key) const;
-  string retrieve_config_table_str(string key) const;
-  int retrieve_config_table_int(string key) const;
-  double retrieve_config_table_double(string key) const;
-  size_t retrieve_config_table_size_t(string key) const;
+  bool is_retrievable(std::string par) const;
+  sol::object retrieve_config_table(std::string key) const;
+  std::string retrieve_config_table_str(std::string key) const;
+  int retrieve_config_table_int(std::string key) const;
+  double retrieve_config_table_double(std::string key) const;
+  size_t retrieve_config_table_size_t(std::string key) const;
 
   inline timeline start_timeline() const {
     return align_ctrl_.offset;
@@ -118,12 +118,12 @@ class seq_block {
     align_ctrl_.offset = align_ctrl_.offset_orign;
   }
 
-  virtual string get_header() const;
-  virtual void write(ostream &ostr = cout) const;
+  virtual std::string get_header() const;
+  virtual void write(std::ostream &ostr = std::cout) const;
   virtual void plot() const;
 
   // ONLY for RF.
-  virtual void switch_rf_mode(string mode) {};
+  virtual void switch_rf_mode(std::string mode) {};
   virtual double rf_power() const {
     return 0;
   }
@@ -131,15 +131,15 @@ class seq_block {
 
   // get the control value at the given key time point.
   virtual void get_ctrl(const timeline key0, const timeline key1, seq_const &ctrl) const {};
-  virtual vector<timeline> absolute_keys() const;
+  virtual std::vector<timeline> absolute_keys() const;
   virtual bool adjust_key_interval(timeline &t0, timeline &t1) const;
   virtual void evolution(int index = -1) {};
   virtual void local_loop_evolution();
 
   // 944e83cc9b95-4dd9b532f4e9bd0f71c1
-  string uuid() const;
+  std::string uuid() const;
   // 944e83cc-9b95-4dd9-b532-f4e9bd0f71c1
-  string uuid_hyphen() const;
+  std::string uuid_hyphen() const;
   void set_uuid() {
     uuid_ = boost::uuids::random_generator()();
   }
