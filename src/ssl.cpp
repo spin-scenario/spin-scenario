@@ -175,7 +175,7 @@ void bindings(sol::state &lua) {
               ssl::utility::plot),
           sol::resolve<void(std::string, sol::variadic_args, const line &)>(
               ssl::utility::plot),
-          sol::resolve<void(std::string, sol::variadic_args, const line_series &)>(
+          sol::resolve<void(std::string, const line_series &)>(
               ssl::utility::plot),
           sol::resolve<void(sol::variadic_args, const utility::map &)>(
               ssl::utility::plot),

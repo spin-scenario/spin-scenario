@@ -68,9 +68,9 @@ mat vec_table(const sol::table &t) {
 void plot(sol::variadic_args va, const line &b) {
   plot("", va, b);
 }
-void plot(std::string fig_info, sol::variadic_args va, const line_series &b) {
+/*void plot(std::string fig_info, sol::variadic_args va, const line_series &b) {
 #ifdef GP_SCRIPT_OUTPUT
-  std::ofstream gp("plot_line.gnu");
+  std::ofstream gp("plot_lines.gnu");
 #else
   Gnuplot gp;
 #endif
@@ -171,7 +171,7 @@ void plot(std::string fig_info, sol::variadic_args va, const line_series &b) {
 #ifdef GP_SCRIPT_OUTPUT
   gp.close();
 #endif
-}
+}*/
 
 void plot(std::string fig_info, sol::variadic_args va, const line &) {
 #ifdef GP_SCRIPT_OUTPUT
@@ -283,7 +283,7 @@ void plot(const line_series &v) {
 
 void plot(std::string fig_info, const line_series &v) {
 #ifdef GP_SCRIPT_OUTPUT
-  std::ofstream gp("plot_line.gnu");
+  std::ofstream gp("plot_lines.gnu");
 #else
   Gnuplot gp;
 #endif

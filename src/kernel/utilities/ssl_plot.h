@@ -240,7 +240,8 @@ void plot(const line_series &);
 
 void plot(std::string fig_info, const line_series &);
 
-void plot(std::string fig_info, sol::variadic_args va, const line_series &);
+// reserved only for personally use.
+//void plot(std::string fig_info, sol::variadic_args va, const line_series &);
 
 // plot one or mutil-map figures.
 void plot(sol::variadic_args va, const map &);
