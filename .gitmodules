@@ -1,21 +1,21 @@
 [submodule "3rd-party/eigen"]
 	path = 3rd-party/eigen
-	url = git@gitee.com:spin-scenario/eigen-git-mirror.git
+	url = git@github.com:eigenteam/eigen-git-mirror.git
 [submodule "3rd-party/yacas"]
 	path = 3rd-party/yacas
-	url = git@gitee.com:spin-scenario/yacas.git
+	url = git@github.com:grzegorzmazur/yacas.git
 [submodule "3rd-party/linenoise-ng"]
 	path = 3rd-party/linenoise-ng
-	url = git@gitee.com:spin-scenario/linenoise-ng.git
+	url = git@github.com:arangodb/linenoise-ng.git
 [submodule "3rd-party/gnuplot-iostream"]
 	path = 3rd-party/gnuplot-iostream
-	url = git@gitee.com:spin-scenario/gnuplot-iostream.git
+	url = git@github.com:dstahlke/gnuplot-iostream.git
 [submodule "share/spin-scenario/config/gnuplot/colorbrewer"]
 	path = share/spin-scenario/config/gnuplot/colorbrewer
-	url = git@gitee.com:spin-scenario/gnuplot-colorbrewer.git
+	url = git@github.com:aschn/gnuplot-colorbrewer.git
 [submodule "3rd-party/nlopt"]
 	path = 3rd-party/nlopt
-	url = git@gitee.com:spin-scenario/nlopt.git
-[submodule "3rd-party/tensorflow"]
+	url = git@github.com:stevengj/nlopt.git
+	[submodule "3rd-party/tensorflow"]
 	path = 3rd-party/tensorflow
-	url = git@gitee.com:spin-scenario/tensorflow.git
+	url = git@github.com:tensorflow/tensorflow.git
