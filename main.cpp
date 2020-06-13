@@ -15,7 +15,7 @@ limitations under the License.
 #ifdef WIN32
 #include <Windows.h>
 #endif
-
+ 
 const char *examples[] = {
     "load(\'\')", "lua", "quit", "power", NULL
 };
@@ -29,8 +29,8 @@ void completionHook(char const *prefix, linenoiseCompletions *lc) {
 }
 int main(int argc, char *argv[]) {
 #ifdef WIN32
-  char s[256];
-  GetCurrentDirectoryA(256, s);
+  char s[MAX_PATH];
+  GetCurrentDirectoryA(MAX_PATH, s);
   set_ssl_usr_dir(s);
 #else
   char *s;
@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
 
 
   int flag = 0;
-  sol::state lua;;
+  sol::state lua;
   lua.open_libraries();
   ssl::bindings(lua);
   load_yacas();
