@@ -1,21 +1,25 @@
 #include "ssl_path.h"
+#include <boost/algorithm/string.hpp>
 
 namespace ssl {
 namespace utility {
+// terminal dir by the user.
+std::string g_terminal_dir = "";
 
 #ifdef WIN32
- std::string g_project_path = "../.."; // ONLY for development purpose.
-//std::string g_project_path =
-//    "C:/Program Files/spin-scenario 1.0.0/bin/..";  // WINDOWS 10 INSTALL.
-std::string g_spin_scenario = "";
+std::string g_install_dir = "../.."; 
 #else
-std::string g_spin_scenario = "";
-// std::string g_project_path = ".."; //"../spin-scenario DEBUG";
-std::string g_project_path = "/usr/bin/..";  //"../spin-scenario"; UBUNTU DEB.
+std::string g_install_dir = "..";
 #endif
 
-void set_ssl_usr_dir(std::string s) { 
-	g_spin_scenario = s;
+void set_terminal_dir(std::string s) {
+    g_terminal_dir = s; 
+    boost::replace_all(g_terminal_dir, "\\", "\/");
 }
-}  // namespace utility
+void set_install_dir(std::string s) { 
+    g_install_dir = s;  // C:\Spin-Scenario\bin\spin-scenario.exe
+    boost::replace_all(g_install_dir, "\\", "\/");
+    boost::replace_last(g_install_dir, "spin-scenario.exe", "..");
+}
+ }  // namespace utility
 }  // namespace ssl

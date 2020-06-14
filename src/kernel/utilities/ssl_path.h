@@ -2,8 +2,9 @@
 namespace ssl {
 namespace utility {
 
-extern std::string g_project_path;
-extern std::string g_spin_scenario;
-void set_ssl_usr_dir(std::string s);
+extern std::string g_install_dir;
+extern std::string g_terminal_dir;
+void set_terminal_dir(std::string s);
+void set_install_dir(std::string s);
 }
 }  // namespace ssl

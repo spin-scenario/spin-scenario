@@ -14,16 +14,18 @@ limitations under the License.
 #include <linenoise.h>
 #ifdef WIN32
 #include <Windows.h>
+#else
+#include<unistd.h>
 #endif
  
-const char *examples[] = {
-    "load(\'\')", "lua", "quit", "power", NULL
+const char *tips[] = {
+    "load(\'\')", "help", "quit", NULL
 };
 
 void completionHook(char const *prefix, linenoiseCompletions *lc) {
-  for (size_t i = 0; examples[i] != NULL; ++i) {
-    if (strncmp(prefix, examples[i], strlen(prefix)) == 0) {
-      linenoiseAddCompletion(lc, examples[i]);
+  for (size_t i = 0; tips[i] != NULL; ++i) {
+    if (strncmp(prefix, tips[i], strlen(prefix)) == 0) {
+      linenoiseAddCompletion(lc, tips[i]);
     }
   }
 }
@@ -31,11 +33,16 @@ int main(int argc, char *argv[]) {
 #ifdef WIN32
   char s[MAX_PATH];
   GetCurrentDirectoryA(MAX_PATH, s);
-  set_ssl_usr_dir(s);
+  set_terminal_dir(s);
+  GetModuleFileName(NULL, s, MAX_PATH);
+  set_install_dir(s); 
 #else
   char *s;
   s = get_current_dir_name();
-  set_ssl_usr_dir(s);
+  set_terminal_dir(s);
+  char str[MAX_PATH] = {0};
+  readlink("/proc/self/exe", str, sizeof(str)/sizeof(char));
+  set_install_dir(str);
 #endif
 
 

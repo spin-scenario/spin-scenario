@@ -636,8 +636,8 @@ bool tf_opt::call_system(int size,
                          std::string graph_type) //const int* inputs
 {
   if (system(nullptr)) {
-    std::string s = "cd " + g_project_path + "; cp -r share/spin-scenario/tf_files" + " " + g_spin_scenario + "; cd "
-        + g_spin_scenario;
+    std::string s = "cd " + g_install_dir + "; cp -r share/spin-scenario/tf_files" + " " + g_terminal_dir + "; cd "
+        + g_terminal_dir;
     int res = system(s.c_str());
     std::string command = "cd tf_files; python3 -c 'import graph_generator as gg; print (gg.compute_graph_";
     command += graph_type + "(" + std::to_string(size) + ", " + std::to_string(nsteps) + ", " + std::to_string(n_channels) + ", " +

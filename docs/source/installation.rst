@@ -14,9 +14,9 @@ Installation
     
     * For Windows:     
     
-        * run ``spin-scenario-1.0.0-win64.exe`` with the default installation option.  
+        * run ``spin-scenario-1.0.0-win64.exe`` to start installation.  
 
-        To run ``spin-scenario`` from any folder，you need to add ``C:\Program Files\spin-scenario-1.0.0\bin`` to system PATH.
+        To run ``spin-scenario`` from any folder，you need to add your ``spin-scenario`` binary path e.g. ``C:\Program Files\Spin-Scenario\bin`` to system PATH environment.
 
         .. note::
             You may need to install `Visual C++ Redistributable Package <https://aka.ms/vs/16/release/vc_redist.x64.exe>`_ in case of encountering missing dll file such as **vcruntime140_1.dll** when start the Spin-Scenario.

@@ -248,7 +248,7 @@ void phantom::load(const char *filename) {
       tissue_dist_ = h5read_icube(file, "/phantom/tissue_dist");
 
       // load T1/T2 parameters.
-      std::string path = utility::g_project_path + "/share/spin-scenario/config/mida_1.5t_relaxation.dat";
+      std::string path = utility::g_install_dir + "/share/spin-scenario/config/mida_1.5t_relaxation.dat";
       mat par = mat::Zero(59, 3);
       std::ifstream fin(path.c_str());
 

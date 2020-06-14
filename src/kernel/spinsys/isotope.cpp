@@ -45,7 +45,7 @@ void isotope::bind_isotope(const std::string symbol) {
 }
 void isotope::load_nuclear_isotope_database() {
   std::ifstream file;
-  std::string file_name = g_project_path + "/share/spin-scenario/config/spin.dat";
+  std::string file_name = g_install_dir + "/share/spin-scenario/config/spin.dat";
   file.open(file_name.c_str(), std::ios::in);
   if (!file) {
     std::string s = "can't open file " + file_name + " for writing!";

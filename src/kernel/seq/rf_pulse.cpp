@@ -500,9 +500,9 @@ void rf_pulse::plot() const {
     if (g_output_terminal != "qt")
       gp << "set output "<< "'rf-" << title << "." << g_output_terminal << "'\n";
 
-    gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/xyborder.cfg'\n";
-    gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/grid.cfg'\n";
-    gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/dark2.pal'\n";
+    gp << "load '" << g_install_dir << "/share/spin-scenario/config/gnuplot/xyborder.cfg'\n";
+    gp << "load '" << g_install_dir << "/share/spin-scenario/config/gnuplot/grid.cfg'\n";
+    gp << "load '" << g_install_dir << "/share/spin-scenario/config/gnuplot/dark2.pal'\n";
 
     double dt = width_in_ms() / (double) nsteps_;
     gp << "set xlabel 'Time / ms" << "'\n"; 

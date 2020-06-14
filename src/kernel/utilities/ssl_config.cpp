@@ -37,12 +37,12 @@ void set_openmp_core(int n) {
 double g_inf = std::numeric_limits<double>::infinity();
 
 void init_global_lua(sol::state &lua) {
-  lua.script_file(g_project_path +
+  lua.script_file(g_install_dir +
                   "/share/spin-scenario/config/ssl_global.lua");
 }
 
 void load_expmv_theta() {
- std::string path = utility::g_project_path + "/share/spin-scenario/config/expmv_theta.txt";
+ std::string path = utility::g_install_dir + "/share/spin-scenario/config/expmv_theta.txt";
   mat m = eigen_read(path);
   g_expmv_theta=m.col(0);
 }
@@ -493,7 +493,7 @@ void declare_path(const char *ptr2) {
     std::cout << "Failed to set default directory: " << g_yacas->Error() << "\n";
 }
 void load_yacas() {
-  std::string root_dir = g_project_path + "/share/spin-scenario/config/yacas/scripts";
+  std::string root_dir = g_install_dir + "/share/spin-scenario/config/yacas/scripts";
   g_yacas = new CYacas(std::cout);
   /* Split up root_dir in pieces separated by colons, and run
   DefaultDirectory on each of them. */

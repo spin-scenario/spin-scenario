@@ -75,9 +75,9 @@ void plot(sol::variadic_args va, const line &b) {
   Gnuplot gp;
 #endif
   gp << "reset\n";
-  gp << "load '" << g_project_path
+  gp << "load '" << g_install_dir
      << "/share/spin-scenario/config/gnuplot/xyborder.cfg'\n";
-  gp << "load '" << g_project_path
+  gp << "load '" << g_install_dir
      << "/share/spin-scenario/config/gnuplot/grid.cfg'\n";
 
   fig_spec fig = parsing_fig_spec(fig_info);
@@ -88,7 +88,7 @@ void plot(sol::variadic_args va, const line &b) {
   gp << "set key samplen 2\n";
 
   int ncolor = fig.ncolor;
-  gp << "load '" << g_project_path
+  gp << "load '" << g_install_dir
      << "/share/spin-scenario/config/gnuplot/colorbrewer/"
      << find_color(fig.color) << "'\n";
 
@@ -180,8 +180,8 @@ void plot(std::string fig_info, sol::variadic_args va, const line &) {
   Gnuplot gp;
 #endif
   gp << "reset\n";
-  gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/xyborder.cfg'\n";
-  gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/grid.cfg'\n";
+  gp << "load '" << g_install_dir << "/share/spin-scenario/config/gnuplot/xyborder.cfg'\n";
+  gp << "load '" << g_install_dir << "/share/spin-scenario/config/gnuplot/grid.cfg'\n";
 
   fig_spec fig = parsing_fig_spec(fig_info);
   gp << "set title '" << fig.title << "'\n";
@@ -193,7 +193,7 @@ void plot(std::string fig_info, sol::variadic_args va, const line &) {
 
   gp << "set key width 1\n";
 
-  gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/colorbrewer/" << find_color(fig.color) << "'\n";
+  gp << "load '" << g_install_dir << "/share/spin-scenario/config/gnuplot/colorbrewer/" << find_color(fig.color) << "'\n";
 
     std::string time_s = sys_time();
   gp << terminal_cmd(g_output_terminal);
@@ -288,9 +288,9 @@ void plot(std::string fig_info, const line_series &v) {
   Gnuplot gp;
 #endif
   gp << "reset\n";
-  gp << "load '" << g_project_path
+  gp << "load '" << g_install_dir
      << "/share/spin-scenario/config/gnuplot/xyborder.cfg'\n";
-  gp << "load '" << g_project_path
+  gp << "load '" << g_install_dir
      << "/share/spin-scenario/config/gnuplot/grid.cfg'\n";
 
   fig_spec fig = parsing_fig_spec(fig_info);
@@ -301,7 +301,7 @@ void plot(std::string fig_info, const line_series &v) {
   gp << "set key samplen 2\n";
 
   int ncolor = fig.ncolor;
-  gp << "load '" << g_project_path
+  gp << "load '" << g_install_dir
      << "/share/spin-scenario/config/gnuplot/colorbrewer/"
      << find_color(fig.color) << "'\n";
 
@@ -382,8 +382,8 @@ void plot(std::string fig_info, sol::variadic_args va, const map &) {
   Gnuplot gp;
 #endif
   gp << "reset\n";
-  gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/xyborder.cfg'\n";
-  gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/grid.cfg'\n";
+  gp << "load '" << g_install_dir << "/share/spin-scenario/config/gnuplot/xyborder.cfg'\n";
+  gp << "load '" << g_install_dir << "/share/spin-scenario/config/gnuplot/grid.cfg'\n";
   gp << "unset key\n";
 
   fig_spec fig = parsing_fig_spec(fig_info);
@@ -391,7 +391,7 @@ void plot(std::string fig_info, sol::variadic_args va, const map &) {
   gp << "set xlabel  '" << fig.xlabel << "'\n";
   gp << "set ylabel  '" << fig.ylabel << "'\n";
 
-  gp << "load '" << g_project_path << "/share/spin-scenario/config/gnuplot/colorbrewer/" << find_color(fig.color) << "'\n";
+  gp << "load '" << g_install_dir << "/share/spin-scenario/config/gnuplot/colorbrewer/" << find_color(fig.color) << "'\n";
   //gp << "set palette negative\n";
 
     std::string time_s = sys_time();
