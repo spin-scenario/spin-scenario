@@ -65,4 +65,4 @@ cd ../../../../../
 # generate spin-scenario project (visual studio)
 mkdir build
 cd build
-cmake ..
+cmake -DCMAKE_WINDOWS_EXPORT_ALL_SYMBOLS=TRUE ..
