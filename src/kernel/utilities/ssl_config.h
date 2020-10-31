@@ -29,7 +29,7 @@ limitations under the License.
 #include <fstream>
 #include <vector>
 #include <omp.h>
-#include <sol.hpp>
+#include <sol/sol.hpp>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <unsupported/Eigen/CXX11/Tensor>
