@@ -889,12 +889,20 @@ double phase_in_rad(cd val) {
     else
       phase = _pi / 2;
   } else if (uy < 0) {
+    // 0~2pi range.
     if (ux > 0)
       phase = 2 * _pi + atan(uy / ux);
     else if (ux < 0)
       phase = _pi + atan(uy / ux);
     else
       phase = _pi * 3 / 2;
+    // -pi~pi range.
+    //if (ux > 0)
+    //  phase = atan(uy / ux);
+    //else if (ux < 0) 
+    //  phase = -_pi + atan(uy / ux);
+    //else 
+    //  phase = -_pi / 2;
   } else {
     if (ux >= 0)
       phase = 0;
