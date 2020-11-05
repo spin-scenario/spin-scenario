@@ -16,6 +16,7 @@ limitations under the License.
 #include <Windows.h>
 #else
 #include<unistd.h>
+#include <limits.h>
 #endif
  
 const char *tips[] = {
@@ -40,9 +41,9 @@ int main(int argc, char *argv[]) {
   char *s;
   s = get_current_dir_name();
   set_terminal_dir(s);
-  char str[MAX_PATH] = {0};
+  char str[PATH_MAX] = {0};
   readlink("/proc/self/exe", str, sizeof(str)/sizeof(char));
-  set_install_dir(str);
+  //set_install_dir(str);
 #endif
 
 

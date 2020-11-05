@@ -40,11 +40,11 @@ K intervalStop(const Interval<T, K> &i) {
   return i.stop;
 }
 
-template<class T, typename K>
-std::string &operator<<(std::string &out, Interval<T, K> &i) {
-  out << "interval(" << i.start << ", " << i.stop << "): " << i.value;
-  return out;
-}
+//template<class T, typename K>
+//std::string &operator<<(std::string &out, Interval<T, K> &i) {
+//  out << "interval(" << i.start << ", " << i.stop << "): " << i.value;
+//  return out;
+//}
 
 template<class T, typename K = std::size_t>
 class IntervalStartSorter {
