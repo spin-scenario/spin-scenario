@@ -31,15 +31,20 @@ Development
 
 
     
-    * For Linux:    
+    * For Linux (e.g. Ubuntu):    
 
-        Using the following commands to complie and install dependencies (Ubuntu).
+        Using the following commands to install dependencies into the system.
 
         .. code-block:: sh
 
          sudo apt-get install cmake libboost-all-dev libfftw3-dev libhdf5-dev libnlopt-dev libnlopt-cxx-dev libpython3-dev gnuplot
-         sh ./dep.sh
         
+        Run sh script to complie other 3rd-party libraries.
+	
+	.. code-block:: sh
+
+         sh ./dep.sh
+         
         Using the following commands to complie and install spin-scenario.   
 
         .. code-block:: sh
