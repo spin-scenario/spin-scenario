@@ -410,8 +410,8 @@ std::string rf_pulse::get_header() const {
   for (size_t j = 0; j < channels_; j++) {
     s += raw_data_[j].channel + " ";
   }
-  s += "\n";
   if (mode_ == _amp_phase) {
+	  s += "\n";
 for (size_t j = 0; j < channels_; j++) {
       s += "# CH "+ std::to_string(j+1)+ " MAX amplitude: "+ std::to_string(raw_data_[j].envelope.real().maxCoeff()/(2 * _pi))+" Hz\n";
       s += "# CH "+ std::to_string(j+1)+ " MIN amplitude: "+ std::to_string(raw_data_[j].envelope.real().minCoeff()/(2 * _pi))+" Hz\n";
