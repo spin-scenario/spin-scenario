@@ -516,7 +516,7 @@ cx_vec engine::accu_signal() {
     }
   }
   // optional
-  //apodization(sig, 10);
+  apodization(sig, 10);
 
   if(g_zero_pad_num!=0) {
     cx_vec new_sig = cx_vec::Zero(npts+g_zero_pad_num);

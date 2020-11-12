@@ -647,20 +647,20 @@ mat select_taylor_degree(const sp_cx_mat &A0, bool shift, bool bal, bool force_e
 }
 
 cd projection(const sp_cx_vec &rho, const sp_cx_vec &coil) {
-  return (rho.adjoint() * coil).toDense().trace();
+  return (coil.adjoint() * rho).toDense().trace();
 }
 
 cd projection(const cx_vec &rho, const cx_vec &coil) {
-  return (rho.adjoint() * coil).trace();
+  return (coil.adjoint() * rho).trace();
 }
 
 double transfer_fidelity(const sp_cx_vec &rho, const sp_cx_vec &targ) {
-  return traced(rho.adjoint() * targ).real() - 1;
+  return traced(targ.adjoint() * rho).real() - 1;
   //cd val = traced(rho.adjoint() * targ)-cd(1,0);
   //return fabs(val);
 }
 double transfer_fidelity(const sp_cx_mat &rho, const sp_cx_mat &targ) {
-  return traced(rho.adjoint() * targ).real();
+  return traced(targ.adjoint() * rho).real();
   //cd val= traced(rho.adjoint() * targ);
   //return 0.5*abs(val) * abs(val);
 
@@ -1803,7 +1803,7 @@ void interaction::init_broadband() {
       zeeman_.matrices[i] *= (comp_.base_freq_[i] / freeg);
     } else
       // For nuclei, assume that the chemical shift is given and compute the corresponding offset
-      zeeman_.matrices[i] *= 1e-6 * comp_.base_freq_[i];
+      zeeman_.matrices[i] *= -1e-6 * comp_.base_freq_[i];
 
   for (size_t i = 0; i < nspins; i++)
     for (size_t j = i; j < nspins; j++) {
