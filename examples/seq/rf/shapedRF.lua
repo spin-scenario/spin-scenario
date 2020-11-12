@@ -14,8 +14,12 @@ limitations under the License.
 
 local rf1 = shapedRF{width =5.12, step =256, max_amp =100, pattern ="sinc", lobe =7}
 plot(rf1) 
-rf1:switch("ux/uy")
 write("sinc.RF",rf1)
+
+-- Time-frequency analysis of rf1.
+rf1:switch("ux/uy")
+specgram{rf = rf1, wlen = 16, overlap = 0.9, nfft = 2048, style = "amp|dB"}
+
 
 -- by default, the RF data file contains two columns in amp(Hz)/phase(deg).
 -- Note if the raw shape is in ux(Hz)/uy(Hz), please use additional option mode = 'ux/uy'.

@@ -36,6 +36,7 @@ void plot(const sol::table &t);
 void specgram(const seq_block &rf, const sol::table &t);
 // Lua usage: ssl.specgram('coop_pulse.txt', {col ='6 7', fs = 219888, wlen = 32, overlap = 0.9, nfft = 1024})
 void specgram(std::string file_name, const sol::table &t);
+void specgram(const sol::table &t);
 void specgram(const cx_vec &sig, const sol::table &t, double fs, std::string label = "");
 
 sol::object multi_shaped_rf(const sol::table &t, sol::this_state s);

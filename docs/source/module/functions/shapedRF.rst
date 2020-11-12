@@ -54,25 +54,66 @@ Turn to :doc:`hardRF<hardRF>` for most common used rectangle or hard pulses.
 * **Pulse operation**
 ------------------------
  
-  * Pulse plot:
+  * **Pulse plot**:
 
     .. code-block:: lua 
         
         plot(rf)
   
-  * Mode switch:
+  * **Mode switch**:
 
     .. code-block:: lua 
         
-        rf:switch("ux/uy")
-        rf:switch("amp/phase")
+        rf:switch("ux/uy")      -- into ux/uy mode.
+        rf:switch("amp/phase")  -- into amp/phase mode.
 
-  * Pulse save:
+  * **Pulse save**:
 
     .. code-block:: lua 
         
         write("raw.RF", rf)
 
+  * **Time-frequency analysis**:
+    
+    We provide a STFT based function **specgram** for the characteristics of shaped pulse.
+
+    .. code-block:: lua 
+        
+      specgram{}
+
+
+    The parameter structure is summarized as follow:
+
+      .. list-table:: 
+        :header-rows: 1
+        :widths: 25 35 140
+
+        * - Parameter
+          - Mandatory/Optional
+          - Content
+        * - rf 
+          - M
+          - The pulse object..
+        * - wlen 
+          - M
+          - Window length.
+        * - window
+          - O
+          - Window function in string such as ``"hammning"`` (default) , ``"gauss"``, etc. 
+        * - overlap
+          - M
+          - Overlap ratio.
+        * - nfft
+          - M
+          - FFT number.
+        * - style
+          - O
+          - Output style of the figure in string. ``"amp"`` for the magnitude specgram, ``"dB"`` for the magnitude specgram in 20*log and ``"phase"`` for the phase specgram.
+
+
+      .. note::
+	  
+        The pulse shape should be in ``ux/uy`` mode before the specgram analysis.
 
 * **Demo script**
 ------------------------
@@ -83,18 +124,28 @@ Turn to :doc:`hardRF<hardRF>` for most common used rectangle or hard pulses.
 
   |rf_sinc|
 
+  |stft_amp|  |stft_db|
+
   |rf_shape_file|
 
   |rf_expr|
 
 .. |rf_sinc| image:: ../../media/seq/rf_sinc.png
-  :height: 480
+  :height: 320
+  :align: middle
+
+.. |stft_amp| image:: ../../media/seq/stft_amp.png
+  :height: 320
+  :align: middle
+
+.. |stft_db| image:: ../../media/seq/stft_db.png
+  :height: 320
   :align: middle
 
 .. |rf_shape_file| image:: ../../media/seq/rf_shape_file.png
-  :height: 480
+  :height: 320
   :align: middle
 
 .. |rf_expr| image:: ../../media/seq/rf_expr.png
-  :height: 480
+  :height: 320
   :align: middle  

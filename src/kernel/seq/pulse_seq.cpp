@@ -79,6 +79,11 @@ void specgram(const seq_block &rf, const sol::table &t) {
     //specgram(sig[i], t, fs, shape.name() + "-" + channels[i]);
     specgram(sig[i], t, fs, channels[i]);
 }
+void specgram(const sol::table &t) {
+	sol::object par = retrieve_table("rf", t);
+	const seq_block &par_rf = par.as<const seq_block &>();
+     specgram(par_rf, t);
+}
 void specgram(std::string file_name, const sol::table &t) {
   mat data = eigen_read(file_name);
   if (data.size() == 0) return;

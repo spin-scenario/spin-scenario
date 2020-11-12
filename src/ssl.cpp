@@ -58,8 +58,7 @@ void bindings(sol::state &lua) {
   ssl.set_function(
       "specgram",
       sol::overload(
-          sol::resolve<void(const seq_block &, const sol::table &)>(
-              &ssl::seq::specgram),
+          sol::resolve<void(const sol::table &)>(&ssl::seq::specgram),
           sol::resolve<void(std::string, const sol::table &)>(&ssl::seq::specgram)));
 
   lua.set("ci", ci);
