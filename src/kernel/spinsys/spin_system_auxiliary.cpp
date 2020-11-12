@@ -1698,7 +1698,7 @@ void interaction::init() {
       zeeman_.matrices[i] *= (comp_.base_freq_[i] / freeg);
     } else
       // For nuclei, assume that the chemical shift is given and compute the corresponding offset
-      zeeman_.matrices[i] *= 1e-6 * comp_.base_freq_[i];
+      zeeman_.matrices[i] *= -1e-6 * comp_.base_freq_[i];
 
   // -----------------Preallocate the coupling tensor array-----------------
   // Process the coordinates
