@@ -52,7 +52,7 @@ struct unified_spinsys {
   sp_cx_vec det;
 #endif
 
-  void init(const spin_system &sys) {
+  void init(const spin_system &sys, std::string s_rho0 ="") {
     p_sys = &sys;
     B0 = sys.get_magnet_field();
     rf_ctrl = sys.rf_hamiltonian();
@@ -66,7 +66,10 @@ struct unified_spinsys {
 
     std::string acq_ch = g_seq_param->acq_channel;
     //rho0 = sys.state(acq_ch + " Iz");
-    rho0 = sys.equilibrium_state();
+    if(s_rho0.empty())
+	rho0 = sys.equilibrium_state();
+    else
+	rho0 = sys.smart_state(s_rho0);
     Lz0 = sys.op(acq_ch + " Iz").cast<cd>();
 
 #ifdef DENSE_MATRIX_COMPUTE

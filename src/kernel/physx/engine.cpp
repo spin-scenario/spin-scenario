@@ -66,7 +66,11 @@ void set_ham_Jcoupl(const sp_cx_mat& m) {
 
     } else {
       const spin_system &par_sys = par.as<const spin_system &>();
-      unified_spinsys_.init(par_sys);
+      std::string s_rho0 = "";
+	  // for spin system, we can add an additional option 'rho0' to specify the initial state (e.g. non equilibrium state).
+	  if (is_retrievable("rho0", t))
+      {s_rho0 =retrieve_table_str("rho0", t);}
+	  unified_spinsys_.init(par_sys, s_rho0);
     }
   } else {
     // g_lua->script("_sys = spin_system{B0 = '3 T', spins = '1H'}");
@@ -78,10 +82,12 @@ void set_ham_Jcoupl(const sp_cx_mat& m) {
   if (is_retrievable("phantom", t)) {
     std::string par = retrieve_table_str("phantom", t);
     p_phantom_ = new phantom(par.c_str());
+	init_ensemble(p_phantom_);
+	delete[] p_phantom_;
+  } else 
+  init_ensemble(nullptr);
+
   }
-  init_ensemble(p_phantom_);
-  delete[] p_phantom_;
-}
 
 engine::~engine() {}
 
