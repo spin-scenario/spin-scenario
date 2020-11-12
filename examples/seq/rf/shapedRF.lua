@@ -13,6 +13,8 @@ limitations under the License.
 -- example: shaped pulses. 
 
 local rf1 = shapedRF{width =5.12, step =256, max_amp =100, pattern ="sinc", lobe =7}
+plot(rf1) 
+rf1:switch("ux/uy")
 write("sinc.RF",rf1)
 
 -- by default, the RF data file contains two columns in amp(Hz)/phase(deg).
@@ -22,4 +24,4 @@ local rf2 = shapedRF{width = 5.12, pattern = "shape.RF"}
 local rf3 = shapedRF{width =10, step =100, pattern ="2*(10-t) + 5*Cos(10*t)^2"} 
 -- turn to YACAS for more usage to write your expression.
 
-plot(rf1, rf2, rf3) 
+plot(rf2, rf3) 

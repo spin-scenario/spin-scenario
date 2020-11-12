@@ -6,8 +6,6 @@ Pulse Sequence Programming
    :local:
    :depth: 2
 
-Coming Soon. Please refer to our  recent `publication <https://doi.org/10.1016/j.jmr.2019.01.016>`_ for more information.
-
 
 Sequence block 
 ===============

@@ -3,32 +3,55 @@
 *******
 hardRF
 *******
+The most common used rectangle or hard pulses are realized by **hardRF** block. 
 
-The most common used rectangle or hard pulses are realized by ``hardRF`` block.  
-For example, 
+Turn to :doc:`shapedRF<shapedRF>` for shaped pulses.
 
-     .. code-block:: lua 
+* **Create a pulse**
+------------------------
+  
+  The syntax to create a rectangle pulse is quite simple:
 
-       local rf1 = hardRF{beta =60, phase="-y"}
+  .. code-block:: lua 
+        
+        local rf = hardRF{}
 
-is a 60 degree -y-pulse for proton 1H excitation. The pulse width is proportional to that of the standard 90 degree pulse, which can be globally declared via ``pw90{}`` in advance. 
+  The parameter structure is summarized as follow:
 
-     .. code-block:: lua 
+  .. list-table:: 
+    :header-rows: 1
+    :widths: 25 35 140
 
-       pw90{5} -- 5 us for standard 90 degree pulse.
+    * - Parameter
+      - Mandatory/Optional
+      - Content
+    * - beta
+      - M
+      - Flip angle in degree.
+    * - channel
+      - O
+      - Nuclear isotope(s) for this pulse, default is ``"1H"``. For other nuclei, explicit nuclear isotope such as ``channel = "13C"`` or ``channel = "1H|13C"`` is required. Note for more channels, you only need to seperate the parameter for each channel with **|**.
+    * - phase
+      - O
+      - Phase for this pulse, default is ``"x"`` phase. Shortcut symbols include ``"x"``, ``"-x"``, ``"y"``, ``"-y"``. You can also directly assign a numerical phase in degree such as ``"30"`` for customized phase. Similar to the `channel`, you only need to seperate the phase for each channel with **|**.
+    * - width
+      - O
+      - Pulse duration in ms. If assigned, the amplitude will be determined automatically by the flip angle `beta`.
 
-Alternatively, adding an explicit ``width`` key to the table will achieve a similar block. 
 
-Besides, the valid phase options are not merely limited to the four quadrant axes, arbitrary angle in degree is also generally supported. 
+  .. note::
+	  
+    Pulse duration is proportional to that of the standard 90 degree pulse (default 5 microsecond), which indicates that the pulse amplitude is fixed for different flip angles. 
+      
+    The duration of standard 90 degree pulse can be globally declared as follow:
 
-For other nuclei, the explicit nuclear isotope 
-such as ``channel = "13C"`` is required. Moreover, multi-channel excitation 
-pulse can be achieved easily by extending both ``channel`` and ``phase`` respectively. 
-For instance, 
+    .. code-block:: lua 
 
-     .. code-block:: lua 
+      pw90{10} -- unit in microsecond.
 
-       local rf2 = hardRF{beta =180, channel ="1H|13C", phase="x|x"}
-       write("rf2.RF",rf2)
+* **Demo script**
+------------------------
 
-gives a refocusing pulse applied on a heteronuclear 1H-13C spin system.
+  .. literalinclude:: ../../../../examples/seq/rf/hardRF.lua
+	  :linenos:
+

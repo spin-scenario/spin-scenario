@@ -14,8 +14,8 @@ limitations under the License.
 
 -- 60 degree -y-pulse for proton 1H excitation.
 local rf1 = hardRF{beta =60, phase="-y"}
-write('rf1.RF',rf1)
+write("rf1.RF",rf1)
 
 -- a refocusing pulse applied on a heteronuclear 1H-13C spin system
 local rf2 = hardRF{beta =180, channel ="1H|13C", phase="x|x"}
-write('rf2.RF',rf2)
+write("rf2.RF",rf2)
