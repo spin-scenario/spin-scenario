@@ -856,8 +856,10 @@ void grape::projection(const sol::table &t) {
     vec xval;
     if (str_opt == "step") {
       xval = vec::LinSpaced(grid.cols(), 0, user_rf.width_in_ms()); // transfer trajectories of basis operators
-      fig_spec =
-          "title<> xlabel<pulse " //initial state I_{1y}
+	  std::string s = retrieve_table_str("init_state", t);
+      fig_spec = "title<initial state: " + s + "> ";
+      fig_spec +=
+          "xlabel<pulse " //initial state I_{1y}
           "duration "
           "/ ms> ylabel<magnetization>";
       fig_spec +=
