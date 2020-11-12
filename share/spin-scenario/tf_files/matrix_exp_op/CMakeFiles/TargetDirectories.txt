@@ -1,3 +1,0 @@
-/home/yan/spin-scenario/share/spin-scenario/tf_files/matrix_exp_op/CMakeFiles/edit_cache.dir
-/home/yan/spin-scenario/share/spin-scenario/tf_files/matrix_exp_op/CMakeFiles/rebuild_cache.dir
-/home/yan/spin-scenario/share/spin-scenario/tf_files/matrix_exp_op/CMakeFiles/matrix_exp_op.dir
