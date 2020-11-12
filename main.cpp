@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
   set_terminal_dir(s);
   char str[PATH_MAX] = {0};
   readlink("/proc/self/exe", str, sizeof(str)/sizeof(char));
-  //set_install_dir(str);
+  set_install_dir(str);
 #endif
 
 

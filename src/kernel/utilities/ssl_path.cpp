@@ -19,7 +19,11 @@ void set_terminal_dir(std::string s) {
 void set_install_dir(std::string s) { 
     g_install_dir = s;  // C:\Spin-Scenario\bin\spin-scenario.exe
     boost::replace_all(g_install_dir, "\\", "\/");
+#ifdef WIN32
     boost::replace_last(g_install_dir, "spin-scenario.exe", "..");
+#else
+    boost::replace_last(g_install_dir, "spin-scenario", "..");
+#endif
 }
  }  // namespace utility
 }  // namespace ssl

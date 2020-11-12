@@ -14,18 +14,18 @@ Installation
     
     * For Windows:     
     
-        * run ``spin-scenario-1.0.0-win64.exe`` to start installation.  
+        * run ``Spin-Scenario-1.1.0-win64.exe`` to start installation.  
 
         To run ``spin-scenario`` from any folder，you need to add your ``spin-scenario`` binary path e.g. ``C:\Program Files\Spin-Scenario\bin`` to system PATH environment.
 
         .. note::
             You may need to install `Visual C++ Redistributable Package <https://aka.ms/vs/16/release/vc_redist.x64.exe>`_ in case of encountering missing dll file such as **vcruntime140_1.dll** when start the Spin-Scenario.
 
-    * For Ubuntu 16.04, 18.04:     
+    * For Ubuntu 16.04, 18.04, 20.04:     
     
         .. code-block:: sh
 
-         sudo dpkg -i spin-scenario-1.0.0-ubuntu.deb    
+         sudo dpkg -i Spin-Scenario-1.1.0-Ubuntu.deb    
     
         Use ``sudo apt-get install -f`` to solve dependencies if the ``.deb`` package installation failed.
     
