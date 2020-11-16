@@ -21,12 +21,11 @@ Quick Start
 
   * Open the terminal and start the environment with `spin-scenario`.
   * To run a scenario script, simply use the command like `load('fid.lua')`. 
-  * You may also run script snippet on the terminal, e.g. to process the results manually after the scenario playing. 
   * To switch to old script, use the up and down key.  
   * To quit the program, use `q`.
   
 <p align="center">
-<img src="docs/source/media/cmd_screen.png"  width="640">
+<img src="docs/source/media/cmd_screen.png"  width="480">
 </p>
 
 As a start, we show a simple [FID](examples/seq/acrylic.lua) sequence as follow:  

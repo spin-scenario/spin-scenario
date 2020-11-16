@@ -707,7 +707,7 @@ void ssl_version_output() {
   sprintf(arr_time, "%s", __TIME__);  
   std::cout << std::endl;
   std::cout << boost::format("%10tS P I N  S C E N A R I O") << std::endl;
-  std::cout << boost::format("%10t%s") % "version 1.0   last modified " << arr_time <<" "<< arr_date << std::endl;
+  std::cout << boost::format("%10t%s") % "version 1.1   last modified " << arr_time <<" "<< arr_date << std::endl;
 
   std::cout << std::endl;
   std::cout << boost::format("%10t%s") % "Copyright(C) 2019-2020" << std::endl;
