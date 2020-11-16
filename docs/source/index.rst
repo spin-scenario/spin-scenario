@@ -42,18 +42,17 @@ the basics:
 
 	 -- scenario A: spin system generation.
         B0{"500 MHz"}
-        local proton =spin_system{
-            spin ="1H",
-            zeeman ="1 scalar 100 Hz",
-            relaxation ="T1 1000 ms T2 100 ms"
-        }
+        local acrylic =spin_system{
+                spin = "1H 1H 1H",
+              zeeman = "2 scalar 88.42 Hz 3 scalar 214.9 Hz",
+           jcoupling = "1 2 scalar 10.4 Hz 1 3 scalar 1.2 Hz 2 3 scalar 17.4 Hz"}
         -- scenario B: pulse sequence assembly.
         local rf45 =hardRF{beta =45}
-        local adc =acq{np =4096, sw =10000}
+        local adc =acq{np =1024, sw =500}
 
         local fid =seq{rf45, adc}
         -- scenario C: experimental study.
-        result =run{exp =fid, spinsys =proton}
+        result =run{exp =fid, spinsys =acrylic}
 
 |fid_raw| |fid_spec|
 
@@ -68,12 +67,12 @@ Spin-Scenario was supported by National Natural Science Foundation of China 1150
 .. _issues: https://github.com/spin-scenario/spin-scenario/issues
 .. _examples directory: https://github.com/spin-scenario/spin-scenario/tree/master/examples
 
-.. |fid_raw| image:: media/seq_fid_raw.png
-	:height: 320
+.. |fid_raw| image:: media/seq_fid_acrylic_signal.png
+	:height: 360
 	:align: middle
 
-.. |fid_spec| image:: media/seq_fid_spec.png
-	:height: 320
+.. |fid_spec| image:: media/seq_fid_acrylic_spec.png
+	:height: 360
 	:align: middle
 
 .. |nsfc| image:: media/logo-NSFC.jpg
