@@ -31,7 +31,28 @@ int g_zero_pad_num =0;
 void set_zero_pad(int n) {
 	g_zero_pad_num = n;
 }
-void set_openmp_core(int n) {
+
+double g_decay_rate =10;
+void set_decay_rate(double r) {
+	g_decay_rate =r;
+}
+
+void set_zero_pad_api(const sol::table &t) {
+	 for (auto &kv : t) {
+    int val = kv.second.as<int>();
+    set_zero_pad(val);
+    break;
+  }
+}
+
+void set_decay_rate_api(const sol::table &t) {
+	 for (auto &kv : t) {
+    double val = kv.second.as<double>();
+    set_decay_rate(val);
+    break;
+  }
+}
+  void set_openmp_core(int n) {
   g_openmp_core = n;
 }
 double g_inf = std::numeric_limits<double>::infinity();

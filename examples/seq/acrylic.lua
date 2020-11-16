@@ -19,6 +19,7 @@ local acrylic =spin_system{
     zeeman ="2 scalar 88.42 Hz 3 scalar 214.9 Hz",
     jcoupling ="1 2 scalar 10.4 Hz 1 3 scalar 1.2 Hz 2 3 scalar 17.4 Hz"
 }
+--apodization{8}
 -- scenario B: pulse sequence assembly.
 local rf45 =hardRF{beta =45}
 local adc =acq{np =1024, sw =500}
@@ -31,8 +32,8 @@ result =run{exp =fid, spinsys =acrylic} -- the var result is global so that we c
 local t = linspace(0,1024/500*1e3,1024) -- acquisition time axis, unit ms.
 local x = linspace(-250,250,1024)    -- spectrum axis, unit Hz.
 
-plot("title<fid:re> xlabel<time/ms>",lines(t, result["fid:re"]))  
-plot("title<spec:abs> xlabel<freq/Hz> xrange<-250:250>",lines(x, result["spec:abs"]))
+plot("title<signal> xlabel<time/ms> gnuplot<unset key> lw<0.5> xrange<0:2000> color<Set1>",lines(t, result["fid:re"]))  
+plot("title<spectrum> xlabel<freq/Hz> xrange<250:-50> lw<1> gnuplot<unset key> color<Set2>",lines(x, result["spec:im"]))
 
 -- each row of the fid data was stored into tables such as result["fid:re"] or result["fid:im"] or result["fid:abs"], for this demo, only one acquisition was taken.
 
