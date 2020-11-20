@@ -18,6 +18,7 @@ void bindings(sol::state &lua) {
   // ssl IO utility bindings.
   sol::table ssl = lua.create_named_table("ssl");
 
+  lua.set_function("iteration_save", &ssl::oc::set_oc_iteration_save);
   lua.set_function("zero_padding", &ssl::utility::set_zero_pad_api);
   lua.set_function("apodization", &ssl::utility::set_decay_rate_api);
   lua.set_function("get", &ssl::utility::get);

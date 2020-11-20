@@ -19,7 +19,14 @@ using namespace ssl::utility;
 #include <chrono>
 namespace ssl {
 namespace oc {
-
+int g_oc_iteration_save = 0;
+void set_oc_iteration_save(const sol::table &t) {
+	  for (auto &kv : t) {
+    int val = kv.second.as<int>();
+    g_oc_iteration_save = val;
+    break;
+  }
+}
 typedef struct {
   size_t i; // step index.
   size_t j; // channel index.
@@ -452,6 +459,10 @@ double grape::objfunc_broadband(const std::vector<double> &x, std::vector<double
   }
   auto end = std::chrono::system_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  if(double(duration.count()) * std::chrono::microseconds::period::num / std::chrono::microseconds::period::den>2){
+    g_oc_iteration_save = 1;
+  }
+  iteration_shape(x, optimizer_->get_numevals());
   //double PHI1 = val;
   //double PHI2 = 0;
   // double PHI2 = alpha * rf_->rf_power();
@@ -462,9 +473,18 @@ double grape::objfunc_broadband(const std::vector<double> &x, std::vector<double
   //std::cout << "Use Time:" << double(duration.count()) * microseconds::period::num / microseconds::period::den << " s.\n";
   return val;
 }
-
+void grape::iteration_shape(const std::vector<double> &x, int iter) {
+  if (!g_oc_iteration_save) return;
+  rf_->update_raw_data(axis_, x_.data());
+  std::string file = "iteration_" + std::to_string(iter) + "_rf_shape.RF";
+  std::ofstream ofstr(file.c_str());
+  ofstr << "# " << sys_time()<<"\n";
+   rf_->write(ofstr);
+  ofstr.close();
+}
 double grape::objfunc_propagator(const std::vector<double> &x,
                                  std::vector<double> &grad) {
+  auto start = std::chrono::system_clock::now();
   rf_->update_raw_data(x.data());
   int N = superop_.L0s.size();
   vec phi = vec::Zero(N);
@@ -600,6 +620,14 @@ double grape::objfunc_propagator(const std::vector<double> &x,
   // double PHI2 = alpha * rf_->rf_power();
   // std::cout << boost::format("==> %04d  [%.8f] [%.8f]\n") %
   // (++opt_.iter_count) % PHI1 % PHI2;
+
+  auto end = std::chrono::system_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  if(double(duration.count()) * std::chrono::microseconds::period::num / std::chrono::microseconds::period::den>2){
+    g_oc_iteration_save = 1;
+  }
+  iteration_shape(x, optimizer_->get_numevals());
+
   std::cout << boost::format("==> %04d  [%.8f]\n") % (optimizer_->get_numevals()) % val;
   obj_val_.push_back(val);
   return (val);

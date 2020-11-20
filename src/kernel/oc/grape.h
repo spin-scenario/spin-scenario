@@ -17,6 +17,8 @@ using namespace ssl::seq;
 
 namespace ssl {
 namespace oc {
+extern int g_oc_iteration_save;
+void set_oc_iteration_save(const sol::table &t);
 enum opt_model {_rho2rho, _propagator};
 class grape {
  public:
@@ -38,6 +40,7 @@ class grape {
   // double objfunc(const std::vector<double> &x, std::vector<double> &grad);
   double objfunc_broadband(const std::vector<double> &x, std::vector<double> &grad);
   double objfunc_propagator(const std::vector<double> &x, std::vector<double> &grad);
+  void iteration_shape(const std::vector<double> &x, int iter);
 
    sp_cx_mat update_rf_ham(const double *x,
                           size_t step,
