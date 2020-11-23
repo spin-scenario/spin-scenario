@@ -398,8 +398,75 @@ void rf_pulse::switch_rf_mode(std::string mode) {
     throw std::runtime_error(s.c_str());
   }
 }
+void rf_pulse::export_shape(std::string format, std::string file) const {
+  boost::to_lower(format);
+  if (format != "bruker" && format != "varian") {
+    ssl_color_text("warn",
+                   "unknown RF pulse waveform format, export ignored. 'bruker' "
+                   "and 'varian' supported\n");
+    return;
+  }
+  if (format == "bruker") {
+    std::vector<RFChannel> raw_data = raw_data_;
+    if (mode_ == uxuy_) {  // into amp-phase.
+      for (size_t i = 0; i < raw_data.size(); i++)
+        for (int j = 0; j < raw_data[i].envelope.size(); j++)
+          raw_data[i].envelope(j) = xy2amp(raw_data[i].envelope(j));  // rad.
+    }
 
-std::string rf_pulse::get_header() const {
+    mat m(nsteps_, 2 * channels_);
+    for (size_t j = 0; j < channels_; j++) {
+      m.col(2 * j) = raw_data_[j].envelope.real();
+      m.col(2 * j + 1) = raw_data_[j].envelope.imag();
+
+      m.col(2 * j) *= modulated_gain_ / (2 * _pi);
+      m.col(2 * j + 1) *= 180 / _pi;
+    }
+
+    for (size_t j = 0; j < channels_; j++) {
+      std::string str = std::to_string(j+1) + "_" + file;
+      std::ofstream ofstr(str.c_str());
+      std::string s;
+      s += "##TITLE= " + name() + "\n";
+      s += "##JCAMP-DX= 5.00 Bruker JCAMP library\n";
+      s += "##DATA TYPE= Shape Data\n";
+      s += "##ORIGIN= Bruker Analytik GmbH\n";
+      s += "##OWNER= <spin-scenario>\n";
+      s += "##DATE= \n";
+      s += "##TIME= \n";
+      s += "##ISOTOPE= " + raw_data_[j].channel + "\n";
+
+      s += "##MINX= " +
+           std::to_string(raw_data[j].envelope.real().minCoeff() / (2 * _pi)) +
+           " Hz\n";
+      s += "##MAXX= " +
+           std::to_string(raw_data[j].envelope.real().maxCoeff() / (2 * _pi)) +
+           " Hz\n";
+
+      s += "##MINY= " +
+           std::to_string(raw_data[j].envelope.imag().minCoeff() * 180 / _pi) +
+           " deg\n";
+      s += "##MAXY= " +
+           std::to_string(raw_data[j].envelope.imag().maxCoeff() * 180 / _pi) +
+           " deg\n";
+
+      s += "##$SHAPE_EXMODE= Excitation\n";
+      s += "##$SHAPE_MODE= 0\n";
+      s += "##NPOINTS= " + std::to_string(nsteps_) + "\n";
+      s += "##XYPOINTS= (XY..XY)";
+      ofstr << s << "\n";
+
+      ofstr << m.block(0, j * 2, m.rows(), 2) << "\n";
+      ofstr << "##END=";
+      ofstr.close();
+    }
+  }
+
+  if (format == "varian") {
+  }
+}
+
+  std::string rf_pulse::get_header() const {
   std::string s = seq_block::get_header() + "\n";
   s += "# pulse steps: " + std::to_string(nsteps_) + ".\n";
   if (mode_ == _ux_uy)
@@ -418,6 +485,8 @@ for (size_t j = 0; j < channels_; j++) {
 	  s += "# CH "+ std::to_string(j+1)+ " AVG amplitude: "+ std::to_string(raw_data_[j].envelope.real().sum()/(2 * _pi)/nsteps_)+" Hz\n";
 	  s += "# CH "+ std::to_string(j+1)+ " MAX phase: "+ std::to_string(raw_data_[j].envelope.imag().maxCoeff()*180 / _pi)+" deg\n";
       s += "# CH "+ std::to_string(j+1)+ " MIN phase: "+ std::to_string(raw_data_[j].envelope.imag().minCoeff()*180 / _pi)+" deg";
+	  if(j!=channels_-1)
+		  s += "\n";
     }
   }
   return s;

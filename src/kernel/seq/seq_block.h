@@ -124,6 +124,7 @@ class seq_block {
 
   // ONLY for RF.
   virtual void switch_rf_mode(std::string mode) {};
+  virtual void export_shape(std::string format, std::string file) const {};
   virtual double rf_power() const {
     return 0;
   }

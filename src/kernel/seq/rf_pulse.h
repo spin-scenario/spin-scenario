@@ -50,6 +50,7 @@ class rf_pulse : public seq_block {
   virtual void h5write(H5File &file, std::string abbr = "") const;
   virtual void plot() const;
 
+  virtual void export_shape(std::string format, std::string file) const;
   virtual mat get_shape() const;
   virtual std::string get_header() const;
   virtual void switch_rf_mode(std::string mode);
