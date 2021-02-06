@@ -406,8 +406,8 @@ void rf_pulse::export_shape(std::string format, std::string file) const {
                    "and 'varian' supported\n");
     return;
   }
-  if (format == "bruker") {
-    std::vector<RFChannel> raw_data = raw_data_;
+
+  std::vector<RFChannel> raw_data = raw_data_;
     if (mode_ == uxuy_) {  // into amp-phase.
       for (size_t i = 0; i < raw_data.size(); i++)
         for (int j = 0; j < raw_data[i].envelope.size(); j++)
@@ -423,8 +423,13 @@ void rf_pulse::export_shape(std::string format, std::string file) const {
       m.col(2 * j + 1) *= 180 / _pi;
     }
 
+  if (format == "bruker") {
     for (size_t j = 0; j < channels_; j++) {
-      std::string str = std::to_string(j+1) + "_" + file;
+      std::string str;
+      if (j + 1 == channels_) // single channel.
+		  str = file; 
+	  else
+       str = std::to_string(j+1) + "_" + file;
       std::ofstream ofstr(str.c_str());
       std::string s;
       s += "##TITLE= " + name() + "\n";
@@ -463,6 +468,44 @@ void rf_pulse::export_shape(std::string format, std::string file) const {
   }
 
   if (format == "varian") {
+    for (size_t j = 0; j < channels_; j++) {
+      std::string str;
+      if (j + 1 == channels_) // single channel.
+		  str = file; 
+	  else
+       str = std::to_string(j+1) + "_" + file;
+      std::ofstream ofstr(str.c_str());
+      std::string s;
+      s += "# " + name() + "Agilent Technologies All Rights Reserved\n";
+      s += "# VERSION 20.1\n";
+      s += "# TYPE \n";
+      s += "# MODULATION    adiabatic\n";
+      s += "# EXCITEWIDTH	-1.000\n";
+      s += "# INVERTWIDTH   82.10\n";
+      s += "# INTEGRAL	0.1975\n";
+      s += "##ISOTOPE= " + raw_data_[j].channel + "\n";
+
+      s += "##MINX= " +
+           std::to_string(raw_data[j].envelope.real().minCoeff() / (2 * _pi)) +
+           " Hz\n";
+      s += "##MAXX= " +
+           std::to_string(raw_data[j].envelope.real().maxCoeff() / (2 * _pi)) +
+           " Hz\n";
+
+      s += "##MINY= " +
+           std::to_string(raw_data[j].envelope.imag().minCoeff() * 180 / _pi) +
+           " deg\n";
+      s += "##MAXY= " +
+           std::to_string(raw_data[j].envelope.imag().maxCoeff() * 180 / _pi) +
+           " deg\n";
+
+      s += "##NPOINTS= " + std::to_string(nsteps_) + "\n";
+      ofstr << s << "\n";
+
+      ofstr << m.block(0, j * 2, m.rows(), 2) << "\n";
+      ofstr << "##END=";
+      ofstr.close();
+    }
   }
 }
 

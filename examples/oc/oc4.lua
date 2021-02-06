@@ -34,4 +34,7 @@ opt_pulse:set_name('I_x to S_x')
 opt_pulse:switch('ux/uy')
 plot(opt_pulse)
 
+-- The waveform will be exported into two individual Bruker files for each channel.
+opt_pulse:export("bruker","exp.RF")
+
 oc:projection{ init_state = 'I1x', rf = opt_pulse, observ_states = {} }

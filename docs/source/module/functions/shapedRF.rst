@@ -1,5 +1,3 @@
-:orphan:
-
 *********
 shapedRF
 *********
@@ -7,8 +5,12 @@ Shaped pulses has been widely used to increase excitation bandwidth, achieve des
 
 Turn to :doc:`hardRF<hardRF>` for most common used rectangle or hard pulses.
 
-* **Create a pulse**
-------------------------
+.. contents::
+   :local:
+   :depth: 2
+   
+Create a pulse
+==============
   
   The syntax to create a shaped pulse is simple:
 
@@ -51,29 +53,39 @@ Turn to :doc:`hardRF<hardRF>` for most common used rectangle or hard pulses.
       - Nuclear isotope(s) for this pulse, default is ``"1H"``. For other nuclei, explicit nuclear isotope such as ``channel = "13C"`` or ``channel = "1H|13C"`` is required. Note for more channels, you only need to seperate the phase for each channel with **|**.       
 
 
-* **Pulse operation**
-------------------------
- 
-  * **Pulse plot**:
+Pulse operation
+===============
+Pulse plot
+-----------
 
     .. code-block:: lua 
         
         plot(rf)
   
-  * **Mode switch**:
+Mode switch
+-----------
 
     .. code-block:: lua 
         
         rf:switch("ux/uy")      -- into ux/uy mode.
         rf:switch("amp/phase")  -- into amp/phase mode.
 
-  * **Pulse save**:
+Pulse save
+-----------
 
     .. code-block:: lua 
         
-        write("raw.RF", rf)
+        write("raw.RF", rf) -- pulse shape will be stored in customized format of spin-scenario.
 
-  * **Time-frequency analysis**:
+Export pulse
+------------
+
+    .. code-block:: lua 
+        
+        rf:export("bruker", "exp.RF") -- pulse shape will be exported as specified ("bruker" and "varian" currently supported).
+
+Time-frequency analysis
+------------------------
     
     We provide a STFT based function **specgram** for the characteristics of shaped pulse.
 
@@ -115,8 +127,8 @@ Turn to :doc:`hardRF<hardRF>` for most common used rectangle or hard pulses.
 	  
         The pulse shape should be in ``ux/uy`` mode before the specgram analysis.
 
-* **Demo script**
-------------------------
+Demo script
+===========
 
 
   .. literalinclude:: ../../../../examples/seq/rf/shapedRF.lua

@@ -72,7 +72,7 @@ For single pulse optimization, we can use **rf_optimizer**.  Turn to :doc:`multi
 * **Optimal pulse**
 ------------------------
   
-  The optimized pulse is essentially a :doc:`shapedRF<shapedRF>`, thus all related operations are available for the optimal pulse.
+  The optimized pulse is essentially a :doc:`shapedRF<shapedRF>`, thus all related operations in :doc:`shapedRF<shapedRF>` are available for the optimal pulse.
 
   We also provides a **projection** function inside **rf_optimizer** to observe the evolution trajectory components of the interested state.
   
