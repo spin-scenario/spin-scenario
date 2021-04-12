@@ -81,7 +81,11 @@ void set_ham_Jcoupl(const sp_cx_mat& m) {
   p_phantom_ = nullptr;
   if (is_retrievable("phantom", t)) {
     std::string par = retrieve_table_str("phantom", t);
-    p_phantom_ = new phantom(par.c_str());
+    std::string supp = "";
+	if (is_retrievable("supp", t)) {
+      supp = retrieve_table_str("supp", t);
+    }
+    p_phantom_ = new phantom(par.c_str(), supp);
 	init_ensemble(p_phantom_);
 	delete[] p_phantom_;
   } else 

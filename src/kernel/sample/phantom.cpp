@@ -25,8 +25,8 @@ namespace sample {
 
 phantom::phantom() {
 }
-phantom::phantom(const char *filename) {
-  load(filename);
+phantom::phantom(const char *filename, std::string supp) {
+  load(filename, supp);
   init_ensemble();
 }
 phantom::~phantom() {
@@ -207,7 +207,7 @@ void phantom::view(const std::string &axis, int slice) const {
   std::string title = row + col + " plane view (" + axis + "=" + std::to_string(slice) + "/" + std::to_string(max_dim) + ")";
   g_lua->script("plot('title<" + title + "> xlabel<" + row + "> ylabel<" + col + ">', _map)");
 }
-void phantom::load(const char *filename) {
+void phantom::load(const char *filename, std::string supp) {
   model_ = unidentified_phantom;
   H5File file;
   file.openFile(filename, H5F_ACC_RDWR);
@@ -249,22 +249,17 @@ void phantom::load(const char *filename) {
 
       // load T1/T2 parameters.
       std::string path = utility::g_install_dir + "/share/spin-scenario/config/mida_1.5t_relaxation.dat";
-      mat par = mat::Zero(59, 3);
-      std::ifstream fin(path.c_str());
+      if (!supp.empty()) path = supp;
+      // col 1: index No.
+	  // col 2: T1 (ms)
+      // col 3: T2 (ms)
+	  mat par = eigen_read(path); 
+	  if (par.cols()!=3)
+		  throw std::runtime_error("Unrecognized phantom T1/T2 parameter file!");
 
-      if (fin.is_open()) {
-        for (size_t row = 0; row < 59; row++)
-          for (size_t col = 0; col < 3; col++) {
-            double item = 0.0;
-            fin >> item;
-            par(row, col) = item;
-          }
-        fin.close();
-      }
-
-      //mat par = eigen_read(path);
-      tissue_index_ = ivec::Zero(117); // indexing based 1.
-      tissue_t1t2_ = mat::Zero(117, 2); // indexing based 1.
+	  int max_idx = (int)par.col(0).maxCoeff()+ 1;
+      tissue_index_ = ivec::Zero(max_idx); // indexing based 1.
+      tissue_t1t2_ = mat::Zero(max_idx, 2); // indexing based 1.
 
       for (int i = 0; i < par.rows(); i++) {
         int idx = par(i, 0);

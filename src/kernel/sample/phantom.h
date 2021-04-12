@@ -67,9 +67,9 @@ struct isochromat {
 class phantom {
  public:
   phantom();
-  phantom(const char *filename);
+  phantom(const char *filename, std::string supp = "");
   virtual ~phantom();
-  void load(const char *filename);
+  void load(const char *filename, std::string supp = "");
   void init_ensemble();
   void view(const sol::table &t) const;
   inline ivec3 dim() const {

@@ -1096,7 +1096,7 @@ mat eigen_read(std::string file_name) {
       if (strlen(line.c_str()) == 0)
         continue;
       std::vector<std::string> line_vec_str;
-      boost::split(line_vec_str, line, boost::is_any_of(" , "), boost::token_compress_on);
+      boost::split(line_vec_str, line, boost::is_any_of(" , \t"), boost::token_compress_on);
       doc_str.push_back(line_vec_str);
     }
   }
