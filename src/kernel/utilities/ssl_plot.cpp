@@ -392,7 +392,7 @@ void plot(std::string fig_info, sol::variadic_args va, const map &) {
   gp << "set ylabel  '" << fig.ylabel << "'\n";
 
   gp << "load '" << g_install_dir << "/share/spin-scenario/config/gnuplot/colorbrewer/" << find_color(fig.color) << "'\n";
-  //gp << "set palette negative\n";
+  gp << "set palette negative\n";
 
     std::string time_s = sys_time();
   gp << terminal_cmd(g_output_terminal);
