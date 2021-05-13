@@ -121,8 +121,8 @@ function serial(par_list)
     return glue
 end
 
-function phantom(file)
-    return ssl.phantom.new(file)
+function phantom(file, supp_file)
+    return ssl.phantom.new(file,supp_file)
 end
 
 function spin_system(par_file_or_table)

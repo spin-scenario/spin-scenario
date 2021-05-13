@@ -25,14 +25,13 @@ namespace sample {
 
 phantom::phantom() {
 }
-phantom::phantom(const char *filename, std::string supp) {
-  load(filename, supp);
+phantom::phantom(std::string filename, std::string supp_filename) {
+  load(filename, supp_filename);
   init_ensemble();
 }
 phantom::~phantom() {
 }
 void phantom::init_ensemble() {
-
   int x0 = -1;
   int x1 = -1;
   int y0 = -1;
@@ -72,62 +71,19 @@ void phantom::init_ensemble() {
 
   omp_set_num_threads(omp_core_num);
   std::vector<isochromat> *omp_isochromats = new std::vector<isochromat>[omp_core_num];
-  switch (model_) {
-    case usr_phantom:
-    case mni_brain: {
-#pragma omp parallel for
-      for (int nz = z0; nz <= z1; nz += g_phantom_space.dz) {
-        int id = omp_get_thread_num();
-        Eigen::Tensor<double, 2> sub_pd = pd_.chip(nz, 2);
-        Eigen::Map<mat> m_pd(sub_pd.data(), sub_pd.dimension(0), sub_pd.dimension(1));
-
-        Eigen::Tensor<double, 2> sub_T1 = T1_.chip(nz, 2);
-        Eigen::Map<mat> m_T1(sub_T1.data(), sub_T1.dimension(0), sub_T1.dimension(1));
-
-        Eigen::Tensor<double, 2> sub_T2 = T2_.chip(nz, 2);
-        Eigen::Map<mat> m_T2(sub_T2.data(), sub_T2.dimension(0), sub_T2.dimension(1));
-        //row = "y";
-        //col = "x";
-
-        for (int nx = x0; nx <= x1; nx += g_phantom_space.dx)
-          for (int ny = y0; ny <= y1; ny += g_phantom_space.dy) {
-            {
-              if (m_pd(ny, nx)) {  // only if the spin density is non-zero.
-                isochromat iso;
-                iso.data[dB0] = dB0_(nx, ny, nz);
-                iso.data[r1] = 1.0 / m_T1(ny, nx);
-                iso.data[r2] = 1.0 / m_T2(ny, nx);
-                //iso.data[r2s] = 1.0 / T2s_(nx, ny, nz);
-                iso.data[cx] = (nx - dim_[cx] / 2 + 0.5) * res_[cx] + offset_[cx];
-                iso.data[cy] = (ny - dim_[cy] / 2 + 0.5) * res_[cy] + offset_[cy];
-                iso.data[cz] = (nz - dim_[cz] / 2 + 0.5) * res_[cz] + offset_[cz];
-                iso.data[pd] = m_pd(ny, nx);
-                omp_isochromats[id].push_back(iso);
-                //}
-
-              }
-            }
-
-          }
-      }
-    }
-      break;
-    case mida_brain: {
-      //clock_t  clockBegin, clockEnd;
-      //clockBegin = clock();
 #pragma omp parallel for
       for (int nz = z0; nz <= z1; nz += g_phantom_space.dz) {
         int id = omp_get_thread_num();
         for (int nx = x0; nx <= x1; nx += g_phantom_space.dx)
           for (int ny = y0; ny <= y1; ny += g_phantom_space.dy) {
             {
-              int idx = tissue_dist_(nx, ny, nz);
+              int idx = tissue_dist_(ny, nx, nz);
               // do not deal with background and those tissues not assigned.
-              if (idx != 50 && tissue_index_(idx) == 1) {
+              if (idx != 0 && tissue_index_(idx) == 1) {
                 isochromat iso;
-                iso.data[dB0] = dB0_(nx, ny, nz);
-                iso.data[r1] = 1.0 / T1_(nx, ny, nz);
-                iso.data[r2] = 1.0 / T2_(nx, ny, nz);
+                iso.data[dB0] = dB0_(ny, nx, nz);
+                iso.data[r1] = 1.0 / T1_(ny, nx, nz);
+                iso.data[r2] = 1.0 / T2_(ny, nx, nz);
                 //iso.data[r2s] = 1.0 / tissue_t1t2_(idx, 1);
                 iso.data[cx] = (nx - dim_[cx] / 2 + 0.5) * res_[cx] + offset_[cx];
                 iso.data[cy] = (ny - dim_[cy] / 2 + 0.5) * res_[cy] + offset_[cy];
@@ -138,13 +94,6 @@ void phantom::init_ensemble() {
             }
           }
       }
-      //clockEnd = clock();
-      //printf("%d\n", clockEnd - clockBegin);
-    }
-      break;
-    default:break;
-  }
-
   isochromats_.clear();
   for (int id = 0; id < omp_core_num; id++) {
     std::copy(omp_isochromats[id].begin(), omp_isochromats[id].end(),
@@ -153,11 +102,7 @@ void phantom::init_ensemble() {
   }
   #ifdef SSL_OUTPUT_ENABLE
   std::string model;
-
-  if (model_ == mida_brain) model = "MIDA";
-  if (model_ == mni_brain) model = "MNI";
-  if (model_ == usr_phantom) model = "USR PHANTOM";
-  std::string s = str(boost::format("%s %s (%s).\n") % "total isochromats:" % isochromats_.size() % model);
+  std::string s = str(boost::format("%s %s.\n") % "total isochromats:" % isochromats_.size());
   ssl_color_text("info", s);
 #endif
 
@@ -167,89 +112,107 @@ void phantom::view(const sol::table &t) const {
     throw std::runtime_error("invalid phantom 'view' table parameters (nil or empty).");
   std::string axis;
   int slice = -1;
+  std::string prop ="T2";
+   if (is_retrievable("prop", t)) 
+     prop = retrieve_table_str("prop", t, "phantom view");
+ 
+
   for (auto &kv : t) {
     axis = kv.first.as<std::string>();
+    if (axis == "prop") continue;
     slice = kv.second.as<int>();
-    view(axis, slice);
+    view(axis, slice, prop);
   }
 }
-void phantom::view(const std::string &axis, int slice) const {
+void phantom::view(const std::string &axis, int slice, std::string prop) const {
   int dim = -1; //z
   int max_dim = 0;
-  std::string row, col;
+  std::string X, Y;
   if (axis == "x" || axis == "X") {
-    dim = 0;
+    dim = 1;
     max_dim = dim_[_cx];
-    row = "z";
-    col = "y";
+    X = "Z";
+    Y = "Y";
   }
   if (axis == "y" || axis == "Y") {
-    dim = 1;
+    dim = 0;
     max_dim = dim_[_cy];
-    row = "z";
-    col = "x";
+    X = "Z";
+    Y = "X";
   }
   if (axis == "z" || axis == "Z") {
     dim = 2;
     max_dim = dim_[_cz];
-    row = "y";
-    col = "x";
+    X = "X";
+    Y = "Y";
   }
   if (dim == -1) {
     std::string s = "unkown axis: " + axis + "!\n";
     throw std::runtime_error(s.c_str());
   }
+  if (slice > max_dim) {
+    std::string s = "slice num overflow: " + std::to_string(slice) + " max slice: " + std::to_string(max_dim)+"\n";
+    ssl_color_text("err", s);
+    return;
+  }
 
-  Eigen::Tensor<double, 2> sub = T2_.chip(slice - 1, dim);
+  Eigen::Tensor<double, 2> sub;
+
+  if(prop=="T2")
+  sub = T2_.chip(slice - 1, dim);
+
+  if(prop=="T1")
+  sub = T1_.chip(slice - 1, dim);
+
   Eigen::Map<mat> m(sub.data(), sub.dimension(0), sub.dimension(1));
-  utility::map transfer_map(m.matrix().cast<double>());
+  utility::map transfer_map(m.matrix().cast<double>()*1e3); // ms.
   (*g_lua)["_map"] = transfer_map;
-  std::string title = row + col + " plane view (" + axis + "=" + std::to_string(slice) + "/" + std::to_string(max_dim) + ")";
-  g_lua->script("plot('title<" + title + "> xlabel<" + row + "> ylabel<" + col + ">', _map)");
+  std::string AXIS = axis;
+  boost::to_upper(AXIS);
+  std::string title = prop + " map of "+ X + Y + " plane view (" + AXIS + "=" + std::to_string(slice) + "/" + std::to_string(max_dim) + ")";
+  g_lua->script("plot('title<" + title + "> xlabel<" + X + "> ylabel<" + Y + "> color<Spectral> gnuplot<set size ratio -1>', _map)");
 }
-void phantom::load(const char *filename, std::string supp) {
-  model_ = unidentified_phantom;
-  H5File file;
-  file.openFile(filename, H5F_ACC_RDWR);
+void phantom::load(std::string filename, std::string supp_filename) {
+  //model_ = unidentified_phantom;
 
-  imat dim = h5read_imat(file, "/phantom/dimension");
-  dim_[_cx] = dim(0);
-  dim_[_cy] = dim(1);
-  dim_[_cz] = dim(2);
+  H5File file;
+  file.openFile(filename.c_str(), H5F_ACC_RDONLY);
+  tissue_dist_ = h5read_icube(file, "/phantom/tissue_dist");
+
+  dim_[_cy] = tissue_dist_.dimension(0);
+  dim_[_cx] = tissue_dist_.dimension(1);
+  dim_[_cz] = tissue_dist_.dimension(2);
 
   mat res = h5read_mat(file, "/phantom/resolution");
+  res_.setZero();
   res_[_cx] = res(0);
   res_[_cy] = res(1);
-  res_[_cz] = res(2);
-
-  imat id_vec = h5read_imat(file, "/phantom/model_id");
-  int id = id_vec(0);
+  if(res.size()==3) // for 3d case.
+	  res_[_cz] = res(2);
+	else
+	  res_[_cz] = 1; // 2d case.
 
   offset_.setZero();
 
-  dB0_ = cube(dim_[_cx], dim_[_cy], dim_[_cz]);
+  dB0_ = cube(dim_[_cy], dim_[_cx], dim_[_cz]); 
   dB0_.setZero();
 
-  pd_ = cube(dim_[_cx], dim_[_cy], dim_[_cz]);
+  pd_ = cube(dim_[_cy], dim_[_cx], dim_[_cz]);
   pd_.setConstant(1);
 
-  T1_ = cube(dim_[_cx], dim_[_cy], dim_[_cz]);
+  T1_ = cube(dim_[_cy], dim_[_cx], dim_[_cz]); // rows->y cols->x 
   T1_.setZero();
 
-  T2_ = cube(dim_[_cx], dim_[_cy], dim_[_cz]);
+  T2_ = cube(dim_[_cy], dim_[_cx], dim_[_cz]);
   T2_.setZero();
 
-  T2s_ = cube(dim_[_cx], dim_[_cy], dim_[_cz]);
+  T2s_ = cube(dim_[_cy], dim_[_cx], dim_[_cz]);
   T2s_.setZero();
 
-  switch (id) {
-    case 1: {
-      model_ = mida_brain;
-      tissue_dist_ = h5read_icube(file, "/phantom/tissue_dist");
 
       // load T1/T2 parameters.
       std::string path = utility::g_install_dir + "/share/spin-scenario/config/mida_1.5t_relaxation.dat";
-      if (!supp.empty()) path = supp;
+      if (!supp_filename.empty()) path = supp_filename;
       // col 1: index No.
 	  // col 2: T1 (ms)
       // col 3: T2 (ms)
@@ -267,19 +230,18 @@ void phantom::load(const char *filename, std::string supp) {
         tissue_t1t2_(idx, 0) = par(i, 1);
         tissue_t1t2_(idx, 1) = par(i, 2);
       }
-      tissue_t1t2_ *= 1e-3;  // ms into unit s.
-
+      tissue_t1t2_ *= 1e-3;  // ms into unit s.	   
       omp_set_num_threads(omp_core_num);
-#pragma omp parallel for
+      #pragma omp parallel for
       for (int nz = 0; nz < dim_[_cz]; nz++) {
         for (int nx = 0; nx < dim_[_cx]; nx++)
           for (int ny = 0; ny < dim_[_cy]; ny++) {
             {
-              int idx = tissue_dist_(nx, ny, nz);
+              int idx = tissue_dist_(ny, nx, nz);
               // do not deal with background and those tissues not assigned.
-              if (idx != 50 && tissue_index_(idx) == 1) {
-                T1_(nx, ny, nz) = tissue_t1t2_(idx, 0);
-                T2_(nx, ny, nz) = tissue_t1t2_(idx, 1);
+              if (idx != 0 && tissue_index_(idx) == 1) {
+                T1_(ny, nx, nz) = tissue_t1t2_(idx, 0);
+                T2_(ny, nx, nz) = tissue_t1t2_(idx, 1);
               }
 
             }
@@ -287,53 +249,13 @@ void phantom::load(const char *filename, std::string supp) {
       }
 
 #ifdef SSL_OUTPUT_ENABLE
-      std::string s = str(boost::format("%s%s %s %s).\n") % "MIDA brain loaded, cube dimension x/y/z(" % dim_[cx] % dim_[cy]
-                         % dim_[cz]);
+      std::string name;
+      //name = h5read_string(file, "/phantom/name");
+      std::string s = name + " phantom loaded, cube dimension x/y/z(" +
+                      std::to_string(dim_[cx]) + " " +std::to_string(dim_[cy]) + " " 
+                      +std::to_string(dim_[cz])+ ")\n";
       ssl_color_text("info", s);
 #endif
     }
-      break;
-    case 2: {
-      model_ = mni_brain;
-
-      T1_ = h5read_cube(file, "/phantom/T1");
-      T2_ = h5read_cube(file, "/phantom/T2");
-      T2s_ = h5read_cube(file, "/phantom/T2*");
-      pd_ = h5read_cube(file, "/phantom/spin density");
-#ifdef SSL_OUTPUT_ENABLE
-      std::string s = str(boost::format("%s%s %s %s).\n") % "MNI brain loaded, cube dimension x/y/z(" % dim_[cx] % dim_[cy]
-                         % dim_[cz]);
-      ssl_color_text("info", s);
-#endif
-    }
-      break;
-    default: {
-      model_ = usr_phantom;
-      T1_ = h5read_cube(file, "/phantom/T1");
-      T2_ = h5read_cube(file, "/phantom/T2");
-#ifdef SSL_OUTPUT_ENABLE
-      std::string s = str(boost::format("%s%s %s %s).\n") %
-                     "usr phantom loaded, cube dimension x/y/z(" % dim_[cx] %
-                     dim_[cy] % dim_[cz]);
-      ssl_color_text("info", s);
-#endif
-    }
-		break;
-  }
-
-  if (model_ == unidentified_phantom)
-    throw std::runtime_error("unidentified phantom!");
-
-  //	boost::mt19937 rng;
-  //	boost::uniform_01<boost::mt19937> zeroone(rng);
-  //	cube::extent_gen extents;
-  //	dB0_.resize(extents[dim_[cx]][dim_[cy]][dim_[cz]]);
-  //	//std::fill_n(dB0_.data(), dB0_.num_elements(), 0);
-  //	for (auto a : dB0_) for (auto b : a) for (auto&c : b) c = zeroone();
-
-  //	/*std::cout << dB0_[3][5][8] << "\n";
-  //	std::cout << dB0_[3][2][6] << "\n";
-  //	std::cout << dB0_[3][78][8] << "\n";*/
-}
 }
 }

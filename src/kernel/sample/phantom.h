@@ -18,7 +18,7 @@ using namespace ssl::utility;
 namespace ssl {
 namespace sample {
 
-enum phantom_model { mida_brain = 0, mni_brain = 1, usr_phantom =2, unidentified_phantom = 3 };
+//enum phantom_model { mida_brain = 0, mni_brain = 1, usr_phantom =2, unidentified_phantom = 3 };
 enum isochromat_prop {
   //cx = 0,
   //cy = 1,
@@ -67,16 +67,16 @@ struct isochromat {
 class phantom {
  public:
   phantom();
-  phantom(const char *filename, std::string supp = "");
+  phantom(std::string filename, std::string supp_filename);
   virtual ~phantom();
-  void load(const char *filename, std::string supp = "");
+  void load(std::string filename, std::string supp_filename);
   void init_ensemble();
   void view(const sol::table &t) const;
   inline ivec3 dim() const {
     return dim_;
   }
  private:
-  void view(const std::string &axis, int slice) const;
+  void view(const std::string &axis, int slice, std::string prop ="T2") const;
  private:
   ivec3 dim_;  // x,y,z dimension of the cube phantom.
   vec3 res_;   // x,y,z resolution of the cube phantom, unit in m.
@@ -93,7 +93,7 @@ class phantom {
   ivec tissue_index_;
   mat tissue_t1t2_;  //col 2 - T1, col 3 - T2, unit in s.
 
-  phantom_model model_;
+  //phantom_model model_;
  public:
   std::vector<isochromat> isochromats_;
 };

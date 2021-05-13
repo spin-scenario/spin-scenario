@@ -211,6 +211,7 @@ void h5write(H5File &file, Group *group, std::string dataset_name, const ivec &i
 void h5write(H5File &file, Group *group, std::string dataset_name, const icube &cube);
 void h5write(H5File &file, Group *group, std::string dataset_name, const cube & m);
 
+std::string h5read_string(const H5File &file, std::string dataset_name);
 mat h5read_mat(const H5File &file, std::string dataset_name);
 imat h5read_imat(const H5File &file, std::string dataset_name);
 cube h5read_cube(const H5File &file, std::string dataset_name);

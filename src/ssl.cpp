@@ -262,7 +262,7 @@ void bindings(sol::state &lua) {
 
   // phantom bindings.
   ssl.new_usertype<phantom>(
-      "phantom", sol::constructors<sol::types<>, sol::types<const char *>>(),
+      "phantom", sol::constructors<sol::types<std::string, std::string>>(),
       "view", sol::resolve<void(const sol::table &) const>(&phantom::view)
       //"dim", sol::property(&phantom::dim)
   );

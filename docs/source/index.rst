@@ -25,8 +25,8 @@ Get going:
 	module/spinsys
 	module/phantom
 	module/seq
-	module/oc
 	module/physx
+	module/oc
 	module/utility
 	api/api-top
 	development

@@ -249,15 +249,18 @@ icube h5read_icube(const H5File &file, std::string dataset_name) {
   DataSet dataset = file.openDataSet(dataset_name);
   DataSpace dataspace = dataset.getSpace();
   int Ndims = dataspace.getSimpleExtentNdims();
-  if (Ndims != 3) {
-    std::string s = "dims should be 3 for cube matrix, " + std::to_string(Ndims) + " in this dataset: " + dataset_name;
-    throw std::runtime_error(s.c_str());
-  }
 
   hsize_t dims[3];
   dataspace.getSimpleExtentDims(dims);
-  // dims[0] z
-  icube m((int) dims[2], (int) dims[1], (int) dims[0]); // ColMajor
+  icube m;
+  if (Ndims == 2) { // for 2d case.
+    dims[2] = 1;
+    std::string s = "dims should be 3 for cube matrix, " +
+                    std::to_string(Ndims) + " in this dataset: " + dataset_name +" (Nz = 1 instead).\n";
+    ssl_color_text("warn", s);
+	m = icube((int) dims[1], (int) dims[0],(int) dims[2]); // ColMajor
+  } else
+	  m=icube((int) dims[2], (int) dims[1], (int) dims[0]);
   dataset.read(m.data(), PredType::NATIVE_INT);
   return m;
 }
@@ -266,6 +269,13 @@ mat h5read_mat(std::string file, std::string dataset_name) {
   h5file.openFile(file, H5F_ACC_RDWR);
   return h5read_mat(h5file, dataset_name);
 }
+std::string h5read_string(const H5File &file, std::string dataset_name) {
+	DataSet dataset = file.openDataSet(dataset_name);
+  std::string s;
+	dataset.read(s.data(), PredType::NATIVE_DOUBLE);
+  return s;
+}
+
   mat h5read_mat(const H5File &file, std::string dataset_name) {
   DataSet dataset = file.openDataSet(dataset_name);
   DataSpace dataspace = dataset.getSpace();

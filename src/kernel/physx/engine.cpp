@@ -85,7 +85,7 @@ void set_ham_Jcoupl(const sp_cx_mat& m) {
 	if (is_retrievable("supp", t)) {
       supp = retrieve_table_str("supp", t);
     }
-    p_phantom_ = new phantom(par.c_str(), supp);
+    p_phantom_ = new phantom(par, supp);
 	init_ensemble(p_phantom_);
 	delete[] p_phantom_;
   } else 
