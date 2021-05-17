@@ -32,7 +32,7 @@ gives a T1 map at slice number 175 along z axis.
 
 How to create phantom
 =====================
-We provide following demo scripts (Matlab) for researchers to design their own phantom models in Spin-Scenario.
+We provide following demo scripts (Matlab) for researchers to design their own phantom models in Spin-Scenario. There is also a C/C++ :download:`routine <../../../examples/phantom/convert-mhd-phantom-to-spinscenario-h5.rar>` to convert a 3D mhd phantom into Spin-Scenario's h5 format, written and shared by Dr. Jörg Peter from German Cancer Research Center (DKFZ).
 
 2D phantom 
 -----------
