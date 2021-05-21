@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 2.8)
-cmake_minimum_required(VERSION 2.8)
 project(Spin-Scenario)
 set(ssl_major 1)
 set(ssl_minor 1)
