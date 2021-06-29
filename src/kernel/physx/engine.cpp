@@ -87,7 +87,6 @@ void set_ham_Jcoupl(const sp_cx_mat& m) {
     }
     p_phantom_ = new phantom(par, supp);
 	init_ensemble(p_phantom_);
-	delete[] p_phantom_;
   } else 
   init_ensemble(nullptr);
 

@@ -27,10 +27,10 @@ make
 cd ../../../
 
 cd ./3rd-party/yacas
+git checkout v1.6.1
 # COPY THE SCRIPTS FOR YACAS.
 mkdir scripts ../../share/spin-scenario/config/yacas/
 cp -r scripts ../../share/spin-scenario/config/yacas/scripts 
-git checkout v1.6.1
 cd cyacas/libyacas
 sed -i '1i cmake_minimum_required(VERSION 2.8)' CMakeLists.txt
 sed -i '99c install (TARGETS libyacas LIBRARY DESTINATION lib ARCHIVE DESTINATION lib RUNTIME DESTINATION bin COMPONENT app)' CMakeLists.txt

@@ -37,7 +37,7 @@ Development
 
         .. code-block:: sh
 
-         sudo apt-get install cmake libboost-all-dev libfftw3-dev libhdf5-dev libnlopt-dev libnlopt-cxx-dev libpython3-dev gnuplot
+         sudo apt-get install build-essential cmake libboost-all-dev libfftw3-dev libhdf5-dev libnlopt-dev libnlopt-cxx-dev libpython3-dev gnuplot
         
         Run sh script to complie other 3rd-party libraries.
 	
