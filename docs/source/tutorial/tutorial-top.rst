@@ -20,3 +20,7 @@ starting the Spin-Scenario environment
 .. |cmd_screen| image:: ../media/cmd_screen.png
 	:height: 320
 	:align: middle
+
+Spin-Scenario script execution in terminal
+--------------------------------------------
+Alternatively, users may also execute the scenario script in terminal like ``spin-scenario fid.lua``, please make sure that the script file locates at the current path of the terminal.

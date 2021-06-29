@@ -28,6 +28,8 @@ Quick Start
 <img src="docs/source/media/cmd_screen.png"  width="480">
 </p>
 
+Alternatively, users may also execute the scenario script in terminal like ``spin-scenario fid.lua``, just make sure that the script file locates at the current path of the terminal.
+
 As a start, we show a simple [FID](examples/seq/acrylic.lua) sequence as follow:  
 ```lua
         -- scenario A: spin system generation.

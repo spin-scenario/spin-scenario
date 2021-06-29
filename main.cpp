@@ -31,6 +31,10 @@ void completionHook(char const *prefix, linenoiseCompletions *lc) {
   }
 }
 int main(int argc, char *argv[]) {
+  bool execution_mode = 0; // default spin-scenario console£¬ e.g. load('test.lua')
+  if (argc > 1)
+	  execution_mode = 1; // terminal mode£¬ e.g. spin-scenario.exe test.lua  or spin-scenario test.lua
+
 #ifdef WIN32
   char s[MAX_PATH];
   GetCurrentDirectoryA(MAX_PATH, s);
@@ -56,6 +60,14 @@ int main(int argc, char *argv[]) {
   load_expmv_theta();
   ssl_version_output();
   init_global_lua(lua);
+
+  if(execution_mode==1) {
+    std::string s = argv[1];
+	 if (boost::starts_with(s, ".\\"))
+		 boost::erase_first(s, ".\\");
+	  lua.script("script_transform ('" + s + "')");
+    return 0;
+  }
 
   linenoiseInstallWindowChangeHandler();
   while (argc > 1) {
