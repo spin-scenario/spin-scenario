@@ -145,6 +145,15 @@ void set_B0(std::string mag) {
 #endif
     return;
   }
+  if (str_vec[1] == "nt") {
+    g_B0_ = val_B0 * 1e-9;
+#ifdef SSL_OUTPUT_ENABLE
+    std::string s = str(boost::format("%s %.3f nT.\n") %
+                        "magnet field set to be" % (val_B0));
+    ssl_color_text("info", s);
+#endif
+    return;
+  }
   //set_magnet_field(val_B0);
   if (str_vec[1] == "mhz") {
     ssl::spinsys::isotope proton("1H");

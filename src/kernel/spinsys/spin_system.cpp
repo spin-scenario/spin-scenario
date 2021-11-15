@@ -44,12 +44,16 @@ void spin_system::set_sys(const sol::table &t) {
 //    set_magnet_field(val_B0);
 //  if (str_vec[1] == "mhz")
 //    set_proton_freq(val_B0);
+    std::string s = "nmr"; // default assumption for interaction.
 
   if (g_B0_ < 0) {
     throw std::runtime_error("static magnetic field not set yet!");
   }
 
   comp_.B0_ = g_B0_;
+
+  if (g_B0_ * 1e9 < 100)  // smaller than 100 nT
+    s = "zulf_nmr";
 
   set_isotopes(retrieve_table("spin", t).as<std::string>());
   //setBasis();
@@ -68,7 +72,8 @@ void spin_system::set_sys(const sol::table &t) {
     inter_.set_relaxation(retrieve_table("relaxation", t).as<std::string>());
 
   inter_.init();
-  inter_.set_assumption("nmr");
+
+  inter_.set_assumption(s);
   /*} catch (const std::runtime_error& e) {
       std::string s = str(boost::format("%s\n") % std::string(e.what()));
       ssl_color_text("err", s);

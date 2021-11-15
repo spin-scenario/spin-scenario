@@ -1639,11 +1639,11 @@ void interaction::alloc() {
 void interaction::set_assumption(std::string assume) {
   if (assume_ == assume)
     return;
-  assume_ = assume;
-  if (assume_ != "labframe" && assume_ != "nmr" && assume_ != "esr") {
+  if (assume != "labframe" && assume != "nmr" && assume != "esr" && assume != "zulf_nmr") {
     std::string s = "unknown interaction assumption ** " + assume + " **!";
     throw std::runtime_error(s.c_str());
   }
+   assume_ = assume;
   size_t nspins = comp_.nspins();
   if (assume == "labframe") {
     // Process zeeman interactions
@@ -1671,6 +1671,19 @@ void interaction::set_assumption(std::string assume) {
         else
           coupling_.strengths[i * nspins + j] = weak;
       }
+  }
+  
+    if (assume == "zulf_nmr") {
+    // Process zeeman interactions
+    for (size_t i = 0; i < nspins; i++)
+      zeeman_.strengths[i] = secular;
+
+    // Process couplings
+	// the frequency separation of the two coupled spins is much smaller in magnitude 
+	// than the magnitude of the scalar coupling between the two spins.
+    for (size_t i = 0; i < nspins; i++)
+      for (size_t j = i; j < nspins; j++)
+          coupling_.strengths[i * nspins + j] = strong;
   }
 }
 void interaction::init() {
