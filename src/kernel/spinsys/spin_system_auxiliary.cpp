@@ -1344,6 +1344,11 @@ void interaction::set_Jcoupling(std::string list) {
     if (*(iter + 2) == "scalar") {
       size_t id1 = boost::lexical_cast<size_t>(*iter);
       size_t id2 = boost::lexical_cast<size_t>(*(iter + 1));
+	  if(id1>comp_.nspins()||id2>comp_.nspins()) {
+	  std::string s = "spin index for J coupling definition in 'spin_system' exceed the limit.";
+      throw std::runtime_error(s.c_str());
+	  }
+
 
       std::string val = *(iter + 3);
       std::vector<std::string> val_vec;
