@@ -779,7 +779,7 @@ void grape::projection(const sol::table &t) {
   cube comp_dist;
   // for BROADBAND case: states, freq offsets, rf scalings
   // for STEP case: states, steps, rf scalings
-  std::vector<std::string> chs = rf_->get_channels_str();
+  std::vector<std::string> chs = user_rf.get_channels_str();
 
   if (str_opt == "step") {
     dim2 = "pulse steps\n";
